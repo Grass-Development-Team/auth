@@ -1,4 +1,5 @@
 mod routers;
+mod internal;
 
 use crate::routers::get_router;
 use axum::Router;
