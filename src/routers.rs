@@ -1,11 +1,14 @@
-use axum::http::{Method, StatusCode};
-use axum::{Json, Router};
-use serde_json::json;
+pub mod controllers;
+
+use crate::routers::controllers::common;
+use axum::http::Method;
+use axum::routing::any;
+use axum::Router;
 use tower::ServiceBuilder;
 use tower_http::cors;
 use tower_http::cors::CorsLayer;
 
-pub fn get_router(app: Router) -> axum::Router {
+pub fn get_router(app: Router) -> Router {
     // CORS
     let cors = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST])
@@ -26,12 +29,8 @@ pub fn get_router(app: Router) -> axum::Router {
     let api = Router::new()
         .merge(user)
         .merge(oauth)
-        .fallback((
-            StatusCode::NOT_FOUND,
-            Json(
-                json!({ "code": 404, "msg": "Not Found" })
-            )
-        ))
+        .route("/ping", any(common::ping))
+        .fallback(common::not_found)
         .layer(cors);
     let api = Router::new().nest("/api", api);
 
