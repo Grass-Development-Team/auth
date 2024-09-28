@@ -340,6 +340,7 @@ name = "madoka_auth"
 version = "0.1.0-alpha"
 dependencies = [
  "axum",
+ "log",
  "serde",
  "serde_json",
  "tokio",
