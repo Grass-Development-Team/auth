@@ -4,7 +4,7 @@ mod internal;
 use crate::internal::config::structure::Config;
 use crate::routers::get_router;
 use axum::Router;
-use log::warn;
+use log::{error, info, warn};
 use tokio::net::TcpListener;
 
 pub async fn run() {
@@ -16,9 +16,17 @@ pub async fn run() {
 
     config.check();
 
+    let host = config.host.unwrap();
+
     let app = Router::new();
-    let listener = TcpListener::bind(format!("{}:{}", config.host.unwrap(), config.port.unwrap()))
+    let listener = TcpListener::bind(format!("{}:{}", &host, config.port.unwrap()))
         .await.unwrap();
-    axum::serve(listener, get_router(app))
-        .await.unwrap();
+    match axum::serve(listener, get_router(app)).await {
+        Ok(_) => {
+            info!("Server started on {}:{}", &host, config.port.unwrap());
+        }
+        Err(err) => {
+            error!("{}", err);
+        }
+    }
 }
