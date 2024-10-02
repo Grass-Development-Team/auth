@@ -4,7 +4,10 @@ mod internal;
 use crate::internal::config::structure::Config;
 use crate::routers::get_router;
 use axum::Router;
+use colored::Colorize;
+use std::io;
 use tokio::net::TcpListener;
+use tokio::sync::oneshot;
 
 // Log
 use crate::internal::log::layer::LogLayer;
@@ -32,12 +35,21 @@ pub async fn run() {
     let app = Router::new();
     let listener = TcpListener::bind(format!("{}:{}", &host, config.port.unwrap()))
         .await.unwrap();
-    match axum::serve(listener, get_router(app)).await {
-        Ok(_) => {
-            info!("Server started on {}:{}", &host, config.port.unwrap());
+
+    let (tx, rx) = oneshot::channel::<io::Error>();
+    tokio::spawn(async move {
+        if let Err(err) = axum::serve(listener, get_router(app)).await {
+            tx.send(err).unwrap();
+        }
+    });
+
+    info!("Server started on {}", format!("{}:{}", &host, config.port.unwrap()).green());
+    match rx.await {
+        Ok(err) => {
+            error!("Server stopped with error: {}", err);
         }
         Err(err) => {
-            error!("{}", err);
+            error!("Error while running server: {}", err);
         }
     }
 }
