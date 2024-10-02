@@ -1,9 +1,9 @@
 use super::structure::Config;
-use log::warn;
 use std::fs::File;
 use std::io;
 use std::io::Read;
 use std::path::Path;
+use tracing::warn;
 
 const CONFIG_VERSION: u8 = 1;
 

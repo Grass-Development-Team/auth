@@ -4,13 +4,24 @@ mod internal;
 use crate::internal::config::structure::Config;
 use crate::routers::get_router;
 use axum::Router;
-use log::{error, info, warn};
 use tokio::net::TcpListener;
 
+// Log
+use crate::internal::log::layer::LogLayer;
+use tracing::{error, info, warn};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+
+fn init_logger() {
+    tracing_subscriber::registry().with(LogLayer).init();
+}
+
 pub async fn run() {
+    init_logger();
+
     let mut config = Config::from_file("config.toml")
         .unwrap_or_else(|_| {
-            warn!("Cannot load config file. Use default config instead.");
+            warn!(message = "Cannot load config file. Use default config instead. ");
             Config::default()
         });
 
