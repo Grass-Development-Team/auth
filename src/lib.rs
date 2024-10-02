@@ -1,13 +1,14 @@
 mod routers;
 mod internal;
 
-use crate::internal::config::structure::Config;
-use crate::routers::get_router;
 use axum::Router;
 use colored::Colorize;
 use std::io;
 use tokio::net::TcpListener;
 use tokio::sync::oneshot;
+
+use crate::internal::config::structure::Config;
+use crate::routers::get_router;
 
 // Log
 use crate::internal::log::layer::LogLayer;

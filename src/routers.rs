@@ -1,12 +1,14 @@
 pub mod controllers;
 
-use crate::routers::controllers::common;
 use axum::http::Method;
 use axum::routing::any;
 use axum::Router;
 use tower::ServiceBuilder;
 use tower_http::cors;
 use tower_http::cors::CorsLayer;
+
+// Routers
+use crate::routers::controllers::common;
 
 pub fn get_router(app: Router) -> Router {
     // CORS
