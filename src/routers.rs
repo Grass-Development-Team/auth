@@ -1,7 +1,7 @@
 pub mod controllers;
 
 use axum::http::Method;
-use axum::routing::{any, get};
+use axum::routing::{any, post};
 use axum::Router;
 use tower::ServiceBuilder;
 use tower_http::cors;
@@ -22,8 +22,8 @@ pub fn get_router(app: Router) -> Router {
 
     // User
     let user = Router::new()
-        .route("/login", get(users::login).post(users::login))
-        .route("/register", get(users::register).post(users::register));
+        .route("/login", post(users::login))
+        .route("/register", post(users::register));
     let user = Router::new().nest("/user", user);
 
     // Oauth
