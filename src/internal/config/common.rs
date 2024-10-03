@@ -1,4 +1,4 @@
-use super::structure::Config;
+use super::structure::{Config, DatabaseSqlite, DatabaseType};
 use std::fs::File;
 use std::io;
 use std::io::Read;
@@ -8,11 +8,12 @@ use tracing::warn;
 const CONFIG_VERSION: u8 = 1;
 
 impl Config {
-    pub fn new(host: String, port: u32) -> Self {
+    pub fn new(host: String, port: u32, database: DatabaseType) -> Self {
         Config {
             version: CONFIG_VERSION,
             host: Some(host),
             port: Some(port),
+            database: Some(database),
         }
     }
 
@@ -42,6 +43,12 @@ impl Config {
                 warn!("Port number {} is out of range, setting port number to default value (7817)", port);
             }
         }
+        // Check if database is set, if not then set it to default sqlite
+        if self.database.is_none() {
+            self.database = Some(
+                DatabaseType::Sqlite(DatabaseSqlite { file: "auth.db".into() })
+            );
+        }
     }
 }
 
@@ -69,6 +76,9 @@ impl Default for Config {
             version: CONFIG_VERSION,
             host: Some("127.0.0.1".into()),
             port: Some(7817),
+            database: Some(
+                DatabaseType::Sqlite(DatabaseSqlite { file: "auth.db".into() })
+            ),
         }
     }
 }
