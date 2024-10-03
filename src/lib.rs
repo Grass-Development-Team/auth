@@ -5,7 +5,7 @@ mod internal;
 
 use axum::Router;
 use colored::Colorize;
-use std::io;
+use std::{fs, io};
 use tokio::net::TcpListener;
 use tokio::sync::oneshot;
 
@@ -32,6 +32,7 @@ pub async fn run() {
         });
 
     config.check();
+    fs::write("./config.toml", toml::to_string_pretty(&config).unwrap()).unwrap(); // TODO: error handling
 
     let host = config.host.unwrap();
 
