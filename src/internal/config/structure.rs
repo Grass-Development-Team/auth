@@ -30,7 +30,9 @@ pub enum DatabaseType {
 pub struct Database {
     pub host: String,
     pub port: u32,
-
+    pub user: String,
+    pub dbname: String,
+    pub password: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
