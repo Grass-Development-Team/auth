@@ -1,9 +1,10 @@
 mod routers;
+mod state;
 mod services;
 mod models;
 mod internal;
 
-use axum::Router;
+use axum::{Extension, Router};
 use colored::Colorize;
 use std::{fs, io};
 use tokio::net::TcpListener;
@@ -37,6 +38,7 @@ pub async fn run() {
     let host = config.host.unwrap();
 
     let app = Router::new();
+    // .layer(Extension(state::AppState {}));
     let listener = TcpListener::bind(format!("{}:{}", &host, config.port.unwrap()))
         .await.unwrap();
 
