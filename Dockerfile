@@ -11,7 +11,7 @@ ADD ./src .
 
 RUN cargo build --release
 
-FROM debian:buster-slim
+FROM debian:bookworm-slim
 WORKDIR /app
 
 COPY --from=builder /madoka_auth/target/release/madoka_auth .
