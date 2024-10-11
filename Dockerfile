@@ -1,9 +1,6 @@
 FROM rust:latest as builder
 WORKDIR /madoka_auth
 
-RUN cargo new --bin madoka_auth
-RUN rm ./src/*
-
 COPY ./Cargo.toml ./Cargo.toml
 ADD ./src ./src
 
