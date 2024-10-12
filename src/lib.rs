@@ -11,6 +11,7 @@ use tokio::net::TcpListener;
 use tokio::sync::oneshot;
 
 use crate::internal::config::structure::Config;
+use crate::models::init::init as init_db;
 use crate::routers::get_router;
 
 // Log
@@ -34,6 +35,8 @@ pub async fn run() {
 
     config.check();
     fs::write("./config.toml", toml::to_string_pretty(&config).unwrap()).unwrap(); // TODO: error handling
+
+    init_db(&config.database.unwrap()).await.unwrap();
 
     let host = config.host.unwrap();
 
