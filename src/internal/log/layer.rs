@@ -20,7 +20,7 @@ where
             "ERROR" => "ERROR".red(),
             "WARN" => "WARN".yellow(),
             "INFO" => "INFO".blue(),
-            other => other.normal()
+            other => other.green()
         };
         if level == "ERROR" {
             eprintln!("[{}] [{}] {}", colored_level, time, visitor.message());
