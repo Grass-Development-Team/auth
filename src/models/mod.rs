@@ -5,3 +5,4 @@ pub mod migration;
 pub mod users;
 
 pub mod init;
+pub mod common;
