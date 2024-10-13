@@ -6,7 +6,7 @@ mod internal;
 
 use axum::{Extension, Router};
 use colored::Colorize;
-use std::{fs, io};
+use std::{env, fs, io};
 use tokio::net::TcpListener;
 use tokio::sync::oneshot;
 
@@ -17,11 +17,23 @@ use crate::routers::get_router;
 // Log
 use crate::internal::log::layer::LogLayer;
 use tracing::{error, info, warn};
+use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::Layer;
 
 fn init_logger() {
-    tracing_subscriber::registry().with(LogLayer).init();
+    let level = env::var("LOG_LEVEL").unwrap_or_else(|_| {
+        "".into()
+    });
+    let level = match level.as_str() {
+        "TRACE" => LevelFilter::TRACE,
+        "DEBUG" => LevelFilter::DEBUG,
+        "WARN" => LevelFilter::WARN,
+        "ERROR" => LevelFilter::ERROR,
+        _ => LevelFilter::INFO,
+    };
+    tracing_subscriber::registry().with(LogLayer.with_filter(level)).init();
 }
 
 pub async fn run() {
