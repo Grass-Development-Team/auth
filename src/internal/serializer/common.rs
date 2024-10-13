@@ -27,12 +27,18 @@ impl From<Response> for Value {
 
 #[derive(Serialize, Deserialize)]
 pub enum ResponseCode {
+    // Http status code
     OK, // 200
     BadRequest, // 400
     Unauthorized, // 401
     NotFound, // 404
+    // Internal status code
+    ParamError, // 4000
+    UserNotFound, // 4001
+    CredentialInvalid, // 4002
 }
 
+// Error code
 impl From<ResponseCode> for u16 {
     fn from(value: ResponseCode) -> Self {
         match value {
@@ -40,6 +46,24 @@ impl From<ResponseCode> for u16 {
             ResponseCode::BadRequest => 400,
             ResponseCode::Unauthorized => 401,
             ResponseCode::NotFound => 404,
+            ResponseCode::ParamError => 4000,
+            ResponseCode::UserNotFound => 4001,
+            ResponseCode::CredentialInvalid => 4002,
+        }
+    }
+}
+
+// Error message
+impl From<ResponseCode> for String {
+    fn from(value: ResponseCode) -> Self {
+        match value {
+            ResponseCode::OK => "OK".into(),
+            ResponseCode::BadRequest => "Bad Request".into(),
+            ResponseCode::Unauthorized => "Unauthorized".into(),
+            ResponseCode::NotFound => "Not Found".into(),
+            ResponseCode::ParamError => "".into(),
+            ResponseCode::UserNotFound => "Cannot found user".into(),
+            ResponseCode::CredentialInvalid => "Invalid credential".into(),
         }
     }
 }
