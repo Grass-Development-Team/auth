@@ -1,5 +1,10 @@
+use crate::models::common::ModelError;
+use crate::models::common::ModelError::{DBError, Empty};
+
 use sea_orm::entity::prelude::*;
+use sea_orm::QuerySelect;
 use serde::{Deserialize, Serialize};
+use sha2::Digest;
 
 /// Status of the Account
 /// - Inactive (0): User haven't active the account through link send to email
@@ -47,3 +52,33 @@ impl RelationTrait for Relation {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+/// Get user model by email
+pub async fn get_user_by_email(conn: &DatabaseConnection, email: String) -> Result<Model, ModelError> {
+    let res = Entity::find().filter(Column::Email.eq(email)).limit(1).all(conn).await;
+    let res = match res {
+        Ok(model) => model,
+        Err(err) => { return Err(DBError(err)); }
+    };
+    if !res.is_empty() {
+        Ok(res[0].to_owned())
+    } else {
+        Err(Empty)
+    }
+}
+
+impl Model {
+    pub fn check_password(&self, password: String) -> bool {
+        let password_stored: Vec<&str> = self.password.split(":").collect();
+        if password_stored.len() != 3 {
+            false
+        } else if password_stored[0] == "sha2" {
+            let password_with_salt = password + password_stored[2];
+            let hash = sha2::Sha256::digest(password_with_salt);
+            let hash = base16ct::lower::encode_string(&hash);
+            hash == password_stored[1]
+        } else {
+            false
+        }
+    }
+}
