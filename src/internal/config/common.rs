@@ -32,7 +32,7 @@ impl Config {
     pub fn check(&mut self) {
         // Check if host is set, if not then set it to "127.0.0.1"
         if self.host.is_none() {
-            self.host = Some("127.0.0.1".into());
+            self.host = Some("0.0.0.0".into());
         }
         // Check if port is set, if not then set it to 7817
         if self.port.is_none() {
@@ -74,7 +74,7 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             version: CONFIG_VERSION,
-            host: Some("127.0.0.1".into()),
+            host: Some("0.0.0.0".into()),
             port: Some(7817),
             database: Some(
                 DatabaseType::Sqlite(DatabaseSqlite { file: "auth.db".into() })
