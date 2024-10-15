@@ -34,8 +34,10 @@ pub enum ResponseCode {
     NotFound, // 404
     // Internal status code
     ParamError, // 4000
-    UserNotFound, // 4001
-    CredentialInvalid, // 4002
+    UserNotFound, // 4010
+    CredentialInvalid, // 4011
+    UserBlocked, // 4012
+    UserNotActivated, // 4013
 }
 
 // Error code
@@ -47,8 +49,10 @@ impl From<ResponseCode> for u16 {
             ResponseCode::Unauthorized => 401,
             ResponseCode::NotFound => 404,
             ResponseCode::ParamError => 4000,
-            ResponseCode::UserNotFound => 4001,
-            ResponseCode::CredentialInvalid => 4002,
+            ResponseCode::UserNotFound => 4010,
+            ResponseCode::CredentialInvalid => 4011,
+            ResponseCode::UserBlocked => 4012,
+            ResponseCode::UserNotActivated => 4013,
         }
     }
 }
@@ -64,6 +68,8 @@ impl From<ResponseCode> for String {
             ResponseCode::ParamError => "".into(),
             ResponseCode::UserNotFound => "Cannot found user".into(),
             ResponseCode::CredentialInvalid => "Invalid credential".into(),
+            ResponseCode::UserBlocked => "The account was blocked".into(),
+            ResponseCode::UserNotActivated => "The account is not activated".into(),
         }
     }
 }
