@@ -16,6 +16,7 @@ pub enum AccountStatus {
     Inactive = 0,
     Active = 1,
     Banned = 2,
+    Deleted = 3,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
