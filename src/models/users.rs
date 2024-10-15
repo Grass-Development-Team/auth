@@ -1,6 +1,7 @@
 use crate::models::common::ModelError;
 use crate::models::common::ModelError::{DBError, Empty};
 
+use crate::internal::utils;
 use sea_orm::entity::prelude::*;
 use sea_orm::QuerySelect;
 use serde::{Deserialize, Serialize};
@@ -74,10 +75,7 @@ impl Model {
         if password_stored.len() != 3 {
             false
         } else if password_stored[0] == "sha2" {
-            let password_with_salt = password + password_stored[2];
-            let hash = sha2::Sha256::digest(password_with_salt);
-            let hash = base16ct::lower::encode_string(&hash);
-            hash == password_stored[1]
+            utils::password::check(password, password_stored[2].to_owned(), password_stored[1].to_owned())
         } else {
             false
         }
