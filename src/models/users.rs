@@ -5,7 +5,6 @@ use crate::internal::utils;
 use sea_orm::entity::prelude::*;
 use sea_orm::QuerySelect;
 use serde::{Deserialize, Serialize};
-use sha2::Digest;
 
 /// Status of the Account
 /// - Inactive (0): User haven't active the account through link send to email
