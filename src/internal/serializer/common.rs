@@ -38,6 +38,8 @@ pub enum ResponseCode {
     CredentialInvalid, // 4011
     UserBlocked, // 4012
     UserNotActivated, // 4013
+    UserExists, // 4014
+    InternalError, // 5000
 }
 
 // Error code
@@ -53,6 +55,8 @@ impl From<ResponseCode> for u16 {
             ResponseCode::CredentialInvalid => 4011,
             ResponseCode::UserBlocked => 4012,
             ResponseCode::UserNotActivated => 4013,
+            ResponseCode::UserExists => 4014,
+            ResponseCode::InternalError => 5000,
         }
     }
 }
@@ -70,6 +74,8 @@ impl From<ResponseCode> for String {
             ResponseCode::CredentialInvalid => "Invalid credential".into(),
             ResponseCode::UserBlocked => "The account was blocked".into(),
             ResponseCode::UserNotActivated => "The account is not activated".into(),
+            ResponseCode::UserExists => "Email already exists".into(),
+            ResponseCode::InternalError => "Internal Error".into(),
         }
     }
 }
