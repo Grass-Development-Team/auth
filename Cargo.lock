@@ -1179,6 +1179,7 @@ dependencies = [
  "base16ct",
  "chrono",
  "colored",
+ "rand",
  "sea-orm",
  "sea-orm-migration",
  "serde",
