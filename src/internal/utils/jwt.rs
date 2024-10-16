@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-#[serde(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct Claim {
     /// Issuer
-    pub iss: &str,
+    pub iss: &'static str,
     /// Username
     pub sub: String,
     /// The time of expiration
@@ -11,16 +11,21 @@ pub struct Claim {
     /// User ID
     pub uid: u32,
     /// Session ID
-    /// This is to manage jwt throght server.
+    /// This is to manage jwt through server.
     pub sid: String,
 }
 
-#[serde(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 struct Header {
-    pub alg: &str,
-    pub typ: &str,
+    pub alg: &'static str,
+    pub typ: &'static str,
 }
 
-pub fn generate() -> () {
+const HEAD: Header = Header {
+    alg: "HS256",
+    typ: "JWT",
+};
+
+pub fn generate(claim: Claim, salt: &str) -> () {
     todo!()
 }
