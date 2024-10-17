@@ -33,7 +33,7 @@ pub enum AccountPermission {
 #[derive(Debug, Clone, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "users")]
 pub struct Model {
-    #[sea_orm(primary_key)]
+    #[sea_orm(primary_key, auto_increment = true)]
     pub uid: i32,
     pub email: String,
     pub username: String,

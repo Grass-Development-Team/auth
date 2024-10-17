@@ -1,14 +1,14 @@
 use crate::internal::serializer::common::Response;
 use crate::services::users::{LoginService, RegisterService};
 use crate::state::AppState;
-use axum::{Json, Extension};
+use axum::{Extension, Json};
 
 /// User register
-pub async fn register(Json(req): Json<RegisterService>, Extension(state): Extension<AppState>) -> Json<Response<&str>> {
-    Json(req.register(&state.db))
+pub async fn register(Extension(state): Extension<AppState>, Json(req): Json<RegisterService>) -> Json<Response<String>> {
+    Json(req.register(&state.db).await)
 }
 
 /// User login
-pub async fn login(Json(req): Json<LoginService>, Extension(state): Extension<AppState>) -> Json<Response> {
-    todo!("Login controller");
+pub async fn login(Extension(state): Extension<AppState>, Json(req): Json<LoginService>) -> Json<Response<String>> {
+    Json(req.login(&state.db).await)
 }
