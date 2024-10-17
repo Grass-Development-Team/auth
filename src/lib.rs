@@ -52,7 +52,8 @@ pub async fn run() {
     let host = config.host.unwrap();
 
     let db = init_db(&config.database.unwrap()).await.unwrap();
-    let app = Router::new()
+    let app = Router::new();
+    let app = get_router(app)
         .layer(
             Extension(state::AppState {
                 db: Arc::from(db)
@@ -64,7 +65,7 @@ pub async fn run() {
 
     let (tx, rx) = oneshot::channel::<io::Error>();
     tokio::spawn(async move {
-        if let Err(err) = axum::serve(listener, get_router(app)).await {
+        if let Err(err) = axum::serve(listener, app).await {
             tx.send(err).unwrap();
         }
     });
