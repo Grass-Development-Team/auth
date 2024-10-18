@@ -6,7 +6,8 @@ mod internal;
 
 use axum::{Extension, Router};
 use colored::Colorize;
-use std::{fs, io};
+use std::sync::Arc;
+use std::{env, fs, io};
 use tokio::net::TcpListener;
 use tokio::sync::oneshot;
 
@@ -17,11 +18,23 @@ use crate::routers::get_router;
 // Log
 use crate::internal::log::layer::LogLayer;
 use tracing::{error, info, warn};
+use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::Layer;
 
 fn init_logger() {
-    tracing_subscriber::registry().with(LogLayer).init();
+    let level = env::var("LOG_LEVEL").unwrap_or_else(|_| {
+        "".into()
+    });
+    let level = match level.as_str() {
+        "TRACE" => LevelFilter::TRACE,
+        "DEBUG" => LevelFilter::DEBUG,
+        "WARN" => LevelFilter::WARN,
+        "ERROR" => LevelFilter::ERROR,
+        _ => LevelFilter::INFO,
+    };
+    tracing_subscriber::registry().with(LogLayer.with_filter(level)).init();
 }
 
 pub async fn run() {
@@ -36,18 +49,23 @@ pub async fn run() {
     config.check();
     fs::write("./config.toml", toml::to_string_pretty(&config).unwrap()).unwrap(); // TODO: error handling
 
-    init_db(&config.database.unwrap()).await.unwrap();
-
     let host = config.host.unwrap();
 
+    let db = init_db(&config.database.unwrap()).await.unwrap();
     let app = Router::new();
-    // .layer(Extension(state::AppState {}));
+    let app = get_router(app)
+        .layer(
+            Extension(state::AppState {
+                db: Arc::from(db)
+            })
+        );
+
     let listener = TcpListener::bind(format!("{}:{}", &host, config.port.unwrap()))
         .await.unwrap();
 
     let (tx, rx) = oneshot::channel::<io::Error>();
     tokio::spawn(async move {
-        if let Err(err) = axum::serve(listener, get_router(app)).await {
+        if let Err(err) = axum::serve(listener, app).await {
             tx.send(err).unwrap();
         }
     });
