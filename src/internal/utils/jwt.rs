@@ -1,9 +1,10 @@
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Claim {
     /// Issuer
-    pub iss: &'static str,
+    pub iss: String,
     /// Username
     pub sub: String,
     /// The time of expiration
@@ -15,17 +16,14 @@ pub struct Claim {
     pub sid: String,
 }
 
-#[derive(Deserialize, Serialize)]
-struct Header {
-    pub alg: &'static str,
-    pub typ: &'static str,
+pub fn generate(claim: Claim, secret: &str) -> jsonwebtoken::errors::Result<String> {
+    encode(&Header::default(), &claim, &EncodingKey::from_secret(secret.as_ref()))
 }
 
-const HEAD: Header = Header {
-    alg: "HS256",
-    typ: "JWT",
-};
-
-pub fn generate(claim: Claim, salt: &str) -> () {
-    todo!()
+pub fn unwrap(jwt: &str, secret: &str) -> jsonwebtoken::errors::Result<Claim> {
+    let claim = match decode::<Claim>(jwt, &DecodingKey::from_secret(secret.as_ref()), &Validation::default()) {
+        Ok(claim) => claim,
+        Err(err) => return Err(err),
+    };
+    Ok(claim.claims)
 }
