@@ -7,8 +7,9 @@ mod internal;
 use axum::{Extension, Router};
 use colored::Colorize;
 use std::sync::Arc;
-use std::{env, fs, io};
+use std::{env, io};
 use tokio::net::TcpListener;
+use tokio::signal;
 use tokio::sync::oneshot;
 
 use crate::internal::config::structure::Config;
@@ -35,6 +36,34 @@ fn init_logger() {
         _ => LevelFilter::INFO,
     };
     tracing_subscriber::registry().with(LogLayer.with_filter(level)).init();
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            info!("Shutting down...");
+        },
+        _ = terminate => {
+            info!("Shutting down...");
+        },
+    }
 }
 
 pub async fn run() {
@@ -65,7 +94,7 @@ pub async fn run() {
 
     let (tx, rx) = oneshot::channel::<io::Error>();
     tokio::spawn(async move {
-        if let Err(err) = axum::serve(listener, app).await {
+        if let Err(err) = axum::serve(listener, app).with_graceful_shutdown(shutdown_signal()).await {
             tx.send(err).unwrap();
         }
     });
