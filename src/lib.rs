@@ -12,7 +12,7 @@ use tokio::net::TcpListener;
 use tokio::sync::oneshot;
 
 use crate::internal::config::structure::Config;
-use crate::models::init::init as init_db;
+use crate::models::init as init_db;
 use crate::routers::get_router;
 
 // Log
