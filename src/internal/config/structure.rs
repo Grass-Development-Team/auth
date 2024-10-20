@@ -13,6 +13,8 @@ pub struct Config {
     /// Database to use.
     /// Default Type is "sqlite".
     pub database: Option<DatabaseType>,
+    /// Secure config of the program
+    pub secure: Option<Secure>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -38,4 +40,11 @@ pub struct Database {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DatabaseSqlite {
     pub file: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Secure {
+    /// JWT Secret key.
+    /// If not set, a random key will be generated and stored in the config file.
+    pub jwt_secret: Option<String>,
 }

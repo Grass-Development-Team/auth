@@ -47,7 +47,7 @@ pub async fn run() {
         });
 
     config.check();
-    fs::write("./config.toml", toml::to_string_pretty(&config).unwrap()).unwrap(); // TODO: error handling
+    config.write("./config.toml");
 
     let host = config.host.unwrap();
 
