@@ -6,6 +6,9 @@ edition = "2021"
 [lib]
 name = "madoka_auth_lib"
 
+[workspace]
+members = ["validate"]
+
 [dependencies]
 axum = "0.7"
 chrono = "0.4.38"
