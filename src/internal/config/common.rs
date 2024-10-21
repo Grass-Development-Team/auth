@@ -1,22 +1,15 @@
-use super::structure::{Config, DatabaseSqlite, DatabaseType};
+use super::structure::{Config, DatabaseSqlite, DatabaseType, Secure};
+use crate::internal::utils;
 use std::fs::File;
-use std::io;
 use std::io::Read;
 use std::path::Path;
+use std::{fs, io};
+use tracing::error;
 use tracing::warn;
 
 const CONFIG_VERSION: u8 = 1;
 
 impl Config {
-    pub fn new(host: String, port: u32, database: DatabaseType) -> Self {
-        Config {
-            version: CONFIG_VERSION,
-            host: Some(host),
-            port: Some(port),
-            database: Some(database),
-        }
-    }
-
     pub fn from_file(path: &str) -> io::Result<Self> {
         let file: &Path = Path::new(path);
         let file = File::open(file);
@@ -32,7 +25,7 @@ impl Config {
     pub fn check(&mut self) {
         // Check if host is set, if not then set it to "127.0.0.1"
         if self.host.is_none() {
-            self.host = Some("127.0.0.1".into());
+            self.host = Some("0.0.0.0".into());
         }
         // Check if port is set, if not then set it to 7817
         if self.port.is_none() {
@@ -49,6 +42,37 @@ impl Config {
                 DatabaseType::Sqlite(DatabaseSqlite { file: "auth.db".into() })
             );
         }
+
+        // Check if secure is set, if not then set it to
+        if self.secure.is_none() {
+            self.secure = Some(
+                Secure {
+                    jwt_secret: None
+                }
+            )
+        }
+        if let Some(secure) = &self.secure {
+            if secure.jwt_secret.is_none() {
+                self.secure = Some(
+                    Secure {
+                        jwt_secret: Some(utils::rand::string(16)),
+                    }
+                )
+            }
+        }
+    }
+
+    pub fn write(&self, path: &str) {
+        let config = match toml::to_string_pretty(&self) {
+            Ok(config) => config,
+            Err(err) => {
+                error!("Failed to serialize config: {}", err);
+                return;
+            }
+        };
+        fs::write(path, config).unwrap_or_else(|e| {
+            error!("Failed to write config file: {}", e);
+        });
     }
 }
 
@@ -74,10 +98,15 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             version: CONFIG_VERSION,
-            host: Some("127.0.0.1".into()),
+            host: Some("0.0.0.0".into()),
             port: Some(7817),
             database: Some(
                 DatabaseType::Sqlite(DatabaseSqlite { file: "auth.db".into() })
+            ),
+            secure: Some(
+                Secure {
+                    jwt_secret: Some(utils::rand::string(16)),
+                }
             ),
         }
     }
