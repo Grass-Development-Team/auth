@@ -11,7 +11,7 @@ pub struct Claim {
     /// The time of expiration
     pub exp: usize,
     /// User ID
-    pub uid: u32,
+    pub uid: i32,
     /// Session ID
     /// This is to manage jwt through server.
     pub sid: String,
@@ -21,7 +21,7 @@ pub fn generate(claim: Claim, secret: &str) -> jsonwebtoken::errors::Result<Stri
     encode(&Header::default(), &claim, &EncodingKey::from_secret(secret.as_ref()))
 }
 
-pub fn generate_claim(iss: String, sub: String, uid: u32, sid: String) -> Claim {
+pub fn generate_claim(iss: String, sub: String, uid: i32, sid: String) -> Claim {
     Claim {
         iss,
         sub,
