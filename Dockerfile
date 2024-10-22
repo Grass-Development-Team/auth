@@ -3,6 +3,7 @@ WORKDIR /madoka_auth
 
 COPY ./Cargo.toml ./Cargo.toml
 ADD ./src ./src
+ADD ./validate ./validate
 
 RUN cargo build --release
 
