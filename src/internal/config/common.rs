@@ -1,4 +1,4 @@
-use super::structure::{Config, DatabaseSqlite, DatabaseType, Secure};
+use super::{Config, DatabaseSqlite, DatabaseType, Redis, Secure};
 use crate::internal::utils;
 use std::fs::File;
 use std::io::Read;
@@ -103,6 +103,12 @@ impl Default for Config {
             database: Some(
                 DatabaseType::Sqlite(DatabaseSqlite { file: "auth.db".into() })
             ),
+            redis: Redis {
+                host: "127.0.0.1".into(),
+                port: None,
+                username: None,
+                password: None,
+            },
             secure: Some(
                 Secure {
                     jwt_secret: Some(utils::rand::string(16)),

@@ -1,4 +1,4 @@
-use crate::internal::config::structure::DatabaseType;
+use crate::internal::config::DatabaseType;
 use crate::models::migration::Migrator;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
 use sea_orm_migration::MigratorTrait;

@@ -13,6 +13,8 @@ pub struct Config {
     /// Database to use.
     /// Default Type is "sqlite".
     pub database: Option<DatabaseType>,
+    /// Redis config of the program.
+    pub redis: Redis,
     /// Secure config of the program
     pub secure: Option<Secure>,
 }
@@ -31,7 +33,7 @@ pub enum DatabaseType {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Database {
     pub host: String,
-    pub port: u32,
+    pub port: u16,
     pub dbname: String,
     pub username: String,
     pub password: String,
@@ -40,6 +42,14 @@ pub struct Database {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DatabaseSqlite {
     pub file: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Redis {
+    pub host: String,
+    pub port: Option<u16>,
+    pub username: Option<String>,
+    pub password: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
