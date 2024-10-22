@@ -12,13 +12,13 @@ use tokio::net::TcpListener;
 use tokio::signal;
 use tokio::sync::oneshot;
 
-use crate::internal::config::structure::Config;
+use crate::internal::config::{Config, Redis};
 use crate::models::init as init_db;
 use crate::routers::get_router;
 
 // Log
 use crate::internal::log::layer::LogLayer;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -66,6 +66,21 @@ async fn shutdown_signal() {
     }
 }
 
+fn init_redis(redis: Redis) -> redis::Client {
+    redis::Client::open(
+        format!(
+            "redis://{}{}:{}",
+            if redis.username.is_some() {
+                format!("{}{}@", redis.username.unwrap(), if redis.password.is_some() {
+                    format!(":{}", redis.password.unwrap())
+                } else { "".into() })
+            } else { "".into() },
+            redis.host,
+            if redis.port.is_some() { redis.port.unwrap() } else { 6379 }
+        )
+    ).unwrap_or_else(|e| { panic!("Error connecting to Redis: {}", e) })
+}
+
 pub async fn run() {
     init_logger();
 
@@ -81,11 +96,16 @@ pub async fn run() {
     let host = config.host.unwrap();
 
     let db = init_db(&config.database.unwrap()).await.unwrap();
-    let app = Router::new();
-    let app = get_router(app)
+    let redis = init_redis(config.redis)
+        .get_multiplexed_tokio_connection()
+        .await
+        .unwrap();
+
+    let app = get_router(Router::new())
         .layer(
             Extension(state::AppState {
-                db: Arc::from(db)
+                db: Arc::from(db),
+                redis: Arc::from(redis),
             })
         );
 
@@ -100,12 +120,6 @@ pub async fn run() {
     });
 
     info!("Server started on {}", format!("{}:{}", &host, config.port.unwrap()).green());
-    match rx.await {
-        Ok(err) => {
-            error!("Server stopped with error: {}", err);
-        }
-        Err(err) => {
-            error!("Error while running server: {}", err);
-        }
-    }
+    let _ = rx.await;
+    info!("Server stopped");
 }
