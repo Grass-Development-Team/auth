@@ -29,3 +29,4 @@ base16ct = { version = "0.2.0", features = ["alloc"] }
 rand = "0.8.5"
 jsonwebtoken = "9.3.0"
 redis = { version = "0.27.5", features = ["tokio-native-tls-comp"] }
+uuid = { version = "1.11.0", features = ["v4"] }
