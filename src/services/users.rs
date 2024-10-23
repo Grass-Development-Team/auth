@@ -2,6 +2,8 @@ use crate::internal::serializer::common::{Response, ResponseCode};
 use crate::internal::utils;
 use crate::models::users;
 use crate::models::users::{AccountPermission, AccountStatus};
+use redis::aio::MultiplexedConnection;
+use redis::AsyncCommands;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
 use serde::{Deserialize, Serialize};
@@ -33,6 +35,19 @@ impl LoginService {
 
         // TODO: Return login info
         Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), Some("Login successfully".into()))
+    }
+
+    async fn generate_token(&self, users: &users::Model, secret: String, conn: &mut MultiplexedConnection) -> Result<String, ()> {
+        let session = utils::session::generate(users.uid);
+        let Ok(session) = serde_json::to_string(&session) else { return Err(()) };
+        let sid = uuid::Uuid::new_v4();
+
+        let Ok(_): Result<(), redis::RedisError> = conn.set(format!("session-{}", sid), session).await else { return Err(()) };
+
+        let token = utils::jwt::generate_claim("madoka".into(), "user".into(), users.uid, sid.into());
+        let Ok(jwt) = utils::jwt::generate(token, secret.as_ref()) else { return Err(()) };
+
+        Ok(jwt)
     }
 }
 
