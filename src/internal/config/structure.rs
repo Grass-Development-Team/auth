@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Config {
     /// Version of the config file.
     pub version: u8,
@@ -19,7 +19,7 @@ pub struct Config {
     pub secure: Option<Secure>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "type")]
 pub enum DatabaseType {
     #[serde(rename = "postgresql")]
@@ -30,7 +30,7 @@ pub enum DatabaseType {
     Sqlite(DatabaseSqlite),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Database {
     pub host: String,
     pub port: u16,
@@ -39,12 +39,12 @@ pub struct Database {
     pub password: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DatabaseSqlite {
     pub file: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Redis {
     pub host: String,
     pub port: Option<u16>,
@@ -52,7 +52,7 @@ pub struct Redis {
     pub password: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Secure {
     /// JWT Secret key.
     /// If not set, a random key will be generated and stored in the config file.
