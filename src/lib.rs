@@ -93,10 +93,10 @@ pub async fn run() {
     config.check();
     config.write("./config.toml");
 
-    let host = config.host.unwrap();
+    let host = config.host.clone().unwrap();
 
-    let db = init_db(&config.database.unwrap()).await.unwrap();
-    let redis = init_redis(config.redis)
+    let db = init_db(&config.database.clone().unwrap()).await.unwrap();
+    let redis = init_redis(config.redis.clone())
         .get_multiplexed_tokio_connection()
         .await
         .unwrap();
@@ -106,6 +106,7 @@ pub async fn run() {
             Extension(state::AppState {
                 db: Arc::from(db),
                 redis: Arc::from(redis),
+                config: Arc::from(config.clone()),
             })
         );
 
