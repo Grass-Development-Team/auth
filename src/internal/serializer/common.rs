@@ -79,3 +79,21 @@ impl From<ResponseCode> for String {
         }
     }
 }
+
+impl<T> From<ResponseCode> for Response<T> {
+    fn from(value: ResponseCode) -> Self {
+        match value {
+            ResponseCode::OK => Response::<T>::new_error(ResponseCode::OK.into(), ResponseCode::OK.into()),
+            ResponseCode::BadRequest => Response::<T>::new_error(ResponseCode::BadRequest.into(), ResponseCode::BadRequest.into()),
+            ResponseCode::Unauthorized => Response::<T>::new_error(ResponseCode::Unauthorized.into(), ResponseCode::Unauthorized.into()),
+            ResponseCode::NotFound => Response::<T>::new_error(ResponseCode::NotFound.into(), ResponseCode::NotFound.into()),
+            ResponseCode::ParamError => Response::<T>::new_error(ResponseCode::ParamError.into(), ResponseCode::ParamError.into()),
+            ResponseCode::UserNotFound => Response::<T>::new_error(ResponseCode::UserNotFound.into(), ResponseCode::UserNotFound.into()),
+            ResponseCode::CredentialInvalid => Response::<T>::new_error(ResponseCode::CredentialInvalid.into(), ResponseCode::CredentialInvalid.into()),
+            ResponseCode::UserBlocked => Response::<T>::new_error(ResponseCode::UserBlocked.into(), ResponseCode::UserBlocked.into()),
+            ResponseCode::UserNotActivated => Response::<T>::new_error(ResponseCode::UserNotActivated.into(), ResponseCode::UserNotActivated.into()),
+            ResponseCode::UserExists => Response::<T>::new_error(ResponseCode::UserExists.into(), ResponseCode::UserExists.into()),
+            ResponseCode::InternalError => Response::<T>::new_error(ResponseCode::InternalError.into(), ResponseCode::InternalError.into()),
+        }
+    }
+}
