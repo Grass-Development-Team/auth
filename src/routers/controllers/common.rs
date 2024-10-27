@@ -3,7 +3,7 @@ use axum::http::StatusCode;
 use axum::Json;
 
 pub async fn not_found() -> (StatusCode, Json<Response>) {
-    (StatusCode::NOT_FOUND, Json(Response::new_error(ResponseCode::NotFound.into(), ResponseCode::NotFound.into())))
+    (StatusCode::NOT_FOUND, Json(ResponseCode::NotFound.into()))
 }
 
 pub async fn ping() -> Json<Response> {
