@@ -70,8 +70,10 @@ fn init_redis(redis: Redis) -> redis::Client {
     redis::Client::open(
         format!(
             "redis://{}{}:{}",
-            if redis.username.is_some() {
-                format!("{}{}@", redis.username.unwrap(), if redis.password.is_some() {
+            if redis.username.is_some() || redis.password.is_some() {
+                format!("{}{}@", if redis.username.is_some() {
+                    redis.username.unwrap()
+                } else { "".into() }, if redis.password.is_some() {
                     format!(":{}", redis.password.unwrap())
                 } else { "".into() })
             } else { "".into() },
@@ -105,8 +107,8 @@ pub async fn run() {
         .layer(
             Extension(state::AppState {
                 db: Arc::from(db),
-                redis: Arc::from(redis),
-                config: Arc::from(config.clone()),
+                redis,
+                config: config.clone(),
             })
         );
 
