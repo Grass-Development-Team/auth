@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 /// - Active (1): Active account
 /// - Banned (2): Account banned by admin
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
-#[sea_orm(rs_type = "u8", db_type = "Integer")]
+#[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum AccountStatus {
     Inactive = 0,
     Active = 1,
@@ -20,7 +20,7 @@ pub enum AccountStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
-#[sea_orm(rs_type = "u8", db_type = "Integer")]
+#[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum AccountPermission {
     Root = 0,
     Admin = 1,
