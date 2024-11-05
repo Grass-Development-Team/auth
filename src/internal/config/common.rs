@@ -25,39 +25,29 @@ impl Config {
     pub fn check(&mut self) {
         // Check if host is set, if not then set it to "127.0.0.1"
         if self.host.is_none() {
-            self.host = Some("0.0.0.0".into());
+            self.host = Default::default();
         }
         // Check if port is set, if not then set it to 7817
         if self.port.is_none() {
-            self.port = Some(7817);
+            self.port = Default::default();
         } else if let Some(port) = self.port {
             if !(1024..=65535).contains(&port) {
-                self.port = Some(7817);
+                self.port = Default::default();
                 warn!("Port number {} is out of range, setting port number to default value (7817)", port);
             }
         }
         // Check if database is set, if not then set it to default sqlite
         if self.database.is_none() {
-            self.database = Some(
-                DatabaseType::Sqlite(DatabaseSqlite { file: "auth.db".into() })
-            );
+            self.database = Default::default();
         }
 
         // Check if secure is set, if not then set it to
         if self.secure.is_none() {
-            self.secure = Some(
-                Secure {
-                    jwt_secret: None
-                }
-            )
+            self.secure = Default::default();
         }
         if let Some(secure) = &self.secure {
             if secure.jwt_secret.is_none() {
-                self.secure = Some(
-                    Secure {
-                        jwt_secret: Some(utils::rand::string(16)),
-                    }
-                )
+                self.secure = Default::default();
             }
         }
     }
