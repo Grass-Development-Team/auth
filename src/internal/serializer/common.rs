@@ -1,3 +1,4 @@
+use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -94,6 +95,24 @@ impl<T> From<ResponseCode> for Response<T> {
             ResponseCode::UserNotActivated => Response::<T>::new_error(ResponseCode::UserNotActivated.into(), ResponseCode::UserNotActivated.into()),
             ResponseCode::UserExists => Response::<T>::new_error(ResponseCode::UserExists.into(), ResponseCode::UserExists.into()),
             ResponseCode::InternalError => Response::<T>::new_error(ResponseCode::InternalError.into(), ResponseCode::InternalError.into()),
+        }
+    }
+}
+
+impl<T> From<ResponseCode> for Json<Response<T>> {
+    fn from(value: ResponseCode) -> Self {
+        match value {
+            ResponseCode::OK => Json::from(Response::<T>::new_error(ResponseCode::OK.into(), ResponseCode::OK.into())),
+            ResponseCode::BadRequest => Json::from(Response::<T>::new_error(ResponseCode::BadRequest.into(), ResponseCode::BadRequest.into())),
+            ResponseCode::Unauthorized => Json::from(Response::<T>::new_error(ResponseCode::Unauthorized.into(), ResponseCode::Unauthorized.into())),
+            ResponseCode::NotFound => Json::from(Response::<T>::new_error(ResponseCode::NotFound.into(), ResponseCode::NotFound.into())),
+            ResponseCode::ParamError => Json::from(Response::<T>::new_error(ResponseCode::ParamError.into(), ResponseCode::ParamError.into())),
+            ResponseCode::UserNotFound => Json::from(Response::<T>::new_error(ResponseCode::UserNotFound.into(), ResponseCode::UserNotFound.into())),
+            ResponseCode::CredentialInvalid => Json::from(Response::<T>::new_error(ResponseCode::CredentialInvalid.into(), ResponseCode::CredentialInvalid.into())),
+            ResponseCode::UserBlocked => Json::from(Response::<T>::new_error(ResponseCode::UserBlocked.into(), ResponseCode::UserBlocked.into())),
+            ResponseCode::UserNotActivated => Json::from(Response::<T>::new_error(ResponseCode::UserNotActivated.into(), ResponseCode::UserNotActivated.into())),
+            ResponseCode::UserExists => Json::from(Response::<T>::new_error(ResponseCode::UserExists.into(), ResponseCode::UserExists.into())),
+            ResponseCode::InternalError => Json::from(Response::<T>::new_error(ResponseCode::InternalError.into(), ResponseCode::InternalError.into())),
         }
     }
 }
