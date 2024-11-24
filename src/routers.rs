@@ -16,9 +16,7 @@ pub fn get_router(app: Router) -> Router {
     let cors = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST])
         .allow_origin(cors::Any);
-    let cors = ServiceBuilder::new()
-        .layer(cors)
-        .into_inner();
+    let cors = ServiceBuilder::new().layer(cors).into_inner();
 
     // User
     let user = Router::new()

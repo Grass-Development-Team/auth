@@ -29,18 +29,19 @@ impl From<Response> for Value {
 #[derive(Serialize, Deserialize)]
 pub enum ResponseCode {
     // Http status code
-    OK, // 200
-    BadRequest, // 400
+    OK,           // 200
+    BadRequest,   // 400
     Unauthorized, // 401
-    NotFound, // 404
+    NotFound,     // 404
     // Internal status code
-    ParamError, // 4000
-    UserNotFound, // 4010
+    ParamError,        // 4000
+    UserNotFound,      // 4010
     CredentialInvalid, // 4011
-    UserBlocked, // 4012
-    UserNotActivated, // 4013
-    UserExists, // 4014
-    InternalError, // 5000
+    UserBlocked,       // 4012
+    UserNotActivated,  // 4013
+    UserExists,        // 4014
+    AlreadyLoggedIn,   // 4015
+    InternalError,     // 5000
 }
 
 // Error code
@@ -57,6 +58,7 @@ impl From<ResponseCode> for u16 {
             ResponseCode::UserBlocked => 4012,
             ResponseCode::UserNotActivated => 4013,
             ResponseCode::UserExists => 4014,
+            ResponseCode::AlreadyLoggedIn => 4015,
             ResponseCode::InternalError => 5000,
         }
     }
@@ -76,6 +78,7 @@ impl From<ResponseCode> for String {
             ResponseCode::UserBlocked => "The account was blocked".into(),
             ResponseCode::UserNotActivated => "The account is not activated".into(),
             ResponseCode::UserExists => "Email already exists".into(),
+            ResponseCode::AlreadyLoggedIn => "The account is already logged in".into(),
             ResponseCode::InternalError => "Internal Error".into(),
         }
     }
@@ -84,17 +87,53 @@ impl From<ResponseCode> for String {
 impl<T> From<ResponseCode> for Response<T> {
     fn from(value: ResponseCode) -> Self {
         match value {
-            ResponseCode::OK => Response::<T>::new_error(ResponseCode::OK.into(), ResponseCode::OK.into()),
-            ResponseCode::BadRequest => Response::<T>::new_error(ResponseCode::BadRequest.into(), ResponseCode::BadRequest.into()),
-            ResponseCode::Unauthorized => Response::<T>::new_error(ResponseCode::Unauthorized.into(), ResponseCode::Unauthorized.into()),
-            ResponseCode::NotFound => Response::<T>::new_error(ResponseCode::NotFound.into(), ResponseCode::NotFound.into()),
-            ResponseCode::ParamError => Response::<T>::new_error(ResponseCode::ParamError.into(), ResponseCode::ParamError.into()),
-            ResponseCode::UserNotFound => Response::<T>::new_error(ResponseCode::UserNotFound.into(), ResponseCode::UserNotFound.into()),
-            ResponseCode::CredentialInvalid => Response::<T>::new_error(ResponseCode::CredentialInvalid.into(), ResponseCode::CredentialInvalid.into()),
-            ResponseCode::UserBlocked => Response::<T>::new_error(ResponseCode::UserBlocked.into(), ResponseCode::UserBlocked.into()),
-            ResponseCode::UserNotActivated => Response::<T>::new_error(ResponseCode::UserNotActivated.into(), ResponseCode::UserNotActivated.into()),
-            ResponseCode::UserExists => Response::<T>::new_error(ResponseCode::UserExists.into(), ResponseCode::UserExists.into()),
-            ResponseCode::InternalError => Response::<T>::new_error(ResponseCode::InternalError.into(), ResponseCode::InternalError.into()),
+            ResponseCode::OK => {
+                Response::<T>::new_error(ResponseCode::OK.into(), ResponseCode::OK.into())
+            }
+            ResponseCode::BadRequest => Response::<T>::new_error(
+                ResponseCode::BadRequest.into(),
+                ResponseCode::BadRequest.into(),
+            ),
+            ResponseCode::Unauthorized => Response::<T>::new_error(
+                ResponseCode::Unauthorized.into(),
+                ResponseCode::Unauthorized.into(),
+            ),
+            ResponseCode::NotFound => Response::<T>::new_error(
+                ResponseCode::NotFound.into(),
+                ResponseCode::NotFound.into(),
+            ),
+            ResponseCode::ParamError => Response::<T>::new_error(
+                ResponseCode::ParamError.into(),
+                ResponseCode::ParamError.into(),
+            ),
+            ResponseCode::UserNotFound => Response::<T>::new_error(
+                ResponseCode::UserNotFound.into(),
+                ResponseCode::UserNotFound.into(),
+            ),
+            ResponseCode::CredentialInvalid => Response::<T>::new_error(
+                ResponseCode::CredentialInvalid.into(),
+                ResponseCode::CredentialInvalid.into(),
+            ),
+            ResponseCode::UserBlocked => Response::<T>::new_error(
+                ResponseCode::UserBlocked.into(),
+                ResponseCode::UserBlocked.into(),
+            ),
+            ResponseCode::UserNotActivated => Response::<T>::new_error(
+                ResponseCode::UserNotActivated.into(),
+                ResponseCode::UserNotActivated.into(),
+            ),
+            ResponseCode::UserExists => Response::<T>::new_error(
+                ResponseCode::UserExists.into(),
+                ResponseCode::UserExists.into(),
+            ),
+            ResponseCode::AlreadyLoggedIn => Response::<T>::new_error(
+                ResponseCode::AlreadyLoggedIn.into(),
+                ResponseCode::AlreadyLoggedIn.into(),
+            ),
+            ResponseCode::InternalError => Response::<T>::new_error(
+                ResponseCode::InternalError.into(),
+                ResponseCode::InternalError.into(),
+            ),
         }
     }
 }
@@ -102,17 +141,54 @@ impl<T> From<ResponseCode> for Response<T> {
 impl<T> From<ResponseCode> for Json<Response<T>> {
     fn from(value: ResponseCode) -> Self {
         match value {
-            ResponseCode::OK => Json::from(Response::<T>::new_error(ResponseCode::OK.into(), ResponseCode::OK.into())),
-            ResponseCode::BadRequest => Json::from(Response::<T>::new_error(ResponseCode::BadRequest.into(), ResponseCode::BadRequest.into())),
-            ResponseCode::Unauthorized => Json::from(Response::<T>::new_error(ResponseCode::Unauthorized.into(), ResponseCode::Unauthorized.into())),
-            ResponseCode::NotFound => Json::from(Response::<T>::new_error(ResponseCode::NotFound.into(), ResponseCode::NotFound.into())),
-            ResponseCode::ParamError => Json::from(Response::<T>::new_error(ResponseCode::ParamError.into(), ResponseCode::ParamError.into())),
-            ResponseCode::UserNotFound => Json::from(Response::<T>::new_error(ResponseCode::UserNotFound.into(), ResponseCode::UserNotFound.into())),
-            ResponseCode::CredentialInvalid => Json::from(Response::<T>::new_error(ResponseCode::CredentialInvalid.into(), ResponseCode::CredentialInvalid.into())),
-            ResponseCode::UserBlocked => Json::from(Response::<T>::new_error(ResponseCode::UserBlocked.into(), ResponseCode::UserBlocked.into())),
-            ResponseCode::UserNotActivated => Json::from(Response::<T>::new_error(ResponseCode::UserNotActivated.into(), ResponseCode::UserNotActivated.into())),
-            ResponseCode::UserExists => Json::from(Response::<T>::new_error(ResponseCode::UserExists.into(), ResponseCode::UserExists.into())),
-            ResponseCode::InternalError => Json::from(Response::<T>::new_error(ResponseCode::InternalError.into(), ResponseCode::InternalError.into())),
+            ResponseCode::OK => Json::from(Response::<T>::new_error(
+                ResponseCode::OK.into(),
+                ResponseCode::OK.into(),
+            )),
+            ResponseCode::BadRequest => Json::from(Response::<T>::new_error(
+                ResponseCode::BadRequest.into(),
+                ResponseCode::BadRequest.into(),
+            )),
+            ResponseCode::Unauthorized => Json::from(Response::<T>::new_error(
+                ResponseCode::Unauthorized.into(),
+                ResponseCode::Unauthorized.into(),
+            )),
+            ResponseCode::NotFound => Json::from(Response::<T>::new_error(
+                ResponseCode::NotFound.into(),
+                ResponseCode::NotFound.into(),
+            )),
+            ResponseCode::ParamError => Json::from(Response::<T>::new_error(
+                ResponseCode::ParamError.into(),
+                ResponseCode::ParamError.into(),
+            )),
+            ResponseCode::UserNotFound => Json::from(Response::<T>::new_error(
+                ResponseCode::UserNotFound.into(),
+                ResponseCode::UserNotFound.into(),
+            )),
+            ResponseCode::CredentialInvalid => Json::from(Response::<T>::new_error(
+                ResponseCode::CredentialInvalid.into(),
+                ResponseCode::CredentialInvalid.into(),
+            )),
+            ResponseCode::UserBlocked => Json::from(Response::<T>::new_error(
+                ResponseCode::UserBlocked.into(),
+                ResponseCode::UserBlocked.into(),
+            )),
+            ResponseCode::UserNotActivated => Json::from(Response::<T>::new_error(
+                ResponseCode::UserNotActivated.into(),
+                ResponseCode::UserNotActivated.into(),
+            )),
+            ResponseCode::UserExists => Json::from(Response::<T>::new_error(
+                ResponseCode::UserExists.into(),
+                ResponseCode::UserExists.into(),
+            )),
+            ResponseCode::AlreadyLoggedIn => Json::from(Response::<T>::new_error(
+                ResponseCode::AlreadyLoggedIn.into(),
+                ResponseCode::AlreadyLoggedIn.into(),
+            )),
+            ResponseCode::InternalError => Json::from(Response::<T>::new_error(
+                ResponseCode::InternalError.into(),
+                ResponseCode::InternalError.into(),
+            )),
         }
     }
 }

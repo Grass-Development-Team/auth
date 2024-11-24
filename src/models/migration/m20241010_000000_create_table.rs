@@ -11,7 +11,13 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Users::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(Users::Uid).integer().not_null().auto_increment().primary_key())
+                    .col(
+                        ColumnDef::new(Users::Uid)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
                     .col(ColumnDef::new(Users::Email).string().not_null())
                     .col(ColumnDef::new(Users::Username).string().not_null())
                     .col(ColumnDef::new(Users::Password).string().not_null())

@@ -18,7 +18,11 @@ pub struct Claim {
 }
 
 pub fn generate(claim: Claim, secret: &str) -> jsonwebtoken::errors::Result<String> {
-    encode(&Header::default(), &claim, &EncodingKey::from_secret(secret.as_ref()))
+    encode(
+        &Header::default(),
+        &claim,
+        &EncodingKey::from_secret(secret.as_ref()),
+    )
 }
 
 pub fn generate_claim(iss: String, sub: String, uid: i32, sid: String) -> Claim {
@@ -32,7 +36,11 @@ pub fn generate_claim(iss: String, sub: String, uid: i32, sid: String) -> Claim 
 }
 
 pub fn unwrap(jwt: &str, secret: &str) -> jsonwebtoken::errors::Result<Claim> {
-    let claim = match decode::<Claim>(jwt, &DecodingKey::from_secret(secret.as_ref()), &Validation::default()) {
+    let claim = match decode::<Claim>(
+        jwt,
+        &DecodingKey::from_secret(secret.as_ref()),
+        &Validation::default(),
+    ) {
         Ok(claim) => claim,
         Err(err) => return Err(err),
     };

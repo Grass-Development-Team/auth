@@ -3,16 +3,20 @@ use crate::internal::serializer::common::{Response, ResponseCode};
 use crate::internal::utils;
 use crate::models::users;
 use crate::models::users::{AccountPermission, AccountStatus};
+use axum_extra::extract::cookie::Cookie;
+use axum_extra::extract::CookieJar;
 use redis::aio::MultiplexedConnection;
 use redis::AsyncCommands;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
 use serde::{Deserialize, Serialize};
-use tracing::{error, trace};
+use tracing::{debug, error, info, trace};
 
 #[derive(Deserialize, Serialize)]
 pub struct LoginResponse {
-    pub token: String,
+    pub username: String,
+    pub email: String,
+    pub nickname: String,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -22,52 +26,75 @@ pub struct LoginService {
 }
 
 impl LoginService {
-    pub async fn login(&self, config: &Config, conn: &DatabaseConnection, redis: &mut MultiplexedConnection) -> Response<LoginResponse> {
-        let Ok(user) = users::get_user_by_email(conn, self.email.clone()).await else { return ResponseCode::UserNotFound.into() };
+    pub async fn login(
+        &self,
+        config: &Config,
+        conn: &DatabaseConnection,
+        redis: &mut MultiplexedConnection,
+        jar: CookieJar,
+    ) -> (CookieJar, Response<LoginResponse>) {
+        let Ok(user) = users::get_user_by_email(conn, self.email.clone()).await else {
+            return (jar, ResponseCode::UserNotFound.into());
+        };
 
         if !user.check_password(self.password.to_owned()) {
-            return Response::new_error(ResponseCode::CredentialInvalid.into(), "Wrong password".into());
+            return (
+                jar,
+                Response::new_error(
+                    ResponseCode::CredentialInvalid.into(),
+                    "Wrong password".into(),
+                ),
+            );
         }
         if user.status == AccountStatus::Banned || user.status == AccountStatus::Deleted {
-            return ResponseCode::UserBlocked.into();
+            return (jar, ResponseCode::UserBlocked.into());
         }
         if user.status == AccountStatus::Inactive {
-            return ResponseCode::UserNotActivated.into();
+            return (jar, ResponseCode::UserNotActivated.into());
         }
 
         // TODO: 2-factor authentication
 
-        let Some(secure) = config.secure.clone() else { return ResponseCode::InternalError.into() };
-        let Some(secret) = secure.jwt_secret else { return ResponseCode::InternalError.into() };
+        let Ok(session) = self.generate_session(&user, redis).await else {
+            return (jar, ResponseCode::InternalError.into());
+        };
 
-        let Ok(token) = self.generate_token(&user, secret.as_str(), redis).await else { return ResponseCode::InternalError.into() };
-
-        Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), Some(
-            LoginResponse {
-                token
-            }
-        ))
+        (
+            jar.add(Cookie::new("session", session)),
+            Response::new(
+                ResponseCode::OK.into(),
+                ResponseCode::OK.into(),
+                Some(LoginResponse {
+                    username: user.username,
+                    email: user.email,
+                    nickname: user.nickname,
+                }),
+            ),
+        )
     }
 
-    async fn generate_token(&self, users: &users::Model, secret: &str, conn: &mut MultiplexedConnection) -> Result<String, ()> {
+    async fn generate_session(
+        &self,
+        users: &users::Model,
+        conn: &mut MultiplexedConnection,
+    ) -> Result<String, ()> {
         let session = utils::session::generate(users.uid);
         trace!("Generate session: {:?}", session);
-        let Ok(session) = serde_json::to_string(&session) else { return Err(()) };
+        let Ok(session) = serde_json::to_string(&session) else {
+            return Err(());
+        };
         trace!("Session string: {:?}", session);
         let sid = uuid::Uuid::new_v4();
         trace!("Generate session id: {:?}", sid);
 
-        if let Err(err) = conn.set(format!("session-{}", sid), session).await as Result<(), redis::RedisError> {
+        if let Err(err) =
+            conn.set(format!("session-{}", sid), session).await as Result<(), redis::RedisError>
+        {
             error!("Redis error: {}", err);
             return Err(());
         };
 
-        let token = utils::jwt::generate_claim("madoka".into(), "user".into(), users.uid, sid.into());
-        trace!("Generate token: {:?}", token);
-        let Ok(jwt) = utils::jwt::generate(token, secret) else { return Err(()) };
-        trace!("Generate jwt: {:?}", jwt);
-
-        Ok(jwt)
+        Ok(String::from(sid))
     }
 }
 
@@ -82,7 +109,10 @@ pub struct RegisterService {
 
 impl RegisterService {
     pub async fn register(&self, conn: &DatabaseConnection) -> Response<String> {
-        if users::get_user_by_email(conn, self.email.clone()).await.is_ok() {
+        if users::get_user_by_email(conn, self.email.clone())
+            .await
+            .is_ok()
+        {
             return ResponseCode::UserExists.into();
         }
 
@@ -93,7 +123,11 @@ impl RegisterService {
             username: Set(self.username.to_owned()),
             email: Set(self.email.to_owned()),
             password: Set(format!("sha2:{}:{}", password, salt)),
-            nickname: Set(if self.nickname.is_some() { self.nickname.to_owned().unwrap() } else { self.email.split("@").collect::<Vec<&str>>()[0].to_owned() }),
+            nickname: Set(if self.nickname.is_some() {
+                self.nickname.to_owned().unwrap()
+            } else {
+                self.email.split("@").collect::<Vec<&str>>()[0].to_owned()
+            }),
             status: Set(AccountStatus::Inactive),
             perm: Set(AccountPermission::User),
             ..Default::default()
@@ -107,6 +141,10 @@ impl RegisterService {
 
         // TODO: Send Verification Email
 
-        Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), Some("Register successfully".into()))
+        Response::new(
+            ResponseCode::OK.into(),
+            ResponseCode::OK.into(),
+            Some("Register successfully".into()),
+        )
     }
 }

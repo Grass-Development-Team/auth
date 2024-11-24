@@ -33,7 +33,10 @@ impl Config {
         } else if let Some(port) = self.port {
             if !(1024..=65535).contains(&port) {
                 self.port = Default::default();
-                warn!("Port number {} is out of range, setting port number to default value (7817)", port);
+                warn!(
+                    "Port number {} is out of range, setting port number to default value (7817)",
+                    port
+                );
             }
         }
         // Check if database is set, if not then set it to default sqlite
@@ -90,20 +93,18 @@ impl Default for Config {
             version: CONFIG_VERSION,
             host: Some("0.0.0.0".into()),
             port: Some(7817),
-            database: Some(
-                DatabaseType::Sqlite(DatabaseSqlite { file: "auth.db".into() })
-            ),
+            database: Some(DatabaseType::Sqlite(DatabaseSqlite {
+                file: "auth.db".into(),
+            })),
             redis: Redis {
                 host: "127.0.0.1".into(),
                 port: None,
                 username: None,
                 password: None,
             },
-            secure: Some(
-                Secure {
-                    jwt_secret: Some(utils::rand::string(16)),
-                }
-            ),
+            secure: Some(Secure {
+                jwt_secret: Some(utils::rand::string(16)),
+            }),
         }
     }
 }

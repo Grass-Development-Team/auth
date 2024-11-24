@@ -55,11 +55,20 @@ impl RelationTrait for Relation {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// Get user model by email
-pub async fn get_user_by_email(conn: &DatabaseConnection, email: String) -> Result<Model, ModelError> {
-    let res = Entity::find().filter(Column::Email.eq(email)).limit(1).all(conn).await;
+pub async fn get_user_by_email(
+    conn: &DatabaseConnection,
+    email: String,
+) -> Result<Model, ModelError> {
+    let res = Entity::find()
+        .filter(Column::Email.eq(email))
+        .limit(1)
+        .all(conn)
+        .await;
     let res = match res {
         Ok(model) => model,
-        Err(err) => { return Err(DBError(err)); }
+        Err(err) => {
+            return Err(DBError(err));
+        }
     };
     if !res.is_empty() {
         Ok(res[0].to_owned())
@@ -74,7 +83,11 @@ impl Model {
         if password_stored.len() != 3 {
             false
         } else if password_stored[0] == "sha2" {
-            utils::password::check(password, password_stored[2].to_owned(), password_stored[1].to_owned())
+            utils::password::check(
+                password,
+                password_stored[2].to_owned(),
+                password_stored[1].to_owned(),
+            )
         } else {
             false
         }

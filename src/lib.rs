@@ -1,8 +1,8 @@
-mod routers;
-mod state;
-mod services;
-mod models;
 mod internal;
+mod models;
+mod routers;
+mod services;
+mod state;
 
 use axum::{Extension, Router};
 use colored::Colorize;
@@ -25,9 +25,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::Layer;
 
 fn init_logger() {
-    let level = env::var("LOG_LEVEL").unwrap_or_else(|_| {
-        "".into()
-    });
+    let level = env::var("LOG_LEVEL").unwrap_or_else(|_| "".into());
     let level = match level.as_str() {
         "TRACE" => LevelFilter::TRACE,
         "DEBUG" => LevelFilter::DEBUG,
@@ -35,7 +33,9 @@ fn init_logger() {
         "ERROR" => LevelFilter::ERROR,
         _ => LevelFilter::INFO,
     };
-    tracing_subscriber::registry().with(LogLayer.with_filter(level)).init();
+    tracing_subscriber::registry()
+        .with(LogLayer.with_filter(level))
+        .init();
 }
 
 async fn shutdown_signal() {
@@ -67,30 +67,42 @@ async fn shutdown_signal() {
 }
 
 fn init_redis(redis: Redis) -> redis::Client {
-    redis::Client::open(
-        format!(
-            "redis://{}{}:{}",
-            if redis.username.is_some() || redis.password.is_some() {
-                format!("{}{}@", if redis.username.is_some() {
+    redis::Client::open(format!(
+        "redis://{}{}:{}",
+        if redis.username.is_some() || redis.password.is_some() {
+            format!(
+                "{}{}@",
+                if redis.username.is_some() {
                     redis.username.unwrap()
-                } else { "".into() }, if redis.password.is_some() {
+                } else {
+                    "".into()
+                },
+                if redis.password.is_some() {
                     format!(":{}", redis.password.unwrap())
-                } else { "".into() })
-            } else { "".into() },
-            redis.host,
-            if redis.port.is_some() { redis.port.unwrap() } else { 6379 }
-        )
-    ).unwrap_or_else(|e| { panic!("Error connecting to Redis: {}", e) })
+                } else {
+                    "".into()
+                }
+            )
+        } else {
+            "".into()
+        },
+        redis.host,
+        if redis.port.is_some() {
+            redis.port.unwrap()
+        } else {
+            6379
+        }
+    ))
+    .unwrap_or_else(|e| panic!("Error connecting to Redis: {}", e))
 }
 
 pub async fn run() {
     init_logger();
 
-    let mut config = Config::from_file("config.toml")
-        .unwrap_or_else(|_| {
-            warn!(message = "Cannot load config file. Use default config instead. ");
-            Config::default()
-        });
+    let mut config = Config::from_file("config.toml").unwrap_or_else(|_| {
+        warn!(message = "Cannot load config file. Use default config instead. ");
+        Config::default()
+    });
 
     config.check();
     config.write("./config.toml");
@@ -103,26 +115,30 @@ pub async fn run() {
         .await
         .unwrap();
 
-    let app = get_router(Router::new())
-        .layer(
-            Extension(state::AppState {
-                db: Arc::from(db),
-                redis,
-                config: config.clone(),
-            })
-        );
+    let app = get_router(Router::new()).layer(Extension(state::AppState {
+        db: Arc::from(db),
+        redis,
+        config: config.clone(),
+    }));
 
     let listener = TcpListener::bind(format!("{}:{}", &host, config.port.unwrap()))
-        .await.unwrap();
+        .await
+        .unwrap();
 
     let (tx, rx) = oneshot::channel::<io::Error>();
     tokio::spawn(async move {
-        if let Err(err) = axum::serve(listener, app).with_graceful_shutdown(shutdown_signal()).await {
+        if let Err(err) = axum::serve(listener, app)
+            .with_graceful_shutdown(shutdown_signal())
+            .await
+        {
             tx.send(err).unwrap();
         }
     });
 
-    info!("Server started on {}", format!("{}:{}", &host, config.port.unwrap()).green());
+    info!(
+        "Server started on {}",
+        format!("{}:{}", &host, config.port.unwrap()).green()
+    );
     let _ = rx.await;
     info!("Server stopped");
 }

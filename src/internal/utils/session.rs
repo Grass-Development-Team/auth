@@ -15,5 +15,12 @@ pub fn generate(uid: i32) -> Session {
 }
 
 pub fn validate(session: &Session) -> bool {
-    session.exp < (Utc::now().timestamp() as usize)
+    session.exp > (Utc::now().timestamp() as usize)
+}
+
+pub fn validate_from_str(session: &str) -> bool {
+    let Ok(session) = serde_json::from_str::<Session>(session) else {
+        return false;
+    };
+    validate(&session)
 }
