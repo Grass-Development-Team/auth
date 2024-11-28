@@ -77,6 +77,28 @@ pub async fn get_user_by_email(
     }
 }
 
+pub async fn get_user_by_id(
+    conn: &DatabaseConnection,
+    id: i32,
+) -> Result<Model, ModelError> {
+    let res = Entity::find()
+        .filter(Column::Uid.eq(id))
+        .limit(1)
+        .all(conn)
+        .await;
+    let res = match res {
+        Ok(model) => model,
+        Err(err) => {
+            return Err(DBError(err));
+        }
+    };
+    if !res.is_empty() {
+        Ok(res[0].to_owned())
+    } else {
+        Err(Empty)
+    }
+}
+
 impl Model {
     pub fn check_password(&self, password: String) -> bool {
         let password_stored: Vec<&str> = self.password.split(":").collect();
