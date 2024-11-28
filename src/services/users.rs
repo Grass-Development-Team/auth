@@ -3,6 +3,7 @@ use crate::internal::serializer::common::{Response, ResponseCode};
 use crate::internal::utils;
 use crate::models::users;
 use crate::models::users::{AccountPermission, AccountStatus};
+use crate::services::error::ServiceError;
 use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
 use redis::aio::MultiplexedConnection;
@@ -10,7 +11,7 @@ use redis::AsyncCommands;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, error, info, trace};
+use tracing::{error, trace};
 
 #[derive(Deserialize, Serialize)]
 pub struct LoginResponse {
@@ -33,6 +34,36 @@ impl LoginService {
         redis: &mut MultiplexedConnection,
         jar: CookieJar,
     ) -> (CookieJar, Response<LoginResponse>) {
+        if let Some(session) = jar.get("session") {
+            if let Ok(session) = self.validate_session(session.value(), redis).await {
+                if utils::session::validate(&session) {
+                    if let Ok(user) = users::get_user_by_id(conn, session.uid).await {
+                        if user.email.eq(&self.email) {
+                            if user.status == AccountStatus::Banned || user.status == AccountStatus::Deleted {
+                                return (jar, ResponseCode::UserBlocked.into());
+                            }
+                            if user.status == AccountStatus::Inactive {
+                                return (jar, ResponseCode::UserNotActivated.into());
+                            }
+
+                            return (
+                                jar,
+                                Response::new(
+                                    ResponseCode::OK.into(),
+                                    ResponseCode::OK.into(),
+                                    Some(LoginResponse {
+                                        username: user.username,
+                                        email: user.email,
+                                        nickname: user.nickname,
+                                    }),
+                                ),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         let Ok(user) = users::get_user_by_email(conn, self.email.clone()).await else {
             return (jar, ResponseCode::UserNotFound.into());
         };
@@ -95,6 +126,28 @@ impl LoginService {
         };
 
         Ok(String::from(sid))
+    }
+
+    async fn validate_session(
+        &self,
+        session: &str,
+        conn: &mut MultiplexedConnection,
+    ) -> Result<utils::session::Session, ServiceError> {
+        match conn.get::<_, String>(format!("session-{}", session)).await {
+            Ok(session) => {
+                match serde_json::from_str(&session) {
+                    Ok(session) => {
+                        Ok(session)
+                    },
+                    Err(err) => {
+                        Err(ServiceError::JSONError(err))
+                    }
+                }
+            }
+            Err(err) => {
+                Err(ServiceError::RedisError(err))
+            }
+        }
     }
 }
 
