@@ -1,3 +1,7 @@
 /target
 
 /.idea
+
+# Test Files
+config.toml
+*.db
