@@ -1,16 +1,22 @@
 [package]
 name = "madoka_auth"
 version = "0.1.0-alpha"
+description = "A simple auth system."
+authors = ["Grass Development Team"]
+repository = "https://github.com/Grass-Development-Team/auth"
+license = "Apache-2.0"
 edition = "2024"
 
 [lib]
 name = "madoka_auth_lib"
 
 [dependencies]
+anyhow = "1.0"
+
 tokio = { version = "1", features = ["full"] }
-async-trait = "0.1.83"
-tracing = "0.1.40"
-tracing-subscriber = "0.3.18"
+async-trait = "0.1"
+tracing = "0.1"
+tracing-subscriber = "0.3"
 
 axum = "0.7"
 axum-extra = { version = "0.9.4", features = ["cookie"] }
@@ -33,7 +39,7 @@ sha2 = "0.10.8"
 base16ct = { version = "0.2.0", features = ["alloc"] }
 rand = "0.8.5"
 
-chrono = "0.4.38"
-colored = "2.1.0"
-jsonwebtoken = "9.3.0"
-uuid = { version = "1.11.0", features = ["v4"] }
+chrono = "0.4"
+colored = "3"
+jsonwebtoken = "9.3.1"
+uuid = { version = "1.16.0", features = ["v4"] }
