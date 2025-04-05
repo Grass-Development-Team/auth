@@ -1,5 +1,5 @@
 use chrono::{Duration, Utc};
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -36,14 +36,11 @@ pub fn generate_claim(iss: String, sub: String, uid: i32, sid: String) -> Claim 
 }
 
 pub fn unwrap(jwt: &str, secret: &str) -> jsonwebtoken::errors::Result<Claim> {
-    let claim = match decode::<Claim>(
+    let claim = decode::<Claim>(
         jwt,
         &DecodingKey::from_secret(secret.as_ref()),
         &Validation::default(),
-    ) {
-        Ok(claim) => claim,
-        Err(err) => return Err(err),
-    };
+    )?;
     Ok(claim.claims)
 }
 
