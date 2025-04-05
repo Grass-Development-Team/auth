@@ -4,6 +4,7 @@ mod routers;
 mod services;
 mod state;
 
+use anyhow::Ok;
 use axum::{Extension, Router};
 use colored::Colorize;
 use std::sync::Arc;
@@ -19,11 +20,12 @@ use crate::routers::get_router;
 // Log
 use crate::internal::log::layer::LogLayer;
 use tracing::{info, warn};
+use tracing_subscriber::Layer;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::Layer;
 
+/// Initialize the logger
 fn init_logger() {
     let level = env::var("LOG_LEVEL").unwrap_or_else(|_| "".into());
     let level = match level.as_str() {
@@ -66,6 +68,7 @@ async fn shutdown_signal() {
     }
 }
 
+/// Initialize Redis client
 fn init_redis(redis: Redis) -> redis::Client {
     redis::Client::open(format!(
         "redis://{}{}:{}",
@@ -96,7 +99,8 @@ fn init_redis(redis: Redis) -> redis::Client {
     .unwrap_or_else(|e| panic!("Error connecting to Redis: {}", e))
 }
 
-pub async fn run() {
+/// Entrypoint of the application
+pub async fn run() -> anyhow::Result<()> {
     init_logger();
 
     let mut config = Config::from_file("config.toml").unwrap_or_else(|_| {
@@ -105,10 +109,11 @@ pub async fn run() {
     });
 
     config.check();
-    config.write("./config.toml");
+    config.write("./config.toml")?;
 
     let host = config.host.clone().unwrap();
 
+    // Initialize database & redis
     let db = init_db(&config.database.clone().unwrap()).await.unwrap();
     let redis = init_redis(config.redis.clone())
         .get_multiplexed_tokio_connection()
@@ -125,6 +130,7 @@ pub async fn run() {
         .await
         .unwrap();
 
+    // Start server
     let (tx, rx) = oneshot::channel::<io::Error>();
     tokio::spawn(async move {
         if let Err(err) = axum::serve(listener, app)
@@ -141,4 +147,6 @@ pub async fn run() {
     );
     let _ = rx.await;
     info!("Server stopped");
+
+    Ok(())
 }

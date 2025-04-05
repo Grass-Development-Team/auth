@@ -1,24 +1,26 @@
 use serde::{Deserialize, Serialize};
 
+/// Config of madoka_auth.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Config {
-    /// Version of the config file.
+    /// Config file version.
     pub version: u8,
-    /// Hostname of the server.
-    /// Default is "127.0.0.1".
+    /// Server hostname.
+    /// Default hostname is "127.0.0.1".
     pub host: Option<String>,
-    /// Port of the server.
-    /// Default is 7817.
+    /// Server port.
+    /// Default port is 7817.
     pub port: Option<u32>,
-    /// Database to use.
-    /// Default Type is "sqlite".
+    /// Database type.
+    /// Default type is "sqlite".
     pub database: Option<DatabaseType>,
-    /// Redis config of the program.
+    /// Redis configuration.
     pub redis: Redis,
-    /// Secure config of the program
+    /// Secure configuration.
     pub secure: Option<Secure>,
 }
 
+/// Database configuration.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "type")]
 pub enum DatabaseType {
@@ -30,6 +32,7 @@ pub enum DatabaseType {
     Sqlite(DatabaseSqlite),
 }
 
+/// Database configuration for MySQL & PostgreSQL.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Database {
     pub host: String,
@@ -39,6 +42,7 @@ pub struct Database {
     pub password: String,
 }
 
+/// Database configuration for SQLite.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DatabaseSqlite {
     pub file: String,
