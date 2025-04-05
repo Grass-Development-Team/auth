@@ -1,4 +1,3 @@
-use crate::internal::config::Config;
 use crate::internal::serializer::common::{Response, ResponseCode};
 use crate::internal::utils;
 use crate::models::users;
@@ -14,6 +13,7 @@ use tracing::{error, trace};
 
 #[derive(Deserialize, Serialize)]
 pub struct LoginResponse {
+    pub uid: i32,
     pub username: String,
     pub email: String,
     pub nickname: String,
@@ -28,7 +28,6 @@ pub struct LoginService {
 impl LoginService {
     pub async fn login(
         &self,
-        config: &Config,
         conn: &DatabaseConnection,
         redis: &mut MultiplexedConnection,
         jar: CookieJar,
@@ -53,6 +52,7 @@ impl LoginService {
                                     ResponseCode::OK.into(),
                                     ResponseCode::OK.into(),
                                     Some(LoginResponse {
+                                        uid: user.uid,
                                         username: user.username,
                                         email: user.email,
                                         nickname: user.nickname,
@@ -97,6 +97,7 @@ impl LoginService {
                 ResponseCode::OK.into(),
                 ResponseCode::OK.into(),
                 Some(LoginResponse {
+                    uid: user.uid,
                     username: user.username,
                     email: user.email,
                     nickname: user.nickname,

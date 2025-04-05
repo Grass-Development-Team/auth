@@ -18,8 +18,6 @@ pub async fn login(
     jar: CookieJar,
     Json(req): Json<LoginService>,
 ) -> (CookieJar, Json<Response<LoginResponse>>) {
-    let (jar, res) = req
-        .login(&state.config, &state.db, &mut state.redis, jar)
-        .await;
+    let (jar, res) = req.login(&state.db, &mut state.redis, jar).await;
     (jar, Json(res))
 }
