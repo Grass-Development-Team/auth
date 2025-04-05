@@ -11,7 +11,7 @@ pub enum Gender {
 
 /// # User Info Model
 #[derive(Debug, Clone, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "users")]
+#[sea_orm(table_name = "user_info")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub uid: i32,
@@ -22,11 +22,24 @@ pub struct Model {
 }
 
 #[derive(Debug, Clone, Copy, EnumIter)]
-pub enum Relation {}
+pub enum Relation {
+    User,
+}
 
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
-        panic!("No defined relation")
+        match self {
+            Relation::User => super::user_info::Entity::belongs_to(super::users::Entity)
+                .from(super::user_info::Column::Uid)
+                .to(super::users::Column::Uid)
+                .into(),
+        }
+    }
+}
+
+impl Related<super::users::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::User.def()
     }
 }
 

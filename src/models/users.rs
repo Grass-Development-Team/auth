@@ -2,8 +2,8 @@ use crate::models::common::ModelError;
 use crate::models::common::ModelError::{DBError, Empty};
 
 use crate::internal::utils;
-use sea_orm::entity::prelude::*;
 use sea_orm::QuerySelect;
+use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Status of the Account
@@ -44,11 +44,24 @@ pub struct Model {
 }
 
 #[derive(Debug, Clone, Copy, EnumIter)]
-pub enum Relation {}
+pub enum Relation {
+    UserInfo,
+}
 
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
-        panic!("No defined relation")
+        match self {
+            Relation::UserInfo => super::user_info::Entity::belongs_to(super::user_info::Entity)
+                .from(super::user_info::Column::Uid)
+                .to(super::user_info::Column::Uid)
+                .into(),
+        }
+    }
+}
+
+impl Related<super::user_info::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::UserInfo.def()
     }
 }
 
@@ -77,10 +90,7 @@ pub async fn get_user_by_email(
     }
 }
 
-pub async fn get_user_by_id(
-    conn: &DatabaseConnection,
-    id: i32,
-) -> Result<Model, ModelError> {
+pub async fn get_user_by_id(conn: &DatabaseConnection, id: i32) -> Result<Model, ModelError> {
     let res = Entity::find()
         .filter(Column::Uid.eq(id))
         .limit(1)
