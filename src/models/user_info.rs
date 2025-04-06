@@ -21,20 +21,10 @@ pub struct Model {
     pub gender: Option<Gender>,
 }
 
-#[derive(Debug, Clone, Copy, EnumIter)]
+#[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(has_one = "super::users::Entity", on_delete = "Cascade")]
     User,
-}
-
-impl RelationTrait for Relation {
-    fn def(&self) -> RelationDef {
-        match self {
-            Relation::User => super::user_info::Entity::belongs_to(super::users::Entity)
-                .from(super::user_info::Column::Uid)
-                .to(super::users::Column::Uid)
-                .into(),
-        }
-    }
 }
 
 impl Related<super::users::Entity> for Entity {

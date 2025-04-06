@@ -43,20 +43,10 @@ pub struct Model {
     pub perm: AccountPermission,
 }
 
-#[derive(Debug, Clone, Copy, EnumIter)]
+#[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(has_one = "super::user_info::Entity", on_delete = "Cascade")]
     UserInfo,
-}
-
-impl RelationTrait for Relation {
-    fn def(&self) -> RelationDef {
-        match self {
-            Relation::UserInfo => super::user_info::Entity::belongs_to(super::user_info::Entity)
-                .from(super::user_info::Column::Uid)
-                .to(super::user_info::Column::Uid)
-                .into(),
-        }
-    }
 }
 
 impl Related<super::user_info::Entity> for Entity {
