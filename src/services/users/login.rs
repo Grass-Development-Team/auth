@@ -36,6 +36,7 @@ impl LoginService {
             if let Ok(session) = self.validate_session(session.value(), redis).await {
                 if utils::session::validate(&session) {
                     if let Ok(user) = users::get_user_by_id(conn, session.uid).await {
+                        let user = user.0;
                         if user.email.eq(&self.email) {
                             if user.status == AccountStatus::Banned
                                 || user.status == AccountStatus::Deleted
@@ -68,6 +69,8 @@ impl LoginService {
         let Ok(user) = users::get_user_by_email(conn, self.email.clone()).await else {
             return (jar, ResponseCode::UserNotFound.into());
         };
+
+        let user = user.0;
 
         if !user.check_password(self.password.to_owned()) {
             return (

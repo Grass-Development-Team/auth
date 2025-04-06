@@ -61,8 +61,9 @@ impl ActiveModelBehavior for ActiveModel {}
 pub async fn get_user_by_email(
     conn: &DatabaseConnection,
     email: String,
-) -> Result<Model, ModelError> {
+) -> Result<(Model, Vec<super::user_info::Model>), ModelError> {
     let res = Entity::find()
+        .find_with_related(super::user_info::Entity)
         .filter(Column::Email.eq(email))
         .limit(1)
         .all(conn)
@@ -80,8 +81,13 @@ pub async fn get_user_by_email(
     }
 }
 
-pub async fn get_user_by_id(conn: &DatabaseConnection, id: i32) -> Result<Model, ModelError> {
+/// Get user model by id
+pub async fn get_user_by_id(
+    conn: &DatabaseConnection,
+    id: i32,
+) -> Result<(Model, Vec<super::user_info::Model>), ModelError> {
     let res = Entity::find()
+        .find_with_related(super::user_info::Entity)
         .filter(Column::Uid.eq(id))
         .limit(1)
         .all(conn)
