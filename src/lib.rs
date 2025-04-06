@@ -104,12 +104,12 @@ pub async fn run() -> anyhow::Result<()> {
     init_logger();
 
     let mut config = Config::from_file("config.toml").unwrap_or_else(|_| {
-        warn!(message = "Cannot load config file. Use default config instead. ");
+        warn!(message = "Cannot load config file. Use default config instead.");
         Config::default()
     });
 
     config.check();
-    config.write("./config.toml")?;
+    config.write("config.toml")?;
 
     let host = config.host.clone().unwrap();
 
