@@ -9,13 +9,14 @@ RUN cargo build --release
 FROM debian:bookworm-slim
 
 RUN apt-get update -y && \
-    apt-get upgrade -y
-
-RUN apt-get install -y libssl-dev
+    apt-get upgrade -y && \
+    apt-get install -y libssl-dev ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY --from=builder /madoka_auth/target/release/madoka_auth .
-RUN mkdir data
+RUN mkdir -p data
 
 WORKDIR /app/data
 
