@@ -50,11 +50,6 @@ impl Config {
         if self.secure.is_none() {
             self.secure = Default::default();
         }
-        if let Some(secure) = &self.secure {
-            if secure.jwt_secret.is_none() {
-                self.secure = Default::default();
-            }
-        }
     }
 
     /// Writes the configuration file.
@@ -107,7 +102,7 @@ impl Default for Config {
                 password: None,
             },
             secure: Some(Secure {
-                jwt_secret: Some(utils::rand::string(16)),
+                jwt_secret: utils::rand::string(16),
             }),
         }
     }
