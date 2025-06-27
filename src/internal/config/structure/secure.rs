@@ -13,3 +13,11 @@ pub struct Secure {
     #[serde(default = "default_jwt_secret")]
     pub jwt_secret: String,
 }
+
+impl Default for Secure {
+    fn default() -> Self {
+        Secure {
+            jwt_secret: default_jwt_secret(),
+        }
+    }
+}

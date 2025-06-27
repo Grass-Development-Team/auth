@@ -111,10 +111,10 @@ pub async fn run() -> anyhow::Result<()> {
     config.check();
     config.write("config.toml")?;
 
-    let host = config.host.clone().unwrap();
+    let host = config.host.clone();
 
     // Initialize database & redis
-    let db = init_db(&config.database.clone().unwrap()).await.unwrap();
+    let db = init_db(&config.database.clone()).await.unwrap();
     let redis = init_redis(config.redis.clone())
         .get_multiplexed_tokio_connection()
         .await
@@ -126,7 +126,7 @@ pub async fn run() -> anyhow::Result<()> {
         config: config.clone(),
     }));
 
-    let listener = TcpListener::bind(format!("{}:{}", &host, config.port.unwrap()))
+    let listener = TcpListener::bind(format!("{}:{}", &host, config.port))
         .await
         .unwrap();
 
@@ -143,7 +143,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     info!(
         "Server started on {}",
-        format!("{}:{}", &host, config.port.unwrap()).green()
+        format!("{}:{}", &host, config.port).green()
     );
     let _ = rx.await;
     info!("Server stopped");

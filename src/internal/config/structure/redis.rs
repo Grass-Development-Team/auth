@@ -7,3 +7,14 @@ pub struct Redis {
     pub username: Option<String>,
     pub password: Option<String>,
 }
+
+impl Default for Redis {
+    fn default() -> Self {
+        Redis {
+            host: "127.0.0.1".into(),
+            port: None,
+            username: None,
+            password: None,
+        }
+    }
+}

@@ -1,6 +1,6 @@
 //! Config module for madoka_auth
 
-pub mod common;
+mod common;
 
 // Config structure
 mod structure;

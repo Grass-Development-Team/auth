@@ -27,3 +27,11 @@ pub struct Database {
 pub struct DatabaseSqlite {
     pub file: String,
 }
+
+impl Default for DatabaseType {
+    fn default() -> Self {
+        DatabaseType::Sqlite(DatabaseSqlite {
+            file: "auth.db".into(),
+        })
+    }
+}

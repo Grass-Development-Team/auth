@@ -4,11 +4,10 @@ use std::io::Read;
 use std::path::Path;
 use tracing::warn;
 
-use super::{Config, DatabaseSqlite, DatabaseType, Redis, Secure};
-use crate::internal::utils;
+use super::{Config, Mail};
 
 /// Current configuration version.
-const CONFIG_VERSION: u8 = 1;
+pub const CONFIG_VERSION: u8 = 1;
 
 /// Implementations of the Config struct.
 impl Config {
@@ -24,31 +23,17 @@ impl Config {
     /// Check if the configuration is valid.
     pub fn check(&mut self) {
         // Check if host is set, if not then set it to "127.0.0.1"
-        if self.host.is_none() {
-            self.host = Default::default();
-        }
+        // if self.host.is_none() {
+        //     self.host = Default::default();
+        // }
 
         // Check if port is set or out of range (1..=65535), if not then set it to 7817
-        if self.port.is_none() {
-            self.port = Default::default();
-        } else if let Some(port) = self.port {
-            if !(1..=65535).contains(&port) {
-                self.port = Default::default();
-                warn!(
-                    "Port number {} is out of range, setting port number to default value (7817)",
-                    port
-                );
-            }
-        }
-
-        // Check if database is set, if not then set it to default sqlite
-        if self.database.is_none() {
-            self.database = Default::default();
-        }
-
-        // Check if secure is set, if not then set it to
-        if self.secure.is_none() {
-            self.secure = Default::default();
+        if !(1..=65535).contains(&self.port) {
+            warn!(
+                "Port number {} is out of range, setting port number to default value (7817)",
+                &self.port
+            );
+            self.port = 7817;
         }
     }
 
@@ -90,20 +75,18 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             version: CONFIG_VERSION,
-            host: Some("0.0.0.0".into()),
-            port: Some(7817),
-            database: Some(DatabaseType::Sqlite(DatabaseSqlite {
-                file: "auth.db".into(),
-            })),
-            redis: Redis {
-                host: "127.0.0.1".into(),
-                port: None,
-                username: None,
-                password: None,
+            host: "0.0.0.0".into(),
+            port: 7817,
+            database: Default::default(),
+            redis: Default::default(),
+            mail: Mail {
+                host: "smtp.example.com".into(),
+                port: 587,
+                username: "user@example.com".into(),
+                password: "PassWord".into(),
+                tls: true,
             },
-            secure: Some(Secure {
-                jwt_secret: utils::rand::string(16),
-            }),
+            secure: Default::default(),
         }
     }
 }
