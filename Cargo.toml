@@ -7,9 +7,6 @@ repository = "https://github.com/Grass-Development-Team/auth"
 license = "Apache-2.0"
 edition = "2024"
 
-[lib]
-name = "madoka_auth_lib"
-
 [dependencies]
 anyhow = "1.0"
 
