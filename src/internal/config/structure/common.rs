@@ -1,6 +1,6 @@
 use crate::internal::config::common::CONFIG_VERSION;
 
-use super::DatabaseType;
+use super::Database;
 use super::Mail;
 use super::Redis;
 use super::Secure;
@@ -24,7 +24,7 @@ pub struct Config {
     /// Database type.
     /// Default type is "sqlite".
     #[serde(default = "Default::default")]
-    pub database: DatabaseType,
+    pub database: Database,
     /// Redis configuration.
     #[serde(default = "Default::default")]
     pub redis: Redis,

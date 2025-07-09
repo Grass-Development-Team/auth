@@ -1,17 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-/// Database configuration.
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(tag = "type")]
-pub enum DatabaseType {
-    #[serde(rename = "postgresql")]
-    Postgresql(Database),
-    #[serde(rename = "mysql")]
-    Mysql(Database),
-    #[serde(rename = "sqlite")]
-    Sqlite(DatabaseSqlite),
-}
-
 /// Database configuration for MySQL & PostgreSQL.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Database {
@@ -22,16 +10,14 @@ pub struct Database {
     pub password: String,
 }
 
-/// Database configuration for SQLite.
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct DatabaseSqlite {
-    pub file: String,
-}
-
-impl Default for DatabaseType {
+impl Default for Database {
     fn default() -> Self {
-        DatabaseType::Sqlite(DatabaseSqlite {
-            file: "auth.db".into(),
-        })
+        Database {
+            host: "localhost".into(),
+            port: 5432,
+            dbname: "postgres".into(),
+            username: "postgres".into(),
+            password: "".into(),
+        }
     }
 }
