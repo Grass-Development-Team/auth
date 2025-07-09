@@ -31,7 +31,7 @@ impl RegisterService {
         let user = users::ActiveModel {
             username: Set(self.username.to_owned()),
             email: Set(self.email.to_owned()),
-            password: Set(format!("sha2:{}:{}", password, salt)),
+            password: Set(format!("sha2:{password}:{salt}")),
             nickname: Set(if self.nickname.is_some() {
                 self.nickname.to_owned().unwrap()
             } else {

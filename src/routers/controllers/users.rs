@@ -2,7 +2,6 @@ use crate::internal::serializer::common::Response;
 use crate::services::users::{LoginResponse, LoginService, RegisterService};
 use crate::state::AppState;
 use axum::{Extension, Json};
-use axum_extra::extract::CookieJar;
 
 /// User register
 pub async fn register(
@@ -14,10 +13,9 @@ pub async fn register(
 
 /// User login
 pub async fn login(
-    Extension(mut state): Extension<AppState>,
-    jar: CookieJar,
+    Extension(state): Extension<AppState>,
     Json(req): Json<LoginService>,
-) -> (CookieJar, Json<Response<LoginResponse>>) {
-    let (jar, res) = req.login(&state.db, &mut state.redis, jar).await;
-    (jar, Json(res))
+) -> Json<Response<LoginResponse>> {
+    let res = req.login(&state.db).await;
+    Json(res)
 }

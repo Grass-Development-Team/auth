@@ -96,7 +96,7 @@ fn init_redis(redis: Redis) -> redis::Client {
             6379
         }
     ))
-    .unwrap_or_else(|e| panic!("Error connecting to Redis: {}", e))
+    .unwrap_or_else(|e| panic!("Error connecting to Redis: {e}"))
 }
 
 /// Entrypoint of the application

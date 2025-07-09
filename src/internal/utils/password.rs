@@ -1,7 +1,7 @@
 use sha2::Digest;
 
 pub fn generate(password: String, salt: String) -> String {
-    let password_with_salt = format!("{}{}", password, salt);
+    let password_with_salt = format!("{password}{salt}");
     let hash = sha2::Sha256::digest(password_with_salt);
     base16ct::lower::encode_string(&hash)
 }

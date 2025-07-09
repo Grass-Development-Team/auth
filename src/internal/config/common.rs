@@ -43,8 +43,7 @@ impl Config {
             Ok(config) => config,
             Err(err) => {
                 return Err(anyhow::Error::msg(format!(
-                    "Failed to serialize config: {}",
-                    err
+                    "Failed to serialize config: {err}",
                 )));
             }
         };

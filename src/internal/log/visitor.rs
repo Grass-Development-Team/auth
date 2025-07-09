@@ -39,32 +39,32 @@ impl Visitor {
 impl tracing::field::Visit for Visitor {
     fn record_f64(&mut self, field: &Field, value: f64) {
         self.fields
-            .insert(field.name().to_string(), format!("{}", value));
+            .insert(field.name().to_string(), format!("{value}"));
     }
 
     fn record_i64(&mut self, field: &Field, value: i64) {
         self.fields
-            .insert(field.name().to_string(), format!("{}", value));
+            .insert(field.name().to_string(), format!("{value}"));
     }
 
     fn record_u64(&mut self, field: &Field, value: u64) {
         self.fields
-            .insert(field.name().to_string(), format!("{}", value));
+            .insert(field.name().to_string(), format!("{value}"));
     }
 
     fn record_i128(&mut self, field: &Field, value: i128) {
         self.fields
-            .insert(field.name().to_string(), format!("{}", value));
+            .insert(field.name().to_string(), format!("{value}"));
     }
 
     fn record_u128(&mut self, field: &Field, value: u128) {
         self.fields
-            .insert(field.name().to_string(), format!("{}", value));
+            .insert(field.name().to_string(), format!("{value}"));
     }
 
     fn record_bool(&mut self, field: &Field, value: bool) {
         self.fields
-            .insert(field.name().to_string(), format!("{}", value));
+            .insert(field.name().to_string(), format!("{value}"));
     }
 
     fn record_str(&mut self, field: &Field, value: &str) {
@@ -74,11 +74,11 @@ impl tracing::field::Visit for Visitor {
 
     fn record_error(&mut self, field: &Field, value: &(dyn Error + 'static)) {
         self.fields
-            .insert(field.name().to_string(), format!("{}", value));
+            .insert(field.name().to_string(), format!("{value}"));
     }
 
     fn record_debug(&mut self, field: &Field, value: &dyn Debug) {
         self.fields
-            .insert(field.name().to_string(), format!("{:?}", value));
+            .insert(field.name().to_string(), format!("{value:?}"));
     }
 }
