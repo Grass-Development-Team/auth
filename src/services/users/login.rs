@@ -3,8 +3,6 @@ use crate::internal::utils;
 use crate::internal::utils::session::Session;
 use crate::models::users;
 use crate::models::users::AccountStatus;
-use axum_extra::extract::CookieJar;
-use axum_extra::extract::cookie::Cookie;
 use redis::AsyncCommands;
 use redis::aio::MultiplexedConnection;
 use sea_orm::DatabaseConnection;
