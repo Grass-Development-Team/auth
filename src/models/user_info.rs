@@ -23,7 +23,12 @@ pub struct Model {
 
 #[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_one = "super::users::Entity", on_delete = "Cascade")]
+    #[sea_orm(
+        belongs_to = "super::users::Entity",
+        from = "Column::Uid",
+        to = "super::users::Column::Uid",
+        on_delete = "Cascade"
+    )]
     User,
 }
 
