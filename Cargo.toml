@@ -15,22 +15,22 @@ async-trait = "0.1"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 
-axum = "0.7"
-axum-extra = { version = "0.9.4", features = ["cookie"] }
+axum = "0.8"
+axum-extra = { version = "0.10", features = ["cookie"] }
 tower = { version = "0.5", features = ["full"] }
 tower-http = { version = "0.6", features = ["cors"] }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-toml = "0.8"
+toml = "0.9"
 
-sea-orm = { version = "1.0.1", features = [
+sea-orm = { version = "1.1", features = [
     "sqlx-all",
     "runtime-tokio-native-tls",
     "macros",
     "with-uuid",
 ] }
-sea-orm-migration = "1.0.1"
+sea-orm-migration = "1.1"
 redis = { version = "0.27.5", features = ["tokio-native-tls-comp"] }
 
 sha2 = "0.10.8"
