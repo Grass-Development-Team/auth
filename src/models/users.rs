@@ -19,16 +19,6 @@ pub enum AccountStatus {
     Deleted = 3,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
-#[sea_orm(rs_type = "i32", db_type = "Integer")]
-pub enum AccountPermission {
-    Root = 0,
-    Admin = 1,
-    AssistManager = 2,
-    User = 3,
-    Guest = 4,
-}
-
 /// # Users Model
 #[derive(Debug, Clone, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "users")]
@@ -40,7 +30,6 @@ pub struct Model {
     pub password: String,
     pub nickname: String,
     pub status: AccountStatus,
-    pub perm: AccountPermission,
 }
 
 #[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]

@@ -1,11 +1,11 @@
 use crate::internal::serializer::common::{Response, ResponseCode};
 use crate::internal::utils;
-use crate::models::users::{AccountPermission, AccountStatus};
+use crate::models::users::AccountStatus;
 use crate::models::{user_info, users};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
 use serde::{Deserialize, Serialize};
-use tracing::{error, info};
+use tracing::error;
 
 #[derive(Deserialize, Serialize)]
 pub struct RegisterService {
@@ -25,6 +25,7 @@ impl RegisterService {
             return ResponseCode::UserExists.into();
         }
 
+        // Encrypt Password
         let salt = utils::rand::string(16);
         let password = utils::password::generate(self.password.to_owned(), salt.to_owned());
 
@@ -38,10 +39,10 @@ impl RegisterService {
                 self.email.split("@").collect::<Vec<&str>>()[0].to_owned()
             }),
             status: Set(AccountStatus::Inactive),
-            perm: Set(AccountPermission::User),
             ..Default::default()
         };
 
+        // Insert User
         let user = user.insert(conn).await;
         if let Err(err) = user {
             error!("Database Error: {}", err);
@@ -49,8 +50,7 @@ impl RegisterService {
         }
         let user = user.unwrap();
 
-        info!("{:?}", user);
-
+        // Insert User Info
         let info = user_info::ActiveModel {
             uid: Set(user.uid),
             ..Default::default()

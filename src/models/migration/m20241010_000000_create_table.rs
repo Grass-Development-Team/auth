@@ -23,7 +23,6 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Users::Password).string().not_null())
                     .col(ColumnDef::new(Users::Nickname).string().not_null())
                     .col(ColumnDef::new(Users::Status).integer().not_null())
-                    .col(ColumnDef::new(Users::Perm).integer().not_null())
                     .to_owned(),
             )
             .await
@@ -45,5 +44,4 @@ enum Users {
     Password,
     Nickname,
     Status,
-    Perm,
 }
