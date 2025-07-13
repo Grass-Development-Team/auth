@@ -36,11 +36,19 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_one = "super::user_info::Entity", on_delete = "Cascade")]
     UserInfo,
+    #[sea_orm(has_many = "super::user_role::Entity", on_delete = "Cascade")]
+    UserRole,
 }
 
 impl Related<super::user_info::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::UserInfo.def()
+    }
+}
+
+impl Related<super::user_role::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::UserRole.def()
     }
 }
 

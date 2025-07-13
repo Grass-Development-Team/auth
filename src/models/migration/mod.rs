@@ -3,6 +3,7 @@ use sea_orm_migration::prelude::*;
 mod m20241010_000000_create_table;
 mod m20241201_000000_add_userinfo;
 mod m20250709_000000_create_premission_role;
+mod m20250713_000000_create_user_role;
 
 pub struct Migrator;
 
@@ -13,6 +14,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20241010_000000_create_table::Migration),
             Box::new(m20241201_000000_add_userinfo::Migration),
             Box::new(m20250709_000000_create_premission_role::Migration),
+            Box::new(m20250713_000000_create_user_role::Migration),
         ]
     }
 }

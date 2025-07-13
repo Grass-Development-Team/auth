@@ -46,6 +46,36 @@ impl MigrationTrait for Migration {
                             .uuid()
                             .not_null(),
                     )
+                    .primary_key(
+                        Index::create()
+                            .name("pk-role-permission")
+                            .col(RolePermissions::RoleId)
+                            .col(RolePermissions::PermissionId),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .name("fk-role-permission-role_id")
+                    .from(RolePermissions::Table, RolePermissions::RoleId)
+                    .to(Role::Table, Role::Id)
+                    .on_update(ForeignKeyAction::Cascade)
+                    .on_delete(ForeignKeyAction::Cascade)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .name("fk-role-permission-permission_id")
+                    .from(RolePermissions::Table, RolePermissions::PermissionId)
+                    .to(Permission::Table, Permission::Id)
+                    .on_update(ForeignKeyAction::Cascade)
+                    .on_delete(ForeignKeyAction::Cascade)
                     .to_owned(),
             )
             .await?;
@@ -55,15 +85,33 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
+            .drop_foreign_key(
+                ForeignKey::drop()
+                    .name("fk-role-permission-role_id")
+                    .table(RolePermissions::Table)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .drop_foreign_key(
+                ForeignKey::drop()
+                    .name("fk-role-permission-permission_id")
+                    .table(RolePermissions::Table)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .drop_table(Table::drop().table(RolePermissions::Table).to_owned())
+            .await?;
+
+        manager
             .drop_table(Table::drop().table(Permission::Table).to_owned())
             .await?;
 
         manager
             .drop_table(Table::drop().table(Role::Table).to_owned())
-            .await?;
-
-        manager
-            .drop_table(Table::drop().table(RolePermissions::Table).to_owned())
             .await?;
 
         Ok(())

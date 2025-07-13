@@ -15,11 +15,19 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::role_permissions::Entity")]
     RolePermissions,
+    #[sea_orm(has_many = "super::user_role::Entity")]
+    UserRole,
 }
 
 impl Related<super::role_permissions::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::RolePermissions.def()
+    }
+}
+
+impl Related<super::user_role::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::UserRole.def()
     }
 }
 
