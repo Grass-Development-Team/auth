@@ -1,6 +1,8 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::models::common::ModelError;
+
 /// # Role Model
 #[derive(Debug, Clone, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "role")]
@@ -32,3 +34,19 @@ impl Related<super::user_role::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+/// Get Role ID by role name.
+pub async fn get_role_id(conn: &DatabaseConnection, name: String) -> Result<Uuid, ModelError> {
+    let role = Entity::find().filter(Column::Name.eq(name)).one(conn).await;
+
+    match role {
+        Ok(role) => {
+            if let Some(role) = role {
+                Ok(role.id)
+            } else {
+                Err(ModelError::Empty)
+            }
+        }
+        Err(err) => Err(ModelError::DBError(err)),
+    }
+}
