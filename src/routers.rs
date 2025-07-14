@@ -1,8 +1,8 @@
 pub mod controllers;
 
+use axum::Router;
 use axum::http::Method;
 use axum::routing::{any, post};
-use axum::Router;
 use tower::ServiceBuilder;
 use tower_http::cors;
 use tower_http::cors::CorsLayer;
