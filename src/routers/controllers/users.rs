@@ -1,4 +1,5 @@
-use crate::internal::serializer::common::Response;
+use crate::internal::auth::LoginAccess;
+use crate::internal::serializer::common::{Response, ResponseCode};
 use crate::services::users::{LoginResponse, LoginService, RegisterService};
 use crate::state::AppState;
 use axum::Json;
@@ -26,4 +27,17 @@ pub async fn login(
         .unwrap();
     let (jar, res) = req.login(&state.db, &mut redis, jar).await;
     (jar, Json(res))
+}
+
+/// User logout
+pub async fn logout(_: LoginAccess, jar: CookieJar) -> (CookieJar, Json<Response<String>>) {
+    let jar = jar.remove("session");
+    (
+        jar,
+        Json(Response {
+            code: ResponseCode::OK.into(),
+            message: "Logout Successfully".into(),
+            data: None,
+        }),
+    )
 }

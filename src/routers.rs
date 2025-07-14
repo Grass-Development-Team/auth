@@ -22,7 +22,8 @@ pub fn get_router(app: Router<AppState>) -> Router<AppState> {
     // User
     let user = Router::new()
         .route("/login", post(users::login))
-        .route("/register", post(users::register));
+        .route("/register", post(users::register))
+        .route("/logout", any(users::logout));
     let user = Router::new().nest("/user", user);
 
     // Oauth
