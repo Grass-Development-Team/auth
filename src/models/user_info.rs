@@ -27,6 +27,7 @@ pub enum Relation {
         belongs_to = "super::users::Entity",
         from = "Column::Uid",
         to = "super::users::Column::Uid",
+        on_update = "Cascade"
         on_delete = "Cascade"
     )]
     User,

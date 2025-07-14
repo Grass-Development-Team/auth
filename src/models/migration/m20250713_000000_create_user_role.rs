@@ -26,11 +26,11 @@ impl MigrationTrait for Migration {
         manager
             .create_foreign_key(
                 ForeignKey::create()
-                    .name("fk-user_role-user_id") // 命名规范化
+                    .name("fk-user_role-user_id")
                     .from(UserRole::Table, UserRole::UserId)
                     .to(Users::Table, Users::Uid)
-                    .on_update(ForeignKeyAction::Cascade) // 更新时级联
-                    .on_delete(ForeignKeyAction::Cascade) // 删除时级联
+                    .on_update(ForeignKeyAction::Cascade)
+                    .on_delete(ForeignKeyAction::Cascade)
                     .to_owned(),
             )
             .await?;
@@ -84,6 +84,7 @@ enum UserRole {
     RoleId,
 }
 
+#[allow(dead_code)]
 #[derive(DeriveIden)]
 enum Users {
     Table,
@@ -95,6 +96,7 @@ enum Users {
     Status,
 }
 
+#[allow(dead_code)]
 #[derive(DeriveIden)]
 enum Role {
     Table,

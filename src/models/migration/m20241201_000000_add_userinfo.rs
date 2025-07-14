@@ -23,14 +23,51 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(UserInfo::Gender).integer())
                     .to_owned(),
             )
-            .await
+            .await?;
+
+        manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .name("fk-user_info-uid")
+                    .from(UserInfo::Table, UserInfo::Uid)
+                    .to(Users::Table, Users::Uid)
+                    .on_update(ForeignKeyAction::Cascade)
+                    .on_delete(ForeignKeyAction::Cascade)
+                    .to_owned(),
+            )
+            .await?;
+
+        Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
+            .drop_foreign_key(
+                ForeignKey::drop()
+                    .name("fk-user_info-uid")
+                    .table(UserInfo::Table)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
             .drop_table(Table::drop().table(UserInfo::Table).to_owned())
-            .await
+            .await?;
+
+        Ok(())
     }
+}
+
+#[allow(dead_code)]
+#[derive(DeriveIden)]
+enum Users {
+    Table,
+    Uid,
+    Email,
+    Username,
+    Password,
+    Nickname,
+    Status,
 }
 
 #[derive(DeriveIden)]
