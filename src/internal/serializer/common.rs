@@ -1,4 +1,4 @@
-use axum::Json;
+use axum::{Json, http::StatusCode, response::IntoResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -201,5 +201,51 @@ impl<T> From<ResponseCode> for Json<Response<T>> {
                 ResponseCode::InternalError.into(),
             )),
         }
+    }
+}
+
+impl IntoResponse for ResponseCode {
+    fn into_response(self) -> axum::response::Response {
+        let (status, res): (u16, Json<Response>) = match self {
+            ResponseCode::OK => (ResponseCode::OK.into(), ResponseCode::OK.into()),
+            ResponseCode::BadRequest => (
+                ResponseCode::BadRequest.into(),
+                ResponseCode::BadRequest.into(),
+            ),
+            ResponseCode::Unauthorized => (
+                ResponseCode::Unauthorized.into(),
+                ResponseCode::Unauthorized.into(),
+            ),
+            ResponseCode::NotFound => {
+                (ResponseCode::NotFound.into(), ResponseCode::NotFound.into())
+            }
+            ResponseCode::ParamError => (ResponseCode::OK.into(), ResponseCode::ParamError.into()),
+            ResponseCode::UserNotFound => {
+                (ResponseCode::OK.into(), ResponseCode::UserNotFound.into())
+            }
+            ResponseCode::CredentialInvalid => (
+                ResponseCode::OK.into(),
+                ResponseCode::CredentialInvalid.into(),
+            ),
+            ResponseCode::UserBlocked => {
+                (ResponseCode::OK.into(), ResponseCode::UserBlocked.into())
+            }
+            ResponseCode::UserNotActivated => (
+                ResponseCode::OK.into(),
+                ResponseCode::UserNotActivated.into(),
+            ),
+            ResponseCode::UserExists => (ResponseCode::OK.into(), ResponseCode::UserExists.into()),
+            ResponseCode::AlreadyLoggedIn => (
+                ResponseCode::OK.into(),
+                ResponseCode::AlreadyLoggedIn.into(),
+            ),
+            ResponseCode::EmailExists => {
+                (ResponseCode::OK.into(), ResponseCode::EmailExists.into())
+            }
+            ResponseCode::InternalError => {
+                (ResponseCode::OK.into(), ResponseCode::InternalError.into())
+            }
+        };
+        (StatusCode::from_u16(status).unwrap(), res).into_response()
     }
 }
