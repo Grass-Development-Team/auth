@@ -17,7 +17,12 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Permission::Name).string().not_null())
+                    .col(
+                        ColumnDef::new(Permission::Name)
+                            .string()
+                            .unique_key()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(Permission::Description).string().not_null())
                     .to_owned(),
             )
@@ -29,7 +34,7 @@ impl MigrationTrait for Migration {
                     .table(Role::Table)
                     .if_not_exists()
                     .col(ColumnDef::new(Role::Id).uuid().not_null().primary_key())
-                    .col(ColumnDef::new(Role::Name).string().not_null())
+                    .col(ColumnDef::new(Role::Name).string().unique_key().not_null())
                     .col(ColumnDef::new(Role::Description).string().not_null())
                     .to_owned(),
             )
