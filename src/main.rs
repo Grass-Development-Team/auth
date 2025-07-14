@@ -7,7 +7,7 @@ mod services;
 mod state;
 
 use anyhow::Ok;
-use axum::{Extension, Router};
+use axum::Router;
 use colored::Colorize;
 use std::io;
 use std::sync::Arc;
