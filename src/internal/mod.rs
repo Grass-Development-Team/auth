@@ -12,3 +12,6 @@ pub mod utils;
 
 // Validator module
 pub mod validator;
+
+// Authentication module
+pub mod auth;
