@@ -9,3 +9,6 @@ pub mod serializer;
 
 // Utility module
 pub mod utils;
+
+// Validator module
+pub mod validator;
