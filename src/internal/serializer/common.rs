@@ -74,7 +74,7 @@ impl From<ResponseCode> for String {
             ResponseCode::BadRequest => "Bad Request".into(),
             ResponseCode::Unauthorized => "Unauthorized".into(),
             ResponseCode::NotFound => "Not Found".into(),
-            ResponseCode::ParamError => "".into(),
+            ResponseCode::ParamError => "Parameter Error".into(),
             ResponseCode::UserNotFound => "Cannot found user".into(),
             ResponseCode::CredentialInvalid => "Invalid credential".into(),
             ResponseCode::UserBlocked => "The account was blocked".into(),

@@ -1,11 +1,18 @@
+use std::sync::OnceLock;
+
 use crate::internal::serializer::common::{Response, ResponseCode};
 use crate::internal::utils;
+use crate::internal::validator::Validatable;
 use crate::models::users::AccountStatus;
 use crate::models::{user_info, users};
+use regex::Regex;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
 use serde::{Deserialize, Serialize};
 use tracing::error;
+
+static EMAIL_RE: OnceLock<Regex> = OnceLock::new();
+static PASSWORD_RE: OnceLock<Regex> = OnceLock::new();
 
 #[derive(Deserialize, Serialize)]
 pub struct RegisterService {
@@ -18,6 +25,10 @@ pub struct RegisterService {
 
 impl RegisterService {
     pub async fn register(&self, conn: &DatabaseConnection) -> Response<String> {
+        if let Err(err) = self.validate() {
+            return err.into();
+        }
+
         if users::get_user_by_username(conn, self.username.clone())
             .await
             .is_ok()
@@ -76,5 +87,42 @@ impl RegisterService {
             ResponseCode::OK.into(),
             Some("Register successfully".into()),
         )
+    }
+}
+
+impl Validatable for RegisterService {
+    fn validate(&self) -> Result<(), ResponseCode> {
+        // Validate Username
+        if self.username.len() < 3
+            || self.username.len() > 32
+            || !self
+                .username
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+        {
+            return Err(ResponseCode::ParamError);
+        }
+
+        // Validate Email
+        let email_re = EMAIL_RE.get_or_init(|| Regex::new(r"^[\w\.-]+@[\w\.-]+\.\w+$").unwrap());
+        if !email_re.is_match(&self.email) {
+            return Err(ResponseCode::ParamError);
+        }
+
+        // Validate Password
+        let password_re = PASSWORD_RE.get_or_init(|| {
+            Regex::new(r#"^[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':",.<>/?]{8,64}$"#).unwrap()
+        });
+        if !password_re.is_match(&self.password) {
+            return Err(ResponseCode::ParamError);
+        }
+        if !self.password.chars().any(|c| c.is_ascii_alphabetic()) {
+            return Err(ResponseCode::ParamError);
+        }
+        if !self.password.chars().any(|c| c.is_ascii_digit()) {
+            return Err(ResponseCode::ParamError);
+        }
+
+        Ok(())
     }
 }
