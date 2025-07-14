@@ -78,6 +78,30 @@ pub async fn get_user_by_email(
     }
 }
 
+/// Get user model by username
+pub async fn get_user_by_username(
+    conn: &DatabaseConnection,
+    username: String,
+) -> Result<(Model, Vec<super::user_info::Model>), ModelError> {
+    let res = Entity::find()
+        .find_with_related(super::user_info::Entity)
+        .filter(Column::Username.eq(username))
+        .limit(1)
+        .all(conn)
+        .await;
+    let res = match res {
+        Ok(model) => model,
+        Err(err) => {
+            return Err(DBError(err));
+        }
+    };
+    if !res.is_empty() {
+        Ok(res[0].to_owned())
+    } else {
+        Err(Empty)
+    }
+}
+
 /// Get user model by id
 pub async fn get_user_by_id(
     conn: &DatabaseConnection,

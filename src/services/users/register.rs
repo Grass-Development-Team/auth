@@ -18,11 +18,18 @@ pub struct RegisterService {
 
 impl RegisterService {
     pub async fn register(&self, conn: &DatabaseConnection) -> Response<String> {
-        if users::get_user_by_email(conn, self.email.clone())
+        if users::get_user_by_username(conn, self.username.clone())
             .await
             .is_ok()
         {
             return ResponseCode::UserExists.into();
+        }
+
+        if users::get_user_by_email(conn, self.email.clone())
+            .await
+            .is_ok()
+        {
+            return ResponseCode::EmailExists.into();
         }
 
         // Encrypt Password

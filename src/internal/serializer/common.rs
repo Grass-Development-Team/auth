@@ -41,6 +41,7 @@ pub enum ResponseCode {
     UserNotActivated,  // 4013
     UserExists,        // 4014
     AlreadyLoggedIn,   // 4015
+    EmailExists,       // 4016
     InternalError,     // 5000
 }
 
@@ -59,6 +60,7 @@ impl From<ResponseCode> for u16 {
             ResponseCode::UserNotActivated => 4013,
             ResponseCode::UserExists => 4014,
             ResponseCode::AlreadyLoggedIn => 4015,
+            ResponseCode::EmailExists => 4016,
             ResponseCode::InternalError => 5000,
         }
     }
@@ -77,8 +79,9 @@ impl From<ResponseCode> for String {
             ResponseCode::CredentialInvalid => "Invalid credential".into(),
             ResponseCode::UserBlocked => "The account was blocked".into(),
             ResponseCode::UserNotActivated => "The account is not activated".into(),
-            ResponseCode::UserExists => "Email already exists".into(),
+            ResponseCode::UserExists => "User already exists".into(),
             ResponseCode::AlreadyLoggedIn => "The account is already logged in".into(),
+            ResponseCode::EmailExists => "Email already exists".into(),
             ResponseCode::InternalError => "Internal Error".into(),
         }
     }
@@ -129,6 +132,10 @@ impl<T> From<ResponseCode> for Response<T> {
             ResponseCode::AlreadyLoggedIn => Response::<T>::new_error(
                 ResponseCode::AlreadyLoggedIn.into(),
                 ResponseCode::AlreadyLoggedIn.into(),
+            ),
+            ResponseCode::EmailExists => Response::<T>::new_error(
+                ResponseCode::EmailExists.into(),
+                ResponseCode::EmailExists.into(),
             ),
             ResponseCode::InternalError => Response::<T>::new_error(
                 ResponseCode::InternalError.into(),
@@ -184,6 +191,10 @@ impl<T> From<ResponseCode> for Json<Response<T>> {
             ResponseCode::AlreadyLoggedIn => Json::from(Response::<T>::new_error(
                 ResponseCode::AlreadyLoggedIn.into(),
                 ResponseCode::AlreadyLoggedIn.into(),
+            )),
+            ResponseCode::EmailExists => Json::from(Response::<T>::new_error(
+                ResponseCode::EmailExists.into(),
+                ResponseCode::EmailExists.into(),
             )),
             ResponseCode::InternalError => Json::from(Response::<T>::new_error(
                 ResponseCode::InternalError.into(),
