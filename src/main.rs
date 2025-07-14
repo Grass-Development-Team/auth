@@ -63,16 +63,13 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize database & redis
     let db = init::db(&config.database.clone()).await.unwrap();
-    let redis = init::redis(config.redis.clone())
-        .get_multiplexed_tokio_connection()
-        .await
-        .unwrap();
+    let redis = init::redis(config.redis.clone());
 
-    let app = get_router(Router::new()).layer(Extension(state::AppState {
+    let app = get_router(Router::new()).with_state(state::AppState {
         db: Arc::from(db),
-        redis,
+        redis: Arc::from(redis),
         config: config.clone(),
-    }));
+    });
 
     let listener = TcpListener::bind(format!("{}:{}", &host, config.port))
         .await

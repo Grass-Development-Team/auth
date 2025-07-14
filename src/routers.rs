@@ -10,8 +10,9 @@ use tower_http::cors::CorsLayer;
 // Routers
 use crate::routers::controllers::common;
 use crate::routers::controllers::users;
+use crate::state::AppState;
 
-pub fn get_router(app: Router) -> Router {
+pub fn get_router(app: Router<AppState>) -> Router<AppState> {
     // CORS
     let cors = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST])
