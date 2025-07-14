@@ -4,7 +4,7 @@ use crate::internal::serializer::common::{Response, ResponseCode};
 use crate::internal::utils;
 use crate::internal::validator::Validatable;
 use crate::models::users::AccountStatus;
-use crate::models::{user_info, users};
+use crate::models::{role, user_info, user_role, users};
 use regex::Regex;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
@@ -47,6 +47,7 @@ impl RegisterService {
         let salt = utils::rand::string(16);
         let password = utils::password::generate(self.password.to_owned(), salt.to_owned());
 
+        // Insert User
         let user = users::ActiveModel {
             username: Set(self.username.to_owned()),
             email: Set(self.email.to_owned()),
@@ -59,8 +60,6 @@ impl RegisterService {
             status: Set(AccountStatus::Inactive),
             ..Default::default()
         };
-
-        // Insert User
         let user = user.insert(conn).await;
         if let Err(err) = user {
             error!("Database Error: {}", err);
@@ -73,9 +72,25 @@ impl RegisterService {
             uid: Set(user.uid),
             ..Default::default()
         };
-
         let info = info.insert(conn).await;
         if let Err(err) = info {
+            error!("Database Error:  {}", err);
+            return ResponseCode::InternalError.into();
+        }
+
+        // Insert User Role
+        // TODO: Default Role setting
+        let role_id = role::get_role_id(conn, "user".into()).await;
+        let Ok(role_id) = role_id else {
+            return ResponseCode::InternalError.into();
+        };
+
+        let role = user_role::ActiveModel {
+            user_id: Set(user.uid),
+            role_id: Set(role_id),
+        };
+        let role = role.insert(conn).await;
+        if let Err(err) = role {
             error!("Database Error:  {}", err);
             return ResponseCode::InternalError.into();
         }
