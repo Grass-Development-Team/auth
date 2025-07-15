@@ -21,6 +21,14 @@ pub struct Config {
     /// Default port is 7817.
     #[serde(default = "default_port")]
     pub port: u32,
+    /// Server domain.
+    /// Default domain is "http://localhost:7817".
+    #[serde(default = "default_domain")]
+    pub domain: String,
+    /// Development mode.
+    /// Default is false.
+    #[serde(default)]
+    pub dev_mode: bool,
     /// Database type.
     /// Default type is "sqlite".
     #[serde(default = "Default::default")]
@@ -45,4 +53,8 @@ fn default_host() -> String {
 
 fn default_port() -> u32 {
     7817
+}
+
+fn default_domain() -> String {
+    "http://localhost:7817".into()
 }

@@ -65,7 +65,7 @@ async fn main() -> anyhow::Result<()> {
     let db = init::db(&config.database.clone()).await.unwrap();
     let redis = init::redis(config.redis.clone());
 
-    let app = get_router(Router::new()).with_state(state::AppState {
+    let app = get_router(Router::new(), &config).with_state(state::AppState {
         db: Arc::from(db),
         redis: Arc::from(redis),
         config: config.clone(),

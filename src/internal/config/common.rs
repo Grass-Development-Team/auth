@@ -76,6 +76,8 @@ impl Default for Config {
             version: CONFIG_VERSION,
             host: "0.0.0.0".into(),
             port: 7817,
+            domain: "http://localhost:7817".into(),
+            dev_mode: false,
             database: Default::default(),
             redis: Default::default(),
             mail: Mail {
