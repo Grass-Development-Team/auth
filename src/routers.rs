@@ -1,7 +1,7 @@
 pub mod controllers;
 
 use axum::Router;
-use axum::http::{HeaderValue, Method};
+use axum::http::Method;
 use axum::routing::{any, post};
 use tower::ServiceBuilder;
 use tower_http::cors;
@@ -43,8 +43,8 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
         .route("/ping", any(common::ping))
         .fallback(common::not_found)
         .layer(api_cors);
-    let api = Router::new().merge(user).merge(oauth).merge(common);
+    let api = Router::new().merge(user).merge(common);
     let api = Router::new().nest("/api", api);
 
-    app.merge(api)
+    app.merge(api).merge(oauth)
 }
