@@ -34,7 +34,7 @@ impl FromRequestParts<AppState> for LoginAccess {
             return Err(ResponseCode::Unauthorized);
         };
 
-        let Ok(session) = serde_json::from_str::<utils::session::Session>(&session) else {
+        let Some(session) = utils::session::parse(&session) else {
             return Err(ResponseCode::Unauthorized);
         };
 

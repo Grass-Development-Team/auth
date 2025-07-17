@@ -19,3 +19,7 @@ impl Session {
         self.exp > (Utc::now().timestamp() as usize)
     }
 }
+
+pub fn parse(cookie: &str) -> Option<Session> {
+    serde_json::from_str(cookie).ok()
+}
