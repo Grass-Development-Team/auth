@@ -4,10 +4,11 @@ use axum::Router;
 use axum::http::Method;
 use axum::routing::{any, post};
 use tower::ServiceBuilder;
-use tower_http::cors;
 use tower_http::cors::CorsLayer;
+use tower_http::{cors, services};
 
 use crate::internal::config::Config;
+
 // Routers
 use crate::routers::controllers::common;
 use crate::routers::controllers::users;
@@ -47,5 +48,7 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
     let api = Router::new().merge(user).merge(common);
     let api = Router::new().nest("/api", api);
 
-    app.merge(api).merge(oauth)
+    app.merge(api)
+        .merge(oauth)
+        .nest_service("/", services::ServeDir::new("public"))
 }
