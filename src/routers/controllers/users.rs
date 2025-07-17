@@ -1,6 +1,8 @@
 use crate::internal::auth::LoginAccess;
 use crate::internal::serializer::common::{Response, ResponseCode};
-use crate::services::users::{LoginResponse, LoginService, RegisterService};
+use crate::services::users::{
+    InfoResponse, InfoService, LoginResponse, LoginService, RegisterService,
+};
 use crate::state::AppState;
 use axum::Json;
 use axum::extract::State;
@@ -32,10 +34,26 @@ pub async fn logout(_: LoginAccess, jar: CookieJar) -> (CookieJar, Json<Response
     let jar = jar.remove("session");
     (
         jar,
-        Json(Response {
-            code: ResponseCode::OK.into(),
-            message: "Logout Successfully".into(),
-            data: None,
-        }),
+        Json(Response::new(
+            ResponseCode::OK.into(),
+            ResponseCode::OK.into(),
+            None,
+        )),
     )
+}
+
+/// User info
+pub async fn info(
+    _: LoginAccess,
+    State(state): State<AppState>,
+    jar: CookieJar,
+) -> (CookieJar, Json<Response<InfoResponse>>) {
+    let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
+        return (jar, ResponseCode::InternalError.into());
+    };
+    let service = InfoService;
+
+    let (jar, res) = service.info(&state.db, &mut redis, jar).await;
+
+    (jar, Json(res))
 }
