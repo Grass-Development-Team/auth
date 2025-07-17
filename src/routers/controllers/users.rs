@@ -20,11 +20,9 @@ pub async fn login(
     jar: CookieJar,
     Json(req): Json<LoginService>,
 ) -> (CookieJar, Json<Response<LoginResponse>>) {
-    let mut redis = state
-        .redis
-        .get_multiplexed_tokio_connection()
-        .await
-        .unwrap();
+    let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
+        return (jar, ResponseCode::InternalError.into());
+    };
     let (jar, res) = req.login(&state.db, &mut redis, jar).await;
     (jar, Json(res))
 }

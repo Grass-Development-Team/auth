@@ -17,11 +17,9 @@ impl FromRequestParts<AppState> for LoginAccess {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let mut redis = state
-            .redis
-            .get_multiplexed_tokio_connection()
-            .await
-            .unwrap();
+        let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
+            return Err(ResponseCode::InternalError);
+        };
 
         let conn = &state.db;
 
