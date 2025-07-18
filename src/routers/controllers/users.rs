@@ -1,12 +1,14 @@
 use crate::internal::auth::LoginAccess;
 use crate::internal::serializer::common::{Response, ResponseCode};
+use crate::internal::utils;
 use crate::services::users::{
     InfoResponse, InfoService, LoginResponse, LoginService, RegisterService,
 };
 use crate::state::AppState;
 use axum::Json;
-use axum::extract::State;
+use axum::extract::{Path, State};
 use axum_extra::extract::CookieJar;
+use redis::AsyncCommands;
 
 /// User register
 pub async fn register(
@@ -51,9 +53,36 @@ pub async fn info(
     let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
         return (jar, ResponseCode::InternalError.into());
     };
+
+    let Some(session) = jar.get("session") else {
+        let jar = jar.remove("session");
+        return (jar, ResponseCode::Unauthorized.into());
+    };
+    let session = session.value();
+    let Ok(session) = redis.get::<_, String>(format!("session-{session}")).await else {
+        let jar = jar.remove("session");
+        return (jar, ResponseCode::Unauthorized.into());
+    };
+
+    let Some(session) = utils::session::parse_from_str(&session) else {
+        let jar = jar.remove("session");
+        return (jar, ResponseCode::Unauthorized.into());
+    };
+
     let service = InfoService;
 
-    let (jar, res) = service.info(&state.db, &mut redis, jar).await;
+    let res = service.info(&state.db, session.uid).await;
 
     (jar, Json(res))
+}
+
+pub async fn info_by_uid(
+    State(state): State<AppState>,
+    Path(uid): Path<i32>,
+) -> Json<Response<InfoResponse>> {
+    let service = InfoService;
+
+    let res = service.info(&state.db, uid).await;
+
+    Json(res)
 }

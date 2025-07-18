@@ -28,7 +28,8 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
         .route("/login", post(users::login))
         .route("/register", post(users::register))
         .route("/logout", any(users::logout))
-        .route("/info", any(users::info));
+        .route("/info", any(users::info))
+        .route("/info/{uid}", any(users::info_by_uid));
     let user = Router::new().nest("/user", user);
     let user = if config.dev_mode {
         user.layer(api_cors.clone())
