@@ -156,3 +156,14 @@ impl AccountStatus {
         matches!(self, AccountStatus::Banned)
     }
 }
+
+impl From<AccountStatus> for &str {
+    fn from(status: AccountStatus) -> Self {
+        match status {
+            AccountStatus::Inactive => "inactive",
+            AccountStatus::Active => "active",
+            AccountStatus::Banned => "banned",
+            AccountStatus::Deleted => "deleted",
+        }
+    }
+}
