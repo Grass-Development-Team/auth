@@ -2,7 +2,6 @@ use crate::internal::serializer::common::{Response, ResponseCode};
 use crate::internal::utils;
 use crate::internal::utils::session::Session;
 use crate::models::users;
-use crate::models::users::AccountStatus;
 use axum_extra::extract::CookieJar;
 use axum_extra::extract::cookie::Cookie;
 use redis::AsyncCommands;
@@ -61,10 +60,10 @@ impl LoginService {
                 ),
             );
         }
-        if user.status == AccountStatus::Banned || user.status == AccountStatus::Deleted {
+        if user.status.is_banned() || user.status.is_deleted() {
             return (jar, ResponseCode::UserBlocked.into());
         }
-        if user.status == AccountStatus::Inactive {
+        if user.status.is_inactive() {
             return (jar, ResponseCode::UserNotActivated.into());
         }
 
@@ -102,11 +101,10 @@ impl LoginService {
             if let Ok(user) = users::get_user_by_id(conn, session.uid).await {
                 let user = user.0;
                 if user.email.eq(&self.email) {
-                    if user.status == AccountStatus::Banned || user.status == AccountStatus::Deleted
-                    {
+                    if user.status.is_banned() || user.status.is_deleted() {
                         return Some(ResponseCode::UserBlocked.into());
                     }
-                    if user.status == AccountStatus::Inactive {
+                    if user.status.is_inactive() {
                         return Some(ResponseCode::UserNotActivated.into());
                     }
 

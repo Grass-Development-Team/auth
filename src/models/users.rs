@@ -142,3 +142,17 @@ impl Model {
         }
     }
 }
+
+impl AccountStatus {
+    pub fn is_deleted(&self) -> bool {
+        matches!(self, AccountStatus::Deleted)
+    }
+
+    pub fn is_inactive(&self) -> bool {
+        matches!(self, AccountStatus::Inactive)
+    }
+
+    pub fn is_banned(&self) -> bool {
+        matches!(self, AccountStatus::Banned)
+    }
+}
