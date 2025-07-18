@@ -32,7 +32,7 @@ impl FromRequestParts<AppState> for LoginAccess {
             return Err(ResponseCode::Unauthorized);
         };
 
-        let Some(session) = utils::session::parse(&session) else {
+        let Some(session) = utils::session::parse_from_str(&session) else {
             return Err(ResponseCode::Unauthorized);
         };
 

@@ -46,7 +46,7 @@ impl InfoService {
             return (jar, ResponseCode::Unauthorized.into());
         };
 
-        let Some(session) = utils::session::parse(&session) else {
+        let Some(session) = utils::session::parse_from_str(&session) else {
             let jar = jar.remove("session");
             return (jar, ResponseCode::Unauthorized.into());
         };

@@ -20,6 +20,6 @@ impl Session {
     }
 }
 
-pub fn parse(cookie: &str) -> Option<Session> {
-    serde_json::from_str(cookie).ok()
+pub fn parse_from_str(ctx: &str) -> Option<Session> {
+    serde_json::from_str(ctx).ok()
 }
