@@ -50,5 +50,5 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
 
     app.merge(api)
         .merge(oauth)
-        .nest_service("/", services::ServeDir::new("public"))
+        .fallback_service(services::ServeDir::new("public"))
 }
