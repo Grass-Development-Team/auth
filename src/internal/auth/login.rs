@@ -36,7 +36,17 @@ impl FromRequestParts<AppState> for LoginAccess {
             return Err(ResponseCode::Unauthorized);
         };
 
-        if !session.validate() || users::get_user_by_id(conn, session.uid).await.is_err() {
+        if !session.validate() {
+            return Err(ResponseCode::Unauthorized);
+        }
+
+        let user = users::get_user_by_id(conn, session.uid).await;
+
+        let Ok(user) = user else {
+            return Err(ResponseCode::Unauthorized);
+        };
+
+        if user.0.status.is_banned() || user.0.status.is_deleted() {
             return Err(ResponseCode::Unauthorized);
         }
 
