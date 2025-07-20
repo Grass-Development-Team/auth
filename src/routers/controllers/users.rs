@@ -103,3 +103,47 @@ pub async fn info_by_uid(
 
     Json(res)
 }
+
+pub async fn delete(
+    _: LoginAccess,
+    State(state): State<AppState>,
+    jar: CookieJar,
+    Json(req): Json<users::DeleteService>,
+) -> (CookieJar, Json<Response>) {
+    let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
+        return (jar, ResponseCode::InternalError.into());
+    };
+
+    let Some(session) = jar.get("session") else {
+        return (jar, ResponseCode::Unauthorized.into());
+    };
+    let session_str = session.value();
+    let Ok(session) = redis
+        .get::<_, String>(format!("session-{session_str}"))
+        .await
+    else {
+        return (jar, ResponseCode::InternalError.into());
+    };
+
+    let Some(session) = utils::session::parse_from_str(&session) else {
+        return (jar, ResponseCode::InternalError.into());
+    };
+
+    let res = req.delete(&state.db, session.uid).await;
+
+    if res.is_err() {
+        return (jar, Json(res));
+    }
+
+    if redis
+        .del::<_, String>(format!("session-{session_str}"))
+        .await
+        .is_err()
+    {
+        return (jar, ResponseCode::InternalError.into());
+    }
+
+    let jar = jar.remove("session");
+
+    (jar, Json(res))
+}

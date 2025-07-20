@@ -2,8 +2,9 @@ use crate::models::common::ModelError;
 use crate::models::common::ModelError::{DBError, Empty};
 
 use crate::internal::utils;
-use sea_orm::QuerySelect;
+use sea_orm::ActiveValue::Set;
 use sea_orm::entity::prelude::*;
+use sea_orm::{IntoActiveModel, QuerySelect};
 use serde::{Deserialize, Serialize};
 
 /// Status of the Account
@@ -123,6 +124,18 @@ pub async fn get_user_by_id(
         Ok(res[0].to_owned())
     } else {
         Err(Empty)
+    }
+}
+
+pub async fn delete_user(conn: &DatabaseConnection, id: i32) -> Result<(), ModelError> {
+    let (user, _) = get_user_by_id(conn, id).await?;
+
+    let mut user = user.into_active_model();
+    user.status = Set(AccountStatus::Deleted);
+
+    match user.update(conn).await {
+        Ok(_) => Ok(()),
+        Err(err) => Err(DBError(err)),
     }
 }
 
