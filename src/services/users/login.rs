@@ -50,6 +50,10 @@ impl LoginService {
 
         let user = user.0;
 
+        if user.status.is_deleted() {
+            return (jar, ResponseCode::UserNotFound.into());
+        }
+
         // Validate credentials and account status
         if !user.check_password(self.password.to_owned()) {
             return (
@@ -60,9 +64,11 @@ impl LoginService {
                 ),
             );
         }
-        if user.status.is_banned() || user.status.is_deleted() {
+
+        if user.status.is_banned() {
             return (jar, ResponseCode::UserBlocked.into());
         }
+
         if user.status.is_inactive() {
             return (jar, ResponseCode::UserNotActivated.into());
         }
