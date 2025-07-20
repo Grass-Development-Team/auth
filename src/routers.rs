@@ -2,7 +2,7 @@ pub mod controllers;
 
 use axum::Router;
 use axum::http::Method;
-use axum::routing::{any, post};
+use axum::routing::{any, delete, post};
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 use tower_http::{cors, services};
@@ -30,7 +30,7 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
         .route("/info", any(users::info))
         .route("/info/{uid}", any(users::info_by_uid))
         .route("/logout", any(users::logout))
-        .route("/delete", post(users::delete));
+        .route("/delete", delete(users::delete));
     let user = Router::new().nest("/user", user);
     let user = if config.dev_mode {
         user.layer(api_cors.clone())
