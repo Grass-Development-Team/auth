@@ -1,9 +1,7 @@
 use crate::internal::auth::LoginAccess;
 use crate::internal::serializer::common::{Response, ResponseCode};
 use crate::internal::utils;
-use crate::services::users::{
-    InfoResponse, InfoService, LoginResponse, LoginService, RegisterService,
-};
+use crate::services::users;
 use crate::state::AppState;
 use axum::Json;
 use axum::extract::{Path, State};
@@ -13,7 +11,7 @@ use redis::AsyncCommands;
 /// User register
 pub async fn register(
     State(state): State<AppState>,
-    Json(req): Json<RegisterService>,
+    Json(req): Json<users::RegisterService>,
 ) -> Json<Response<String>> {
     Json(req.register(&state.db).await)
 }
@@ -22,8 +20,8 @@ pub async fn register(
 pub async fn login(
     State(state): State<AppState>,
     jar: CookieJar,
-    Json(req): Json<LoginService>,
-) -> (CookieJar, Json<Response<LoginResponse>>) {
+    Json(req): Json<users::LoginService>,
+) -> (CookieJar, Json<Response<users::LoginResponse>>) {
     let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
         return (jar, ResponseCode::InternalError.into());
     };
@@ -32,8 +30,26 @@ pub async fn login(
 }
 
 /// User logout
-pub async fn logout(_: LoginAccess, jar: CookieJar) -> (CookieJar, Json<Response<String>>) {
+pub async fn logout(
+    _: LoginAccess,
+    State(state): State<AppState>,
+    jar: CookieJar,
+) -> (CookieJar, Json<Response<String>>) {
+    let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
+        return (jar, ResponseCode::InternalError.into());
+    };
+
+    let Some(session) = jar.get("session") else {
+        return (jar, ResponseCode::Unauthorized.into());
+    };
+    let session = session.value();
+
+    if let Err(_) = redis.del::<_, String>(format!("session-{session}")).await {
+        return (jar, ResponseCode::InternalError.into());
+    }
+
     let jar = jar.remove("session");
+
     (
         jar,
         Json(Response::new(
@@ -49,38 +65,35 @@ pub async fn info(
     _: LoginAccess,
     State(state): State<AppState>,
     jar: CookieJar,
-) -> (CookieJar, Json<Response<InfoResponse>>) {
+) -> Json<Response<users::InfoResponse>> {
     let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
-        return (jar, ResponseCode::InternalError.into());
+        return ResponseCode::InternalError.into();
     };
 
     let Some(session) = jar.get("session") else {
-        let jar = jar.remove("session");
-        return (jar, ResponseCode::Unauthorized.into());
+        return ResponseCode::Unauthorized.into();
     };
     let session = session.value();
     let Ok(session) = redis.get::<_, String>(format!("session-{session}")).await else {
-        let jar = jar.remove("session");
-        return (jar, ResponseCode::Unauthorized.into());
+        return ResponseCode::InternalError.into();
     };
 
     let Some(session) = utils::session::parse_from_str(&session) else {
-        let jar = jar.remove("session");
-        return (jar, ResponseCode::Unauthorized.into());
+        return ResponseCode::InternalError.into();
     };
 
-    let service = InfoService;
+    let service = users::InfoService;
 
     let res = service.info(&state.db, session.uid).await;
 
-    (jar, Json(res))
+    Json(res)
 }
 
 pub async fn info_by_uid(
     State(state): State<AppState>,
     Path(uid): Path<i32>,
-) -> Json<Response<InfoResponse>> {
-    let service = InfoService;
+) -> Json<Response<users::InfoResponse>> {
+    let service = users::InfoService;
 
     let res = service.info(&state.db, uid).await;
 
