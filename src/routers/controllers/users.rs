@@ -44,7 +44,11 @@ pub async fn logout(
     };
     let session = session.value();
 
-    if let Err(_) = redis.del::<_, String>(format!("session-{session}")).await {
+    if redis
+        .del::<_, String>(format!("session-{session}"))
+        .await
+        .is_err()
+    {
         return (jar, ResponseCode::InternalError.into());
     }
 

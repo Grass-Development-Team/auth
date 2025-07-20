@@ -8,4 +8,8 @@ impl<T> Response<T> {
             data: None,
         }
     }
+
+    pub fn is_err(&self) -> bool {
+        self.code != 200
+    }
 }
