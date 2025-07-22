@@ -29,10 +29,11 @@ impl From<Response> for Value {
 #[derive(Serialize, Deserialize)]
 pub enum ResponseCode {
     // Http status code
-    OK,           // 200
-    BadRequest,   // 400
-    Unauthorized, // 401
-    NotFound,     // 404
+    OK,            // 200
+    BadRequest,    // 400
+    Unauthorized,  // 401
+    NotFound,      // 404
+    InternalError, // 500
     // Internal status code
     ParamError,        // 4000
     UserNotFound,      // 4010
@@ -42,7 +43,6 @@ pub enum ResponseCode {
     UserExists,        // 4014
     AlreadyLoggedIn,   // 4015
     EmailExists,       // 4016
-    InternalError,     // 5000
 }
 
 // Error code
@@ -53,6 +53,7 @@ impl From<ResponseCode> for u16 {
             ResponseCode::BadRequest => 400,
             ResponseCode::Unauthorized => 401,
             ResponseCode::NotFound => 404,
+            ResponseCode::InternalError => 500,
             ResponseCode::ParamError => 4000,
             ResponseCode::UserNotFound => 4010,
             ResponseCode::CredentialInvalid => 4011,
@@ -61,7 +62,6 @@ impl From<ResponseCode> for u16 {
             ResponseCode::UserExists => 4014,
             ResponseCode::AlreadyLoggedIn => 4015,
             ResponseCode::EmailExists => 4016,
-            ResponseCode::InternalError => 5000,
         }
     }
 }
@@ -74,6 +74,7 @@ impl From<ResponseCode> for String {
             ResponseCode::BadRequest => "Bad Request".into(),
             ResponseCode::Unauthorized => "Unauthorized".into(),
             ResponseCode::NotFound => "Not Found".into(),
+            ResponseCode::InternalError => "Internal Error".into(),
             ResponseCode::ParamError => "Parameter Error".into(),
             ResponseCode::UserNotFound => "Cannot found user".into(),
             ResponseCode::CredentialInvalid => "Invalid credential".into(),
@@ -82,7 +83,6 @@ impl From<ResponseCode> for String {
             ResponseCode::UserExists => "User already exists".into(),
             ResponseCode::AlreadyLoggedIn => "The account is already logged in".into(),
             ResponseCode::EmailExists => "Email already exists".into(),
-            ResponseCode::InternalError => "Internal Error".into(),
         }
     }
 }
@@ -104,6 +104,10 @@ impl<T> From<ResponseCode> for Response<T> {
             ResponseCode::NotFound => Response::<T>::new_error(
                 ResponseCode::NotFound.into(),
                 ResponseCode::NotFound.into(),
+            ),
+            ResponseCode::InternalError => Response::<T>::new_error(
+                ResponseCode::InternalError.into(),
+                ResponseCode::InternalError.into(),
             ),
             ResponseCode::ParamError => Response::<T>::new_error(
                 ResponseCode::ParamError.into(),
@@ -137,10 +141,6 @@ impl<T> From<ResponseCode> for Response<T> {
                 ResponseCode::EmailExists.into(),
                 ResponseCode::EmailExists.into(),
             ),
-            ResponseCode::InternalError => Response::<T>::new_error(
-                ResponseCode::InternalError.into(),
-                ResponseCode::InternalError.into(),
-            ),
         }
     }
 }
@@ -163,6 +163,10 @@ impl<T> From<ResponseCode> for Json<Response<T>> {
             ResponseCode::NotFound => Json::from(Response::<T>::new_error(
                 ResponseCode::NotFound.into(),
                 ResponseCode::NotFound.into(),
+            )),
+            ResponseCode::InternalError => Json::from(Response::<T>::new_error(
+                ResponseCode::InternalError.into(),
+                ResponseCode::InternalError.into(),
             )),
             ResponseCode::ParamError => Json::from(Response::<T>::new_error(
                 ResponseCode::ParamError.into(),
@@ -196,10 +200,6 @@ impl<T> From<ResponseCode> for Json<Response<T>> {
                 ResponseCode::EmailExists.into(),
                 ResponseCode::EmailExists.into(),
             )),
-            ResponseCode::InternalError => Json::from(Response::<T>::new_error(
-                ResponseCode::InternalError.into(),
-                ResponseCode::InternalError.into(),
-            )),
         }
     }
 }
@@ -218,6 +218,9 @@ impl IntoResponse for ResponseCode {
             ),
             ResponseCode::NotFound => {
                 (ResponseCode::NotFound.into(), ResponseCode::NotFound.into())
+            }
+            ResponseCode::InternalError => {
+                (ResponseCode::OK.into(), ResponseCode::InternalError.into())
             }
             ResponseCode::ParamError => (ResponseCode::OK.into(), ResponseCode::ParamError.into()),
             ResponseCode::UserNotFound => {
@@ -241,9 +244,6 @@ impl IntoResponse for ResponseCode {
             ),
             ResponseCode::EmailExists => {
                 (ResponseCode::OK.into(), ResponseCode::EmailExists.into())
-            }
-            ResponseCode::InternalError => {
-                (ResponseCode::OK.into(), ResponseCode::InternalError.into())
             }
         };
         (StatusCode::from_u16(status).unwrap(), res).into_response()
