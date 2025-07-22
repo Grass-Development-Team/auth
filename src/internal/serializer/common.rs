@@ -32,6 +32,7 @@ pub enum ResponseCode {
     OK,            // 200
     BadRequest,    // 400
     Unauthorized,  // 401
+    Forbidden,     // 403
     NotFound,      // 404
     InternalError, // 500
     // Internal status code
@@ -52,6 +53,7 @@ impl From<ResponseCode> for u16 {
             ResponseCode::OK => 200,
             ResponseCode::BadRequest => 400,
             ResponseCode::Unauthorized => 401,
+            ResponseCode::Forbidden => 403,
             ResponseCode::NotFound => 404,
             ResponseCode::InternalError => 500,
             ResponseCode::ParamError => 4000,
@@ -73,6 +75,7 @@ impl From<ResponseCode> for String {
             ResponseCode::OK => "OK".into(),
             ResponseCode::BadRequest => "Bad Request".into(),
             ResponseCode::Unauthorized => "Unauthorized".into(),
+            ResponseCode::Forbidden => "Forbidden".into(),
             ResponseCode::NotFound => "Not Found".into(),
             ResponseCode::InternalError => "Internal Error".into(),
             ResponseCode::ParamError => "Parameter Error".into(),
@@ -100,6 +103,10 @@ impl<T> From<ResponseCode> for Response<T> {
             ResponseCode::Unauthorized => Response::<T>::new_error(
                 ResponseCode::Unauthorized.into(),
                 ResponseCode::Unauthorized.into(),
+            ),
+            ResponseCode::Forbidden => Response::<T>::new_error(
+                ResponseCode::Forbidden.into(),
+                ResponseCode::Forbidden.into(),
             ),
             ResponseCode::NotFound => Response::<T>::new_error(
                 ResponseCode::NotFound.into(),
@@ -160,6 +167,10 @@ impl<T> From<ResponseCode> for Json<Response<T>> {
                 ResponseCode::Unauthorized.into(),
                 ResponseCode::Unauthorized.into(),
             )),
+            ResponseCode::Forbidden => Json::from(Response::<T>::new_error(
+                ResponseCode::Forbidden.into(),
+                ResponseCode::Forbidden.into(),
+            )),
             ResponseCode::NotFound => Json::from(Response::<T>::new_error(
                 ResponseCode::NotFound.into(),
                 ResponseCode::NotFound.into(),
@@ -215,6 +226,10 @@ impl IntoResponse for ResponseCode {
             ResponseCode::Unauthorized => (
                 ResponseCode::Unauthorized.into(),
                 ResponseCode::Unauthorized.into(),
+            ),
+            ResponseCode::Forbidden => (
+                ResponseCode::Forbidden.into(),
+                ResponseCode::Forbidden.into(),
             ),
             ResponseCode::NotFound => {
                 (ResponseCode::NotFound.into(), ResponseCode::NotFound.into())
