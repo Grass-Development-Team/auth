@@ -1,4 +1,4 @@
-use crate::internal::auth::LoginAccess;
+use crate::internal::extractor::LoginAccess;
 use crate::internal::serializer::common::{Response, ResponseCode};
 use crate::internal::utils;
 use crate::services::users;
