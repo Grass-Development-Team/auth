@@ -3,7 +3,7 @@ use axum_extra::extract::CookieJar;
 use redis::AsyncCommands;
 
 use crate::{
-    internal::{serializer::common::ResponseCode, utils},
+    internal::{serializer::ResponseCode, utils},
     models::users,
     state::AppState,
 };

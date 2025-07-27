@@ -1,6 +1,6 @@
-use crate::internal::serializer::common::{Response, ResponseCode};
-use axum::http::StatusCode;
+use crate::internal::serializer::{Response, ResponseCode};
 use axum::Json;
+use axum::http::StatusCode;
 
 pub async fn not_found() -> (StatusCode, Json<Response>) {
     (StatusCode::NOT_FOUND, Json(ResponseCode::NotFound.into()))

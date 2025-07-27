@@ -2,7 +2,7 @@ use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    internal::serializer::common::{Response, ResponseCode},
+    internal::serializer::{Response, ResponseCode},
     models::users,
 };
 

@@ -1,2 +1,4 @@
-pub mod common;
+mod common;
+
 pub mod error;
+pub use common::*;

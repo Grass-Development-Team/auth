@@ -1,4 +1,4 @@
-use crate::internal::serializer::common::{Response, ResponseCode};
+use crate::internal::serializer::{Response, ResponseCode};
 use crate::internal::utils;
 use crate::internal::utils::session::Session;
 use crate::models::users;

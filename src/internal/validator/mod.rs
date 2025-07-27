@@ -1,4 +1,4 @@
-use crate::internal::serializer::common::ResponseCode;
+use crate::internal::serializer::ResponseCode;
 
 pub trait Validatable {
     fn validate(&self) -> Result<(), ResponseCode>;
