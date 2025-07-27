@@ -62,7 +62,7 @@ async fn main() -> anyhow::Result<()> {
     let host = config.host.clone();
 
     // Initialize database & redis
-    let db = init::db(&config.database.clone()).await.unwrap();
+    let db = init::db(&config.database.clone()).await?;
     let redis = init::redis(config.redis.clone());
 
     state::APP_STATE
@@ -76,9 +76,7 @@ async fn main() -> anyhow::Result<()> {
     let app =
         get_router(Router::new(), &config).with_state(state::APP_STATE.get().unwrap().clone());
 
-    let listener = TcpListener::bind(format!("{}:{}", &host, config.port))
-        .await
-        .unwrap();
+    let listener = TcpListener::bind(format!("{}:{}", &host, config.port)).await?;
 
     // Start server
     let (tx, rx) = oneshot::channel::<io::Error>();
