@@ -76,7 +76,9 @@ async fn main() -> anyhow::Result<()> {
     let app =
         get_router(Router::new(), &config).with_state(state::APP_STATE.get().unwrap().clone());
 
-    let listener = TcpListener::bind(format!("{}:{}", &host, config.port)).await?;
+    let addr = format!("{}:{}", &host, config.port);
+
+    let listener = TcpListener::bind(&addr).await?;
 
     // Start server
     let (tx, rx) = oneshot::channel::<io::Error>();
@@ -89,10 +91,7 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
-    info!(
-        "Server started on {}",
-        format!("{}:{}", &host, config.port).green()
-    );
+    info!("Server started on {}", &addr.green());
     let _ = rx.await;
     info!("Server stopped");
 
