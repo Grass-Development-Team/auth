@@ -65,11 +65,16 @@ async fn main() -> anyhow::Result<()> {
     let db = init::db(&config.database.clone()).await.unwrap();
     let redis = init::redis(config.redis.clone());
 
-    let app = get_router(Router::new(), &config).with_state(state::AppState {
-        db: Arc::from(db),
-        redis: Arc::from(redis),
-        config: config.clone(),
-    });
+    state::APP_STATE
+        .get_or_init(async || state::AppState {
+            db: Arc::from(db),
+            redis: Arc::from(redis),
+            config: config.clone(),
+        })
+        .await;
+
+    let app =
+        get_router(Router::new(), &config).with_state(state::APP_STATE.get().unwrap().clone());
 
     let listener = TcpListener::bind(format!("{}:{}", &host, config.port))
         .await
