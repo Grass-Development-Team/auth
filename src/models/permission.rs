@@ -1,5 +1,7 @@
-use sea_orm::entity::prelude::*;
+use sea_orm::{JoinType, QuerySelect, entity::prelude::*};
 use serde::{Deserialize, Serialize};
+
+use crate::models::common::ModelError;
 
 /// # Permission Model
 #[derive(Debug, Clone, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
@@ -24,3 +26,25 @@ impl Related<super::role_permissions::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+pub async fn get_permissions_by_uid(
+    db: &DatabaseConnection,
+    uid: i32,
+) -> Result<Vec<String>, ModelError> {
+    let permissions = Entity::find()
+        .join(JoinType::InnerJoin, Relation::RolePermissions.def())
+        .join(
+            JoinType::InnerJoin,
+            super::role_permissions::Relation::Role.def(),
+        )
+        .join(JoinType::InnerJoin, super::role::Relation::UserRole.def())
+        .filter(super::user_role::Column::UserId.eq(uid))
+        .all(db)
+        .await
+        .map_err(ModelError::DBError)?;
+
+    Ok(permissions
+        .into_iter()
+        .map(|res| res.name)
+        .collect::<Vec<String>>())
+}
