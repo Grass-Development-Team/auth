@@ -1,6 +1,7 @@
 mod init;
 
 mod internal;
+mod middleware;
 mod models;
 mod routers;
 mod services;
