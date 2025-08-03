@@ -39,16 +39,15 @@ impl ActiveModelBehavior for ActiveModel {}
 
 /// Get Role ID by role name.
 pub async fn get_role_id(conn: &DatabaseConnection, name: String) -> Result<Uuid, ModelError> {
-    let role = Entity::find().filter(Column::Name.eq(name)).one(conn).await;
+    let role = Entity::find()
+        .filter(Column::Name.eq(name))
+        .one(conn)
+        .await
+        .map_err(ModelError::DBError)?;
 
-    match role {
-        Ok(role) => {
-            if let Some(role) = role {
-                Ok(role.id)
-            } else {
-                Err(ModelError::Empty)
-            }
-        }
-        Err(err) => Err(ModelError::DBError(err)),
+    if let Some(role) = role {
+        Ok(role.id)
+    } else {
+        Err(ModelError::Empty)
     }
 }
