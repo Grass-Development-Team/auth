@@ -88,9 +88,7 @@ pub async fn info(
 
     let service = users::InfoService;
 
-    let res = service.info(&state.db, session.uid).await;
-
-    Json(res)
+    Json(service.info(&state.db, session.uid).await)
 }
 
 pub async fn info_by_uid(
@@ -99,9 +97,7 @@ pub async fn info_by_uid(
 ) -> Json<Response<users::InfoResponse>> {
     let service = users::InfoService;
 
-    let res = service.info(&state.db, uid).await;
-
-    Json(res)
+    Json(service.info(&state.db, uid).await)
 }
 
 pub async fn delete(
@@ -146,4 +142,10 @@ pub async fn delete(
     let jar = jar.remove("session");
 
     (jar, Json(res))
+}
+
+pub async fn delete_by_uid(State(state): State<AppState>, Path(uid): Path<i32>) -> Json<Response> {
+    let service = users::AdminDeleteService;
+
+    Json(service.delete(&state.db, uid).await)
 }

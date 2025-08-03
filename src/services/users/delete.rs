@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     internal::serializer::{Response, ResponseCode},
-    models::{permission, users},
+    models::{permission, role, users},
 };
 
 /// Service handling user delete operations
@@ -28,6 +28,28 @@ impl DeleteService {
                 "Wrong password".into(),
             );
         }
+
+        if users::delete_user(conn, uid).await.is_err() {
+            return ResponseCode::InternalError.into();
+        }
+
+        ResponseCode::OK.into()
+    }
+}
+
+pub struct AdminDeleteService;
+
+impl AdminDeleteService {
+    pub async fn delete(&self, conn: &DatabaseConnection, uid: i32) -> Response {
+        if permission::check_permission(conn, uid, "user:undeletable").await {
+            return ResponseCode::Forbidden.into();
+        }
+
+        let Ok(level) = role::get_user_role_level(conn, uid).await else {
+            return ResponseCode::InternalError.into();
+        };
+
+        // TODO: Check operator level
 
         if users::delete_user(conn, uid).await.is_err() {
             return ResponseCode::InternalError.into();
