@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     internal::serializer::{Response, ResponseCode},
-    models::users,
+    models::{permission, users},
 };
 
 /// Service handling user delete operations
@@ -17,6 +17,10 @@ impl DeleteService {
         let Ok(user) = users::get_user_by_id(conn, uid).await else {
             return ResponseCode::UserNotFound.into();
         };
+
+        if permission::check_permission(conn, uid, "user:undeletable").await {
+            return ResponseCode::Forbidden.into();
+        }
 
         if !user.0.check_password(self.password.clone()) {
             return Response::new_error(

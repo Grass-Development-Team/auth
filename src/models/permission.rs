@@ -49,3 +49,10 @@ pub async fn get_permissions_by_uid(
         .map(|res| res.name)
         .collect::<Vec<String>>())
 }
+
+pub async fn check_permission(db: &DatabaseConnection, uid: i32, perm: &str) -> bool {
+    let Ok(permissions) = get_permissions_by_uid(db, uid).await else {
+        return false;
+    };
+    permissions.iter().any(|p| p == perm)
+}
