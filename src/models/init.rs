@@ -52,7 +52,8 @@ async fn init_permissions(db: &DatabaseConnection) -> Result<(), DbErr> {
         // User Management
         ("user:create", "Create new user"),
         ("user:read:self", "Read own user info"),
-        ("user:read:all", "Read all users info (admin)"),
+        ("user:read:active", "Read all active users info"),
+        ("user:read:all", "Read all users info"),
         ("user:update:self", "Update own user info"),
         (
             "user:update:all",
@@ -253,6 +254,7 @@ async fn init_role_permissions(db: &DatabaseConnection) -> Result<(), DbErr> {
             vec![
                 "user:create",
                 "user:read:self",
+                "user:read:active",
                 "user:read:all",
                 "user:update:self",
                 "user:update:all",
@@ -278,6 +280,7 @@ async fn init_role_permissions(db: &DatabaseConnection) -> Result<(), DbErr> {
             vec![
                 "user:create",
                 "user:read:self",
+                "user:read:active",
                 "user:read:all",
                 "user:update:self",
                 "user:update:all",
@@ -300,6 +303,7 @@ async fn init_role_permissions(db: &DatabaseConnection) -> Result<(), DbErr> {
             "user",
             vec![
                 "user:read:self",
+                "user:read:active",
                 "user:update:self",
                 "user:delete:self",
                 "user:reset_password:self",

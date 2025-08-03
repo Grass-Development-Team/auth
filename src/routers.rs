@@ -28,12 +28,21 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
     let user = Router::new()
         .route("/login", post(users::login))
         .route("/register", post(users::register))
-        .route("/info", any(users::info))
-        .route("/info/{uid}", any(users::info_by_uid))
+        .route(
+            "/info",
+            any(users::info).layer(PermissionAccess::all(&["user:read:self"])),
+        )
+        .route(
+            "/info/{uid}",
+            any(users::info_by_uid).layer(PermissionAccess::any(&[
+                "user:read:active",
+                "user:read:all",
+            ])),
+        )
         .route("/logout", any(users::logout))
         .route(
             "/delete",
-            delete(users::delete).layer(PermissionAccess::new(&["user:delete:self"])),
+            delete(users::delete).layer(PermissionAccess::all(&["user:delete:self"])),
         );
     let user = Router::new().nest("/user", user);
     let user = if config.dev_mode {
