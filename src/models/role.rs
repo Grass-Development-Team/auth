@@ -1,4 +1,4 @@
-use sea_orm::entity::prelude::*;
+use sea_orm::{JoinType, QuerySelect, entity::prelude::*};
 use serde::{Deserialize, Serialize};
 
 use crate::models::common::ModelError;
@@ -50,4 +50,17 @@ pub async fn get_role_id(conn: &DatabaseConnection, name: String) -> Result<Uuid
     } else {
         Err(ModelError::Empty)
     }
+}
+
+pub async fn get_user_role_level(conn: &DatabaseConnection, uid: i32) -> Result<i32, ModelError> {
+    let role = Entity::find()
+        .join(JoinType::InnerJoin, Relation::UserRole.def())
+        .filter(super::user_role::Column::UserId.eq(uid))
+        .all(conn)
+        .await
+        .map_err(ModelError::DBError)?;
+
+    let level = role.iter().map(|r| r.level).max().unwrap_or(0);
+
+    Ok(level)
 }
