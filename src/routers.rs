@@ -8,6 +8,7 @@ use tower_http::cors::CorsLayer;
 use tower_http::{cors, services};
 
 use crate::internal::config::Config;
+use crate::middleware::permission::PermissionAccess;
 
 // Routers
 use crate::routers::controllers::common;
@@ -30,7 +31,10 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
         .route("/info", any(users::info))
         .route("/info/{uid}", any(users::info_by_uid))
         .route("/logout", any(users::logout))
-        .route("/delete", delete(users::delete));
+        .route(
+            "/delete",
+            delete(users::delete).layer(PermissionAccess::new(&["user:delete:self"])),
+        );
     let user = Router::new().nest("/user", user);
     let user = if config.dev_mode {
         user.layer(api_cors.clone())

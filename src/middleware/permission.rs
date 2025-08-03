@@ -16,9 +16,16 @@ use crate::{
 };
 
 #[derive(Clone)]
+enum PermType {
+    Any,
+    All,
+}
+
+#[derive(Clone)]
 pub struct PermissionAccessService<S> {
     inner: S,
     perms: &'static [&'static str],
+    perm_type: PermType,
 }
 
 impl<S> Service<Request<Body>> for PermissionAccessService<S>
@@ -40,6 +47,7 @@ where
 
     fn call(&mut self, req: Request<Body>) -> Self::Future {
         let perms = self.perms;
+        let perm_type = self.perm_type.clone();
         let mut inner = self.inner.clone();
         let fut = async move {
             let Some(state) = APP_STATE.get() else {
@@ -88,11 +96,25 @@ where
                     return Ok(serializer::ResponseCode::InternalError.into_response());
                 };
 
-                let user_perm: HashSet<&str> = user_perm.iter().map(AsRef::as_ref).collect();
-                if perms.iter().all(|perm| user_perm.contains(perm)) {
-                    inner.call(req).await
-                } else {
-                    Ok(serializer::ResponseCode::Forbidden.into_response())
+                match perm_type {
+                    PermType::All => {
+                        let user_perm: HashSet<&str> =
+                            user_perm.iter().map(AsRef::as_ref).collect();
+                        if perms.iter().all(|perm| user_perm.contains(perm)) {
+                            inner.call(req).await
+                        } else {
+                            Ok(serializer::ResponseCode::Forbidden.into_response())
+                        }
+                    }
+                    PermType::Any => {
+                        let user_perm: HashSet<&str> =
+                            user_perm.iter().map(AsRef::as_ref).collect();
+                        if perms.iter().any(|perm| user_perm.contains(perm)) {
+                            inner.call(req).await
+                        } else {
+                            Ok(serializer::ResponseCode::Forbidden.into_response())
+                        }
+                    }
                 }
             }
         };
@@ -103,11 +125,22 @@ where
 #[derive(Clone)]
 pub struct PermissionAccess {
     perms: &'static [&'static str],
+    perm_type: PermType,
 }
 
 impl PermissionAccess {
-    pub fn new(perms: &'static [&'static str]) -> Self {
-        PermissionAccess { perms }
+    pub fn all(perms: &'static [&'static str]) -> Self {
+        PermissionAccess {
+            perms,
+            perm_type: PermType::All,
+        }
+    }
+
+    pub fn any(perms: &'static [&'static str]) -> Self {
+        PermissionAccess {
+            perms,
+            perm_type: PermType::Any,
+        }
     }
 }
 
@@ -122,6 +155,7 @@ where
         PermissionAccessService {
             inner,
             perms: self.perms,
+            perm_type: self.perm_type.clone(),
         }
     }
 }
