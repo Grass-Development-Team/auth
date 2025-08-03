@@ -24,6 +24,7 @@ impl MigrationTrait for Migration {
                             .not_null(),
                     )
                     .col(ColumnDef::new(Permission::Description).string().not_null())
+                    .col(ColumnDef::new(Permission::System).boolean().not_null())
                     .to_owned(),
             )
             .await?;
@@ -36,6 +37,8 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Role::Id).uuid().not_null().primary_key())
                     .col(ColumnDef::new(Role::Name).string().unique_key().not_null())
                     .col(ColumnDef::new(Role::Description).string().not_null())
+                    .col(ColumnDef::new(Role::Level).integer().not_null())
+                    .col(ColumnDef::new(Role::System).boolean().not_null())
                     .to_owned(),
             )
             .await?;
@@ -129,6 +132,7 @@ enum Permission {
     Id,
     Name,
     Description,
+    System,
 }
 
 #[derive(DeriveIden)]
@@ -137,6 +141,8 @@ enum Role {
     Id,
     Name,
     Description,
+    Level,
+    System,
 }
 
 #[derive(DeriveIden)]

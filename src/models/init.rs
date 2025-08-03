@@ -64,6 +64,7 @@ async fn init_permissions(db: &DatabaseConnection) -> Result<(), DbErr> {
             "Delete own account (should require confirmation/MFA)",
         ),
         ("user:delete:all", "Delete all users (very high privilege)"),
+        ("user:undeletable", "Undeletable user"),
         ("user:reset_password:self", "Reset own password"),
         (
             "user:reset_password:other",
@@ -115,6 +116,7 @@ async fn init_permissions(db: &DatabaseConnection) -> Result<(), DbErr> {
                 id: Set(Uuid::new_v4()),
                 name: Set(name.to_string()),
                 description: Set(description.to_string()),
+                system: Set(true),
             });
         }
     }
@@ -129,9 +131,13 @@ async fn init_permissions(db: &DatabaseConnection) -> Result<(), DbErr> {
 async fn init_roles(db: &DatabaseConnection) -> Result<(), DbErr> {
     // List of roles to initialize
     let roles = vec![
-        ("super_admin", "Super Administrator - Full system access"),
-        ("admin", "Administrator - Manage users and roles"),
-        ("user", "Regular User - Basic user privileges"),
+        (
+            "super_admin",
+            "Super Administrator - Full system access",
+            100,
+        ),
+        ("admin", "Administrator - Manage users and roles", 90),
+        ("user", "Regular User - Basic user privileges", 10),
     ];
 
     let existing: Vec<String> = Role::find()
@@ -145,12 +151,14 @@ async fn init_roles(db: &DatabaseConnection) -> Result<(), DbErr> {
 
     let mut new_roles = Vec::new();
 
-    for (name, description) in roles {
+    for (name, description, level) in roles {
         if !existing_set.contains(name) {
             new_roles.push(RoleActiveModel {
                 id: Set(Uuid::new_v4()),
                 name: Set(name.to_string()),
                 description: Set(description.to_string()),
+                level: Set(level),
+                system: Set(true),
             });
         }
     }
@@ -260,6 +268,7 @@ async fn init_role_permissions(db: &DatabaseConnection) -> Result<(), DbErr> {
                 "user:update:all",
                 "user:delete:self",
                 "user:delete:all",
+                "user:undeletable",
                 "user:reset_password:self",
                 "user:reset_password:other",
                 "user:manage_roles",
