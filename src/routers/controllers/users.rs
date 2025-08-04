@@ -12,8 +12,8 @@ use redis::AsyncCommands;
 pub async fn register(
     State(state): State<AppState>,
     Json(req): Json<users::RegisterService>,
-) -> Json<Response<String>> {
-    Json(req.register(&state.db).await)
+) -> Response<String> {
+    req.register(&state.db).await
 }
 
 /// User login
@@ -21,12 +21,12 @@ pub async fn login(
     State(state): State<AppState>,
     jar: CookieJar,
     Json(req): Json<users::LoginService>,
-) -> (CookieJar, Json<Response<users::LoginResponse>>) {
+) -> (CookieJar, Response<users::LoginResponse>) {
     let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
         return (jar, ResponseCode::InternalError.into());
     };
     let (jar, res) = req.login(&state.db, &mut redis, jar).await;
-    (jar, Json(res))
+    (jar, res)
 }
 
 /// User logout
@@ -34,7 +34,7 @@ pub async fn logout(
     _: LoginAccess,
     State(state): State<AppState>,
     jar: CookieJar,
-) -> (CookieJar, Json<Response<String>>) {
+) -> (CookieJar, Response<String>) {
     let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
         return (jar, ResponseCode::InternalError.into());
     };
@@ -56,11 +56,7 @@ pub async fn logout(
 
     (
         jar,
-        Json(Response::new(
-            ResponseCode::OK.into(),
-            ResponseCode::OK.into(),
-            None,
-        )),
+        Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), None),
     )
 }
 
@@ -69,7 +65,7 @@ pub async fn info(
     _: LoginAccess,
     State(state): State<AppState>,
     jar: CookieJar,
-) -> Json<Response<users::InfoResponse>> {
+) -> Response<users::InfoResponse> {
     let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
         return ResponseCode::InternalError.into();
     };
@@ -88,14 +84,14 @@ pub async fn info(
 
     let service = users::InfoService;
 
-    Json(service.info(&state.db, session.uid, session.uid).await)
+    service.info(&state.db, session.uid, session.uid).await
 }
 
 pub async fn info_by_uid(
     State(state): State<AppState>,
     jar: CookieJar,
     Path(uid): Path<i32>,
-) -> Json<Response<users::InfoResponse>> {
+) -> Response<users::InfoResponse> {
     let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
         return ResponseCode::InternalError.into();
     };
@@ -114,7 +110,7 @@ pub async fn info_by_uid(
 
     let service = users::InfoService;
 
-    Json(service.info(&state.db, uid, session.uid).await)
+    service.info(&state.db, uid, session.uid).await
 }
 
 pub async fn delete(
@@ -122,7 +118,7 @@ pub async fn delete(
     State(state): State<AppState>,
     jar: CookieJar,
     Json(req): Json<users::DeleteService>,
-) -> (CookieJar, Json<Response>) {
+) -> (CookieJar, Response) {
     let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
         return (jar, ResponseCode::InternalError.into());
     };
@@ -145,7 +141,7 @@ pub async fn delete(
     let res = req.delete(&state.db, session.uid).await;
 
     if res.is_err() {
-        return (jar, Json(res));
+        return (jar, res);
     }
 
     if redis
@@ -158,14 +154,14 @@ pub async fn delete(
 
     let jar = jar.remove("session");
 
-    (jar, Json(res))
+    (jar, res)
 }
 
 pub async fn delete_by_uid(
     State(state): State<AppState>,
     jar: CookieJar,
     Path(uid): Path<i32>,
-) -> Json<Response> {
+) -> Response {
     let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
         return ResponseCode::InternalError.into();
     };
@@ -187,5 +183,5 @@ pub async fn delete_by_uid(
 
     let service = users::AdminDeleteService;
 
-    Json(service.delete(&state.db, uid, session.uid).await)
+    service.delete(&state.db, uid, session.uid).await
 }
