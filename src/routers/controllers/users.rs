@@ -88,16 +88,33 @@ pub async fn info(
 
     let service = users::InfoService;
 
-    Json(service.info(&state.db, session.uid).await)
+    Json(service.info(&state.db, session.uid, session.uid).await)
 }
 
 pub async fn info_by_uid(
     State(state): State<AppState>,
+    jar: CookieJar,
     Path(uid): Path<i32>,
 ) -> Json<Response<users::InfoResponse>> {
+    let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
+        return ResponseCode::InternalError.into();
+    };
+
+    let Some(session) = jar.get("session") else {
+        return ResponseCode::Unauthorized.into();
+    };
+    let session = session.value();
+    let Ok(session) = redis.get::<_, String>(format!("session-{session}")).await else {
+        return ResponseCode::InternalError.into();
+    };
+
+    let Some(session) = utils::session::parse_from_str(&session) else {
+        return ResponseCode::InternalError.into();
+    };
+
     let service = users::InfoService;
 
-    Json(service.info(&state.db, uid).await)
+    Json(service.info(&state.db, uid, session.uid).await)
 }
 
 pub async fn delete(

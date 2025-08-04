@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     internal::serializer::{Response, ResponseCode},
-    models::{user_info::Gender, users},
+    models::{permission, user_info::Gender, users},
 };
 
 #[derive(Serialize, Deserialize)]
@@ -26,7 +26,12 @@ pub struct InfoResponse {
 pub struct InfoService;
 
 impl InfoService {
-    pub async fn info(&self, conn: &DatabaseConnection, uid: i32) -> Response<InfoResponse> {
+    pub async fn info(
+        &self,
+        conn: &DatabaseConnection,
+        uid: i32,
+        op_uid: i32,
+    ) -> Response<InfoResponse> {
         let Ok(user) = users::get_user_by_id(conn, uid).await else {
             return ResponseCode::UserNotFound.into();
         };
@@ -34,8 +39,18 @@ impl InfoService {
         let info = user.1[0].clone();
         let user = user.0;
 
-        if user.status.is_deleted() {
-            return ResponseCode::UserNotFound.into();
+        if uid != op_uid && !permission::check_permission(conn, op_uid, "user:read:all").await {
+            if user.status.is_deleted() {
+                return ResponseCode::UserNotFound.into();
+            }
+
+            if user.status.is_inactive() {
+                return ResponseCode::UserNotActivated.into();
+            }
+
+            if user.status.is_banned() {
+                return ResponseCode::UserBlocked.into();
+            }
         }
 
         let res = InfoResponse {
