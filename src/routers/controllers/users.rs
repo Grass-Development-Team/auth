@@ -144,8 +144,31 @@ pub async fn delete(
     (jar, Json(res))
 }
 
-pub async fn delete_by_uid(State(state): State<AppState>, Path(uid): Path<i32>) -> Json<Response> {
+pub async fn delete_by_uid(
+    State(state): State<AppState>,
+    jar: CookieJar,
+    Path(uid): Path<i32>,
+) -> Json<Response> {
+    let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
+        return ResponseCode::InternalError.into();
+    };
+
+    let Some(session) = jar.get("session") else {
+        return ResponseCode::Unauthorized.into();
+    };
+    let session_str = session.value();
+    let Ok(session) = redis
+        .get::<_, String>(format!("session-{session_str}"))
+        .await
+    else {
+        return ResponseCode::InternalError.into();
+    };
+
+    let Some(session) = utils::session::parse_from_str(&session) else {
+        return ResponseCode::InternalError.into();
+    };
+
     let service = users::AdminDeleteService;
 
-    Json(service.delete(&state.db, uid).await)
+    Json(service.delete(&state.db, uid, session.uid).await)
 }

@@ -40,7 +40,7 @@ impl DeleteService {
 pub struct AdminDeleteService;
 
 impl AdminDeleteService {
-    pub async fn delete(&self, conn: &DatabaseConnection, uid: i32) -> Response {
+    pub async fn delete(&self, conn: &DatabaseConnection, uid: i32, op_uid: i32) -> Response {
         if permission::check_permission(conn, uid, "user:undeletable").await {
             return ResponseCode::Forbidden.into();
         }
@@ -49,7 +49,13 @@ impl AdminDeleteService {
             return ResponseCode::InternalError.into();
         };
 
-        // TODO: Check operator level
+        let Ok(op_level) = role::get_user_role_level(conn, op_uid).await else {
+            return ResponseCode::InternalError.into();
+        };
+
+        if op_level < level {
+            return ResponseCode::Forbidden.into();
+        }
 
         if users::delete_user(conn, uid).await.is_err() {
             return ResponseCode::InternalError.into();
