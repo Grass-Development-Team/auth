@@ -215,6 +215,18 @@ impl<T> From<ResponseCode> for Json<Response<T>> {
     }
 }
 
+impl<T> IntoResponse for Response<T>
+where
+    T: Serialize,
+{
+    fn into_response(self) -> axum::response::Response {
+        let status = if self.code < 1000 { self.code } else { 200 };
+        let res = Json(self);
+
+        (StatusCode::from_u16(status).unwrap(), res).into_response()
+    }
+}
+
 impl IntoResponse for ResponseCode {
     fn into_response(self) -> axum::response::Response {
         let (status, res): (u16, Json<Response>) = match self {
