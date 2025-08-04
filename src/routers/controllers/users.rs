@@ -1,9 +1,8 @@
-use crate::internal::extractor::LoginAccess;
+use crate::internal::extractor::{Json, LoginAccess};
 use crate::internal::serializer::{Response, ResponseCode};
 use crate::internal::utils;
 use crate::services::users;
 use crate::state::AppState;
-use axum::Json;
 use axum::extract::{Path, State};
 use axum_extra::extract::CookieJar;
 use redis::AsyncCommands;
