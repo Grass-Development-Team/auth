@@ -22,14 +22,8 @@ where
                 Ok(Json(data))
             }
             Err(rejection) => {
-                let err = match rejection {
-                    JsonRejection::JsonDataError(err) => err.body_text(),
-                    JsonRejection::JsonSyntaxError(err) => err.body_text(),
-                    // handle other rejections from the `Json` extractor
-                    JsonRejection::MissingJsonContentType(err) => err.body_text(),
-                    JsonRejection::BytesRejection(err) => err.body_text(),
-                    _ => "".into(),
-                };
+                let err = rejection.body_text();
+
                 Err(Response::new(
                     ResponseCode::ParamError.into(),
                     ResponseCode::ParamError.into(),
