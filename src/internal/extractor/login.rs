@@ -21,7 +21,7 @@ impl FromRequestParts<AppState> for LoginAccess {
             return Err(ResponseCode::InternalError);
         };
 
-        let conn = &state.db;
+        let conn = &*state.db;
 
         let jar = CookieJar::from_request_parts(parts, state).await.unwrap();
         let Some(session) = jar.get("session") else {

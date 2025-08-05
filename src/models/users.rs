@@ -57,7 +57,7 @@ impl ActiveModelBehavior for ActiveModel {}
 
 /// Get user model by email
 pub async fn get_user_by_email(
-    conn: &DatabaseConnection,
+    conn: &impl ConnectionTrait,
     email: String,
 ) -> Result<(Model, Vec<super::user_info::Model>), ModelError> {
     let res = Entity::find()
@@ -81,7 +81,7 @@ pub async fn get_user_by_email(
 
 /// Get user model by username
 pub async fn get_user_by_username(
-    conn: &DatabaseConnection,
+    conn: &impl ConnectionTrait,
     username: String,
 ) -> Result<(Model, Vec<super::user_info::Model>), ModelError> {
     let res = Entity::find()
@@ -105,7 +105,7 @@ pub async fn get_user_by_username(
 
 /// Get user model by id
 pub async fn get_user_by_id(
-    conn: &DatabaseConnection,
+    conn: &impl ConnectionTrait,
     id: i32,
 ) -> Result<(Model, Vec<super::user_info::Model>), ModelError> {
     let res = Entity::find()
@@ -127,7 +127,7 @@ pub async fn get_user_by_id(
     }
 }
 
-pub async fn delete_user(conn: &DatabaseConnection, id: i32) -> Result<(), ModelError> {
+pub async fn delete_user(conn: &impl ConnectionTrait, id: i32) -> Result<(), ModelError> {
     let (user, _) = get_user_by_id(conn, id).await?;
 
     let mut user = user.into_active_model();

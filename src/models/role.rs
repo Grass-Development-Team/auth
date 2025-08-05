@@ -38,7 +38,7 @@ impl Related<super::user_role::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// Get Role ID by role name.
-pub async fn get_role_id(conn: &DatabaseConnection, name: String) -> Result<Uuid, ModelError> {
+pub async fn get_role_id(conn: &impl ConnectionTrait, name: String) -> Result<Uuid, ModelError> {
     let role = Entity::find()
         .filter(Column::Name.eq(name))
         .one(conn)
@@ -52,7 +52,7 @@ pub async fn get_role_id(conn: &DatabaseConnection, name: String) -> Result<Uuid
     }
 }
 
-pub async fn get_user_role_level(conn: &DatabaseConnection, uid: i32) -> Result<i32, ModelError> {
+pub async fn get_user_role_level(conn: &impl ConnectionTrait, uid: i32) -> Result<i32, ModelError> {
     let role = Entity::find()
         .join(JoinType::InnerJoin, Relation::UserRole.def())
         .filter(super::user_role::Column::UserId.eq(uid))
