@@ -44,6 +44,7 @@ pub enum ResponseCode {
     UserExists,        // 4014
     AlreadyLoggedIn,   // 4015
     EmailExists,       // 4016
+    UserDeleted,       // 4017
 }
 
 // Error code
@@ -64,6 +65,7 @@ impl From<ResponseCode> for u16 {
             ResponseCode::UserExists => 4014,
             ResponseCode::AlreadyLoggedIn => 4015,
             ResponseCode::EmailExists => 4016,
+            ResponseCode::UserDeleted => 4017,
         }
     }
 }
@@ -86,6 +88,7 @@ impl From<ResponseCode> for String {
             ResponseCode::UserExists => "User already exists".into(),
             ResponseCode::AlreadyLoggedIn => "The account is already logged in".into(),
             ResponseCode::EmailExists => "Email already exists".into(),
+            ResponseCode::UserDeleted => "User has been deleted".into(),
         }
     }
 }
@@ -147,6 +150,10 @@ impl<T> From<ResponseCode> for Response<T> {
             ResponseCode::EmailExists => Response::<T>::new_error(
                 ResponseCode::EmailExists.into(),
                 ResponseCode::EmailExists.into(),
+            ),
+            ResponseCode::UserDeleted => Response::<T>::new_error(
+                ResponseCode::UserDeleted.into(),
+                ResponseCode::UserDeleted.into(),
             ),
         }
     }
@@ -211,6 +218,10 @@ impl<T> From<ResponseCode> for Json<Response<T>> {
                 ResponseCode::EmailExists.into(),
                 ResponseCode::EmailExists.into(),
             )),
+            ResponseCode::UserDeleted => Json::from(Response::<T>::new_error(
+                ResponseCode::UserDeleted.into(),
+                ResponseCode::UserDeleted.into(),
+            )),
         }
     }
 }
@@ -246,9 +257,10 @@ impl IntoResponse for ResponseCode {
             ResponseCode::NotFound => {
                 (ResponseCode::NotFound.into(), ResponseCode::NotFound.into())
             }
-            ResponseCode::InternalError => {
-                (ResponseCode::OK.into(), ResponseCode::InternalError.into())
-            }
+            ResponseCode::InternalError => (
+                ResponseCode::InternalError.into(),
+                ResponseCode::InternalError.into(),
+            ),
             ResponseCode::ParamError => (ResponseCode::OK.into(), ResponseCode::ParamError.into()),
             ResponseCode::UserNotFound => {
                 (ResponseCode::OK.into(), ResponseCode::UserNotFound.into())
@@ -271,6 +283,9 @@ impl IntoResponse for ResponseCode {
             ),
             ResponseCode::EmailExists => {
                 (ResponseCode::OK.into(), ResponseCode::EmailExists.into())
+            }
+            ResponseCode::UserDeleted => {
+                (ResponseCode::OK.into(), ResponseCode::UserDeleted.into())
             }
         };
         (StatusCode::from_u16(status).unwrap(), res).into_response()
