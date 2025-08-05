@@ -3,13 +3,13 @@ use std::sync::OnceLock;
 use crate::internal::serializer::{Response, ResponseCode};
 use crate::internal::utils;
 use crate::internal::validator::Validatable;
+use crate::models::common::ModelError;
 use crate::models::users::AccountStatus;
 use crate::models::{role, user_info, user_role, users};
 use regex::Regex;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ActiveModelTrait, DatabaseConnection};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, TransactionError, TransactionTrait};
 use serde::{Deserialize, Serialize};
-use tracing::error;
 
 static EMAIL_RE: OnceLock<Regex> = OnceLock::new();
 static PASSWORD_RE: OnceLock<Regex> = OnceLock::new();
@@ -47,51 +47,51 @@ impl RegisterService {
         let salt = utils::rand::string(16);
         let password = utils::password::generate(self.password.to_owned(), salt.to_owned());
 
-        // Insert User
-        let user = users::ActiveModel {
-            username: Set(self.username.to_owned()),
-            email: Set(self.email.to_owned()),
-            password: Set(format!("sha2:{password}:{salt}")),
-            nickname: Set(if self.nickname.is_some() {
-                self.nickname.to_owned().unwrap()
-            } else {
-                self.email.split("@").collect::<Vec<&str>>()[0].to_owned()
-            }),
-            status: Set(AccountStatus::Inactive),
-            ..Default::default()
-        };
-        let user = user.insert(conn).await;
-        if let Err(err) = user {
-            error!("Database Error: {}", err);
-            return ResponseCode::InternalError.into();
-        }
-        let user = user.unwrap();
+        let username = self.username.clone();
+        let email = self.email.clone();
+        let nickname = self.nickname.clone();
 
-        // Insert User Info
-        let info = user_info::ActiveModel {
-            uid: Set(user.uid),
-            ..Default::default()
-        };
-        let info = info.insert(conn).await;
-        if let Err(err) = info {
-            error!("Database Error:  {}", err);
-            return ResponseCode::InternalError.into();
-        }
+        let res: Result<_, TransactionError<ModelError>> = conn
+            .transaction(|txn| {
+                Box::pin(async move {
+                    // Insert User
+                    let user = users::ActiveModel {
+                        username: Set(username),
+                        email: Set(email.clone()),
+                        password: Set(format!("sha2:{password}:{salt}")),
+                        nickname: Set(if let Some(nickname) = nickname {
+                            nickname
+                        } else {
+                            email.split("@").collect::<Vec<&str>>()[0].to_owned()
+                        }),
+                        status: Set(AccountStatus::Inactive),
+                        ..Default::default()
+                    };
+                    let user = user.insert(txn).await.map_err(ModelError::DBError)?;
 
-        // Insert User Role
-        // TODO: Default Role setting
-        let role_id = role::get_role_id(conn, "user".into()).await;
-        let Ok(role_id) = role_id else {
-            return ResponseCode::InternalError.into();
-        };
+                    // Insert User Info
+                    let info = user_info::ActiveModel {
+                        uid: Set(user.uid),
+                        ..Default::default()
+                    };
+                    info.insert(txn).await.map_err(ModelError::DBError)?;
 
-        let role = user_role::ActiveModel {
-            user_id: Set(user.uid),
-            role_id: Set(role_id),
-        };
-        let role = role.insert(conn).await;
-        if let Err(err) = role {
-            error!("Database Error:  {}", err);
+                    // Insert User Role
+                    // TODO: Default Role setting
+                    let role_id = role::get_role_id(txn, "user".into()).await?;
+
+                    let role = user_role::ActiveModel {
+                        user_id: Set(user.uid),
+                        role_id: Set(role_id),
+                    };
+                    role.insert(txn).await.map_err(ModelError::DBError)?;
+
+                    Ok(())
+                })
+            })
+            .await;
+
+        if res.is_err() {
             return ResponseCode::InternalError.into();
         }
 
