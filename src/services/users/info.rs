@@ -41,7 +41,7 @@ impl InfoService {
 
         if uid != op_uid && !permission::check_permission(conn, op_uid, "user:read:all").await {
             if user.status.is_deleted() {
-                return ResponseCode::UserNotFound.into();
+                return ResponseCode::UserDeleted.into();
             }
 
             if user.status.is_inactive() {

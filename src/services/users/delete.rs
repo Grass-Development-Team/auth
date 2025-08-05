@@ -18,6 +18,10 @@ impl DeleteService {
             return ResponseCode::UserNotFound.into();
         };
 
+        if user.0.status.is_deleted() {
+            return ResponseCode::UserDeleted.into();
+        }
+
         if permission::check_permission(conn, uid, "user:undeletable").await {
             return ResponseCode::Forbidden.into();
         }
@@ -41,6 +45,14 @@ pub struct AdminDeleteService;
 
 impl AdminDeleteService {
     pub async fn delete(&self, conn: &DatabaseConnection, uid: i32, op_uid: i32) -> Response {
+        let Ok(user) = users::get_user_by_id(conn, uid).await else {
+            return ResponseCode::UserNotFound.into();
+        };
+
+        if user.0.status.is_deleted() {
+            return ResponseCode::UserDeleted.into();
+        }
+
         if permission::check_permission(conn, uid, "user:undeletable").await {
             return ResponseCode::Forbidden.into();
         }

@@ -51,7 +51,7 @@ impl LoginService {
         let user = user.0;
 
         if user.status.is_deleted() {
-            return (jar, ResponseCode::UserNotFound.into());
+            return (jar, ResponseCode::UserDeleted.into());
         }
 
         // Validate credentials and account status
