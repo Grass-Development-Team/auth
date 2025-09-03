@@ -35,12 +35,11 @@ impl LoginService {
         jar: CookieJar,
     ) -> (CookieJar, Response<LoginResponse>) {
         // Check for existing valid session
-        if let Some(session) = jar.get("session") {
-            if let Ok(session) = self.validate_session(session.value(), redis).await {
-                if let Some(res) = self.response_from_session(session, conn).await {
-                    return (jar, res);
-                }
-            }
+        if let Some(session) = jar.get("session")
+            && let Ok(session) = self.validate_session(session.value(), redis).await
+            && let Some(res) = self.response_from_session(session, conn).await
+        {
+            return (jar, res);
         }
 
         // Get user by email
@@ -103,28 +102,28 @@ impl LoginService {
         session: Session,
         conn: &DatabaseConnection,
     ) -> Option<Response<LoginResponse>> {
-        if session.validate() {
-            if let Ok(user) = users::get_user_by_id(conn, session.uid).await {
-                let user = user.0;
-                if user.email.eq(&self.email) {
-                    if user.status.is_banned() || user.status.is_deleted() {
-                        return Some(ResponseCode::UserBlocked.into());
-                    }
-                    if user.status.is_inactive() {
-                        return Some(ResponseCode::UserNotActivated.into());
-                    }
-
-                    return Some(Response::new(
-                        ResponseCode::OK.into(),
-                        ResponseCode::OK.into(),
-                        Some(LoginResponse {
-                            uid: user.uid,
-                            username: user.username,
-                            email: user.email,
-                            nickname: user.nickname,
-                        }),
-                    ));
+        if session.validate()
+            && let Ok(user) = users::get_user_by_id(conn, session.uid).await
+        {
+            let user = user.0;
+            if user.email.eq(&self.email) {
+                if user.status.is_banned() || user.status.is_deleted() {
+                    return Some(ResponseCode::UserBlocked.into());
                 }
+                if user.status.is_inactive() {
+                    return Some(ResponseCode::UserNotActivated.into());
+                }
+
+                return Some(Response::new(
+                    ResponseCode::OK.into(),
+                    ResponseCode::OK.into(),
+                    Some(LoginResponse {
+                        uid: user.uid,
+                        username: user.username,
+                        email: user.email,
+                        nickname: user.nickname,
+                    }),
+                ));
             }
         }
 
