@@ -116,6 +116,7 @@ pub async fn delete(
     _: LoginAccess,
     State(state): State<AppState>,
     jar: CookieJar,
+    uid: Option<Path<i32>>,
     Json(req): Json<users::DeleteService>,
 ) -> (CookieJar, Response) {
     let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
@@ -137,50 +138,31 @@ pub async fn delete(
         return (jar, ResponseCode::InternalError.into());
     };
 
-    let res = req.delete(&state.db, session.uid).await;
+    let target_uid = if let Some(Path(uid)) = uid {
+        uid
+    } else {
+        session.uid
+    };
+
+    let res = req.delete(&state.db, target_uid, session.uid).await;
 
     if res.is_err() {
         return (jar, res);
     }
 
-    if redis
-        .del::<_, String>(format!("session-{session_str}"))
-        .await
-        .is_err()
-    {
-        return (jar, ResponseCode::InternalError.into());
-    }
+    let jar = if target_uid == session.uid {
+        if redis
+            .del::<_, String>(format!("session-{session_str}"))
+            .await
+            .is_err()
+        {
+            return (jar, ResponseCode::InternalError.into());
+        }
 
-    let jar = jar.remove("session");
+        jar.remove("session")
+    } else {
+        jar
+    };
 
     (jar, res)
-}
-
-pub async fn delete_by_uid(
-    State(state): State<AppState>,
-    jar: CookieJar,
-    Path(uid): Path<i32>,
-) -> Response {
-    let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
-        return ResponseCode::InternalError.into();
-    };
-
-    let Some(session) = jar.get("session") else {
-        return ResponseCode::Unauthorized.into();
-    };
-    let session_str = session.value();
-    let Ok(session) = redis
-        .get::<_, String>(format!("session-{session_str}"))
-        .await
-    else {
-        return ResponseCode::InternalError.into();
-    };
-
-    let Some(session) = utils::session::parse_from_str(&session) else {
-        return ResponseCode::InternalError.into();
-    };
-
-    let service = users::AdminDeleteService;
-
-    service.delete(&state.db, uid, session.uid).await
 }
