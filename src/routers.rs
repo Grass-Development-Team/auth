@@ -46,7 +46,7 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
         )
         .route(
             "/delete/{uid}",
-            delete(users::delete).layer(PermissionAccess::all(&["user:delete:all"])),
+            delete(users::delete_by_uid).layer(PermissionAccess::all(&["user:delete:all"])),
         );
     let user = Router::new().nest("/user", user);
     let user = if config.dev_mode {
