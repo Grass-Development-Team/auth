@@ -4,22 +4,19 @@ use crate::internal::serializer::{Response, ResponseCode};
 use crate::internal::utils;
 use crate::internal::validator::Validatable;
 use crate::models::common::ModelError;
-use crate::models::users::AccountStatus;
-use crate::models::{role, user_info, user_role, users};
+use crate::models::users;
 use regex::Regex;
-use sea_orm::ActiveValue::Set;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, TransactionError, TransactionTrait};
-use serde::{Deserialize, Serialize};
+use sea_orm::{DatabaseConnection, TransactionError, TransactionTrait};
+use serde::Deserialize;
 
 static EMAIL_RE: OnceLock<Regex> = OnceLock::new();
 static PASSWORD_RE: OnceLock<Regex> = OnceLock::new();
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize)]
 pub struct RegisterService {
     pub email: String,
     pub username: String,
     pub password: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub nickname: Option<String>,
 }
 
@@ -54,39 +51,7 @@ impl RegisterService {
         let res: Result<_, TransactionError<ModelError>> = conn
             .transaction(|txn| {
                 Box::pin(async move {
-                    // Insert User
-                    let user = users::ActiveModel {
-                        username: Set(username),
-                        email: Set(email.clone()),
-                        password: Set(format!("sha2:{password}:{salt}")),
-                        nickname: Set(if let Some(nickname) = nickname {
-                            nickname
-                        } else {
-                            email.split("@").collect::<Vec<&str>>()[0].to_owned()
-                        }),
-                        status: Set(AccountStatus::Inactive),
-                        ..Default::default()
-                    };
-                    let user = user.insert(txn).await.map_err(ModelError::DBError)?;
-
-                    // Insert User Info
-                    let info = user_info::ActiveModel {
-                        uid: Set(user.uid),
-                        ..Default::default()
-                    };
-                    info.insert(txn).await.map_err(ModelError::DBError)?;
-
-                    // Insert User Role
-                    // TODO: Default Role setting
-                    let role_id = role::get_role_id(txn, "user".into()).await?;
-
-                    let role = user_role::ActiveModel {
-                        user_id: Set(user.uid),
-                        role_id: Set(role_id),
-                    };
-                    role.insert(txn).await.map_err(ModelError::DBError)?;
-
-                    Ok(())
+                    users::create_user(txn, username, email, password, salt, nickname).await
                 })
             })
             .await;

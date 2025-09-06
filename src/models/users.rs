@@ -2,6 +2,7 @@ use crate::models::common::ModelError;
 use crate::models::common::ModelError::{DBError, Empty};
 
 use crate::internal::utils;
+use crate::models::{role, user_info, user_role};
 use sea_orm::ActiveValue::Set;
 use sea_orm::entity::prelude::*;
 use sea_orm::{IntoActiveModel, QuerySelect};
@@ -125,6 +126,49 @@ pub async fn get_user_by_id(
     } else {
         Err(Empty)
     }
+}
+
+pub async fn create_user(
+    conn: &impl ConnectionTrait,
+    username: String,
+    email: String,
+    password: String,
+    salt: String,
+    nickname: Option<String>,
+) -> Result<(), ModelError> {
+    // Insert User
+    let user = ActiveModel {
+        username: Set(username),
+        email: Set(email.clone()),
+        password: Set(format!("sha2:{password}:{salt}")),
+        nickname: Set(if let Some(nickname) = nickname {
+            nickname
+        } else {
+            email.split("@").collect::<Vec<&str>>()[0].to_owned()
+        }),
+        status: Set(AccountStatus::Inactive),
+        ..Default::default()
+    };
+    let user = user.insert(conn).await.map_err(ModelError::DBError)?;
+
+    // Insert User Info
+    let info = user_info::ActiveModel {
+        uid: Set(user.uid),
+        ..Default::default()
+    };
+    info.insert(conn).await.map_err(ModelError::DBError)?;
+
+    // Insert User Role
+    // TODO: Default Role setting
+    let role_id = role::get_role_id(conn, "user".into()).await?;
+
+    let role = user_role::ActiveModel {
+        user_id: Set(user.uid),
+        role_id: Set(role_id),
+    };
+    role.insert(conn).await.map_err(ModelError::DBError)?;
+
+    Ok(())
 }
 
 pub async fn delete_user(conn: &impl ConnectionTrait, id: i32) -> Result<(), ModelError> {
