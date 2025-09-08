@@ -6,14 +6,14 @@ use crate::{
     models::{
         role,
         user_info::{self, Gender},
-        users::{self, AccountStatus},
+        users,
     },
 };
 
 #[derive(Deserialize, Serialize)]
 pub struct UpdateService {
     // pub email: Option<String>,
-    pub username: Option<String>,
+    // pub username: Option<String>,
     pub nickname: Option<String>,
     // pub status: Option<AccountStatus>,
     pub avatar: Option<String>,
@@ -42,9 +42,9 @@ impl UpdateService {
             // if let Some(email) = self.email.clone() {
             //     user.email = Set(email);
             // }
-            if let Some(username) = &self.username {
-                user.username = Set(username.clone());
-            }
+            // if let Some(username) = &self.username {
+            //     user.username = Set(username.clone());
+            // }
             if let Some(nickname) = &self.nickname {
                 user.nickname = Set(nickname.clone());
             }
