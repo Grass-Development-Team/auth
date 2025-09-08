@@ -29,22 +29,7 @@ pub struct InfoResponse {
 pub struct InfoService;
 
 impl InfoService {
-    pub async fn info(
-        &self,
-        conn: &DatabaseConnection,
-        user: (users::Model, Vec<user_info::Model>),
-        op: Option<users::Model>,
-    ) -> Response<InfoResponse> {
-        let info = user.1[0].clone();
-        let user = user.0;
-
-        if let Some(op) = op
-            && !op.check_permission(conn, "user:read:all").await
-            && user.status.is_deleted()
-        {
-            return ResponseCode::UserDeleted.into();
-        }
-
+    pub async fn info(&self, user: users::Model, info: user_info::Model) -> Response<InfoResponse> {
         let res = InfoResponse {
             uid: user.uid,
             status: user.status.into(),
@@ -58,5 +43,22 @@ impl InfoService {
         };
 
         Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), Some(res))
+    }
+
+    pub async fn info_by_uid(
+        &self,
+        conn: &DatabaseConnection,
+        uid: i32,
+        op: users::Model,
+    ) -> Response<InfoResponse> {
+        let Ok(user) = users::get_user_by_id(conn, uid).await else {
+            return ResponseCode::UserNotFound.into();
+        };
+
+        if !op.check_permission(conn, "user:read:all").await && user.0.status.is_deleted() {
+            return ResponseCode::UserDeleted.into();
+        }
+
+        self.info(user.0, user.1[0].clone()).await
     }
 }

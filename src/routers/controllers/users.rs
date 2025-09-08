@@ -57,13 +57,10 @@ pub async fn logout(
 }
 
 /// User info
-pub async fn info(
-    login: LoginAccess,
-    State(state): State<AppState>,
-) -> Response<users::InfoResponse> {
+pub async fn info(login: LoginAccess) -> Response<users::InfoResponse> {
     let service = users::InfoService;
 
-    service.info(&state.db, login.user, None).await
+    service.info(login.user.0, login.user.1[0].clone()).await
 }
 
 pub async fn info_by_uid(
@@ -71,13 +68,9 @@ pub async fn info_by_uid(
     State(state): State<AppState>,
     Path(uid): Path<i32>,
 ) -> Response<users::InfoResponse> {
-    let Ok(user) = models::users::get_user_by_id(&*state.db, uid).await else {
-        return ResponseCode::UserNotFound.into();
-    };
-
     let service = users::InfoService;
 
-    service.info(&state.db, user, Some(login.user.0)).await
+    service.info_by_uid(&state.db, uid, login.user.0).await
 }
 
 pub async fn delete(
