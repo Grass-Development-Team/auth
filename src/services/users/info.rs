@@ -3,7 +3,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     internal::serializer::{Response, ResponseCode},
-    models::{permission, user_info::Gender, users},
+    models::{
+        user_info::{self, Gender},
+        users,
+    },
 };
 
 #[derive(Serialize, Deserialize)]
@@ -29,28 +32,17 @@ impl InfoService {
     pub async fn info(
         &self,
         conn: &DatabaseConnection,
-        uid: i32,
-        op_uid: i32,
+        user: (users::Model, Vec<user_info::Model>),
+        op: Option<users::Model>,
     ) -> Response<InfoResponse> {
-        let Ok(user) = users::get_user_by_id(conn, uid).await else {
-            return ResponseCode::UserNotFound.into();
-        };
-
         let info = user.1[0].clone();
         let user = user.0;
 
-        if uid != op_uid && !permission::check_permission(conn, op_uid, "user:read:all").await {
-            if user.status.is_deleted() {
-                return ResponseCode::UserDeleted.into();
-            }
-
-            if user.status.is_inactive() {
-                return ResponseCode::UserNotActivated.into();
-            }
-
-            if user.status.is_banned() {
-                return ResponseCode::UserBlocked.into();
-            }
+        if let Some(op) = op
+            && !op.check_permission(conn, "user:read:all").await
+            && user.status.is_deleted()
+        {
+            return ResponseCode::UserDeleted.into();
         }
 
         let res = InfoResponse {

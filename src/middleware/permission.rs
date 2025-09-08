@@ -91,7 +91,7 @@ where
                     return Ok(serializer::ResponseCode::InternalError.into_response());
                 };
 
-                let Ok(user_perm) = permission::get_permissions_by_uid(&db, session.uid).await
+                let Ok(user_perm) = permission::get_permissions_by_uid(&*db, session.uid).await
                 else {
                     return Ok(serializer::ResponseCode::InternalError.into_response());
                 };

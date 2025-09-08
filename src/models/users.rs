@@ -2,7 +2,7 @@ use crate::models::common::ModelError;
 use crate::models::common::ModelError::{DBError, Empty};
 
 use crate::internal::utils;
-use crate::models::{role, user_info, user_role};
+use crate::models::{permission, role, user_info, user_role};
 use sea_orm::ActiveValue::Set;
 use sea_orm::entity::prelude::*;
 use sea_orm::{IntoActiveModel, QuerySelect};
@@ -128,6 +128,14 @@ pub async fn get_user_by_id(
     }
 }
 
+pub async fn get_user_status(
+    conn: &impl ConnectionTrait,
+    id: i32,
+) -> Result<AccountStatus, ModelError> {
+    let res = get_user_by_id(conn, id).await?;
+    Ok(res.0.status)
+}
+
 pub async fn create_user(
     conn: &impl ConnectionTrait,
     username: String,
@@ -197,6 +205,10 @@ impl Model {
         } else {
             false
         }
+    }
+
+    pub async fn check_permission(&self, conn: &impl ConnectionTrait, perm: &str) -> bool {
+        permission::check_permission(conn, self.uid, perm).await
     }
 }
 

@@ -29,7 +29,7 @@ impl Related<super::role_permissions::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 pub async fn get_permissions_by_uid(
-    db: &DatabaseConnection,
+    db: &impl ConnectionTrait,
     uid: i32,
 ) -> Result<Vec<String>, ModelError> {
     let permissions = Entity::find()
@@ -50,7 +50,7 @@ pub async fn get_permissions_by_uid(
         .collect::<Vec<String>>())
 }
 
-pub async fn check_permission(db: &DatabaseConnection, uid: i32, perm: &str) -> bool {
+pub async fn check_permission(db: &impl ConnectionTrait, uid: i32, perm: &str) -> bool {
     let Ok(permissions) = get_permissions_by_uid(db, uid).await else {
         return false;
     };

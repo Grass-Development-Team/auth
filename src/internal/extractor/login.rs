@@ -3,12 +3,19 @@ use axum_extra::extract::CookieJar;
 use redis::AsyncCommands;
 
 use crate::{
-    internal::{serializer::ResponseCode, utils},
-    models::users,
+    internal::{
+        serializer::ResponseCode,
+        utils::{self},
+    },
+    models::{role, user_info, users},
     state::AppState,
 };
 
-pub struct LoginAccess;
+pub struct LoginAccess {
+    pub session: String,
+    pub user: (users::Model, Vec<user_info::Model>),
+    pub level: i32,
+}
 
 impl FromRequestParts<AppState> for LoginAccess {
     type Rejection = ResponseCode;
@@ -23,12 +30,18 @@ impl FromRequestParts<AppState> for LoginAccess {
 
         let conn = &*state.db;
 
-        let jar = CookieJar::from_request_parts(parts, state).await.unwrap();
-        let Some(session) = jar.get("session") else {
+        let jar = CookieJar::from_request_parts(parts, state)
+            .await
+            .map_err(|_| ResponseCode::InternalError)?;
+
+        let Some(session_cookie) = jar.get("session") else {
             return Err(ResponseCode::Unauthorized);
         };
-        let session = session.value();
-        let Ok(session) = redis.get::<_, String>(format!("session-{session}")).await else {
+        let session_str = session_cookie.value().to_owned();
+        let Ok(session) = redis
+            .get::<_, String>(format!("session-{session_str}"))
+            .await
+        else {
             return Err(ResponseCode::Unauthorized);
         };
 
@@ -50,6 +63,14 @@ impl FromRequestParts<AppState> for LoginAccess {
             return Err(ResponseCode::UserDeleted);
         }
 
-        Ok(LoginAccess)
+        let Ok(level) = role::get_user_role_level(conn, user.0.uid).await else {
+            return Err(ResponseCode::InternalError);
+        };
+
+        Ok(LoginAccess {
+            session: session_str,
+            user,
+            level,
+        })
     }
 }
