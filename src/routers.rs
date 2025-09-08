@@ -2,7 +2,7 @@ pub mod controllers;
 
 use axum::Router;
 use axum::http::Method;
-use axum::routing::{any, delete, post};
+use axum::routing::{any, delete, patch, post};
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 use tower_http::{cors, services};
@@ -32,13 +32,7 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
             "/info",
             any(users::info).layer(PermissionAccess::all(&["user:read:self"])),
         )
-        .route(
-            "/info/{uid}",
-            any(users::info_by_uid).layer(PermissionAccess::any(&[
-                "user:read:active",
-                "user:read:all",
-            ])),
-        )
+        .route("/info/{uid}", any(users::info_by_uid))
         .route("/logout", any(users::logout))
         .route(
             "/delete",
@@ -47,6 +41,14 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
         .route(
             "/delete/{uid}",
             delete(users::delete_by_uid).layer(PermissionAccess::all(&["user:delete:all"])),
+        )
+        .route(
+            "/update",
+            patch(users::update).layer(PermissionAccess::all(&["user:update:self"])),
+        )
+        .route(
+            "/update/{uid}",
+            patch(users::update_by_uid).layer(PermissionAccess::all(&["user:update:all"])),
         );
     let user = Router::new().nest("/user", user);
     let user = if config.dev_mode {

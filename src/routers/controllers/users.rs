@@ -1,6 +1,5 @@
 use crate::internal::extractor::{Json, LoginAccess, OperatorAccess};
 use crate::internal::serializer::{Response, ResponseCode};
-use crate::models;
 use crate::services::users;
 use crate::state::AppState;
 use axum::extract::{Path, State};
@@ -112,4 +111,22 @@ pub async fn delete_by_uid(
     let service = users::AdminDeleteService;
 
     service.delete(&state.db, uid, login.level).await
+}
+
+pub async fn update(
+    login: LoginAccess,
+    State(state): State<AppState>,
+    Json(req): Json<users::UpdateService>,
+) -> Response {
+    req.update(&state.db, login.user.0, login.user.1[0].clone())
+        .await
+}
+
+pub async fn update_by_uid(
+    OperatorAccess(login): OperatorAccess,
+    State(state): State<AppState>,
+    Path(uid): Path<i32>,
+    Json(req): Json<users::UpdateService>,
+) -> Response {
+    req.update_by_uid(&state.db, uid, login.level).await
 }
