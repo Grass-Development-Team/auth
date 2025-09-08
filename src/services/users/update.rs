@@ -12,10 +12,10 @@ use crate::{
 
 #[derive(Deserialize, Serialize)]
 pub struct UpdateService {
-    pub email: Option<String>,
+    // pub email: Option<String>,
     pub username: Option<String>,
     pub nickname: Option<String>,
-    pub status: Option<AccountStatus>,
+    // pub status: Option<AccountStatus>,
     pub avatar: Option<String>,
     pub description: Option<String>,
     pub state: Option<String>,
@@ -39,18 +39,18 @@ impl UpdateService {
 
         let res: anyhow::Result<()> = async {
             let mut user = user.into_active_model();
-            if let Some(email) = self.email.clone() {
-                user.email = Set(email);
-            }
+            // if let Some(email) = self.email.clone() {
+            //     user.email = Set(email);
+            // }
             if let Some(username) = &self.username {
                 user.username = Set(username.clone());
             }
             if let Some(nickname) = &self.nickname {
                 user.nickname = Set(nickname.clone());
             }
-            if let Some(status) = &self.status {
-                user.status = Set(status.clone());
-            }
+            // if let Some(status) = &self.status {
+            //     user.status = Set(status.clone());
+            // }
             user.update(conn).await?;
 
             let mut info = info.into_active_model();
