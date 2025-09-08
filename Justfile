@@ -3,10 +3,10 @@ default:
     @just --list
 
 # Development recipes
-dev: build
+run: build
     cargo run
 
-dev-watch:
+dev: build
     cargo watch -x run
 
 # Testing recipes
