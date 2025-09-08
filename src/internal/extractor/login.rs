@@ -46,8 +46,8 @@ impl FromRequestParts<AppState> for LoginAccess {
             return Err(ResponseCode::Unauthorized);
         };
 
-        if user.0.status.is_banned() || user.0.status.is_deleted() {
-            return Err(ResponseCode::Unauthorized);
+        if user.0.status.is_deleted() {
+            return Err(ResponseCode::UserDeleted);
         }
 
         Ok(LoginAccess)
