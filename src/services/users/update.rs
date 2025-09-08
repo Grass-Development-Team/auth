@@ -55,13 +55,25 @@ impl UpdateService {
 
             let mut info = info.into_active_model();
             if let Some(avatar) = &self.avatar {
-                info.avatar = Set(Some(avatar.clone()));
+                info.avatar = Set(if avatar.is_empty() {
+                    None
+                } else {
+                    Some(avatar.clone())
+                });
             }
             if let Some(description) = &self.description {
-                info.description = Set(Some(description.clone()));
+                info.description = Set(if description.is_empty() {
+                    None
+                } else {
+                    Some(description.clone())
+                });
             }
             if let Some(state) = &self.state {
-                info.state = Set(Some(state.clone()));
+                info.state = Set(if state.is_empty() {
+                    None
+                } else {
+                    Some(state.clone())
+                });
             }
             if let Some(gender) = &self.gender {
                 info.gender = Set(Some(gender.clone()));
