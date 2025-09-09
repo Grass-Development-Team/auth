@@ -2,7 +2,10 @@ use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection, IntoActive
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    internal::serializer::{Response, ResponseCode},
+    internal::{
+        serializer::{Response, ResponseCode},
+        validator::Validatable,
+    },
     models::{
         role,
         user_info::{self, Gender},
@@ -35,6 +38,10 @@ impl UpdateService {
 
         if user.status.is_banned() {
             return ResponseCode::UserBlocked.into();
+        }
+
+        if let Err(err) = self.validate() {
+            return err;
         }
 
         let res: anyhow::Result<()> = async {
@@ -112,5 +119,21 @@ impl UpdateService {
         }
 
         self.update(conn, user.0, user.1[0].clone()).await
+    }
+}
+
+impl Validatable<Response> for UpdateService {
+    fn validate(&self) -> Result<(), Response> {
+        if let Some(nickname) = &self.nickname
+            && nickname.len() < 3
+        {
+            return Err(Response::new(
+                ResponseCode::ParamError.into(),
+                "Nickname should be at least 3 characters long".into(),
+                None,
+            ));
+        }
+
+        Ok(())
     }
 }
