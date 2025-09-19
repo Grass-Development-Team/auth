@@ -89,6 +89,7 @@ pub async fn info(login: LoginAccess) -> Response<users::InfoResponse> {
     service.info(login.user.0, login.user.1[0].clone()).await
 }
 
+/// User info by uid
 pub async fn info_by_uid(
     OperatorAccess(login): OperatorAccess,
     State(state): State<AppState>,
@@ -99,6 +100,7 @@ pub async fn info_by_uid(
     service.info_by_uid(&state.db, uid, login.user.0).await
 }
 
+/// User delete
 pub async fn delete(
     login: LoginAccess,
     State(state): State<AppState>,
@@ -130,6 +132,7 @@ pub async fn delete(
     (jar, res)
 }
 
+/// User delete by uid
 pub async fn delete_by_uid(
     OperatorAccess(login): OperatorAccess,
     State(state): State<AppState>,
@@ -140,6 +143,7 @@ pub async fn delete_by_uid(
     service.delete(&state.db, uid, login.level).await
 }
 
+/// User update
 pub async fn update(
     login: LoginAccess,
     State(state): State<AppState>,
@@ -149,6 +153,7 @@ pub async fn update(
         .await
 }
 
+/// User update by uid
 pub async fn update_by_uid(
     OperatorAccess(login): OperatorAccess,
     State(state): State<AppState>,
@@ -158,6 +163,7 @@ pub async fn update_by_uid(
     req.update_by_uid(&state.db, uid, login.level).await
 }
 
+/// User reset password
 pub async fn reset_password(
     login: LoginAccess,
     State(state): State<AppState>,
