@@ -1,5 +1,6 @@
 use crate::internal::extractor::{Json, LoginAccess, OperatorAccess};
 use crate::internal::serializer::{Response, ResponseCode};
+use crate::internal::utils::session;
 use crate::services::users;
 use crate::state::AppState;
 use axum::extract::{Path, State};
@@ -9,8 +10,23 @@ use redis::AsyncCommands;
 /// User register
 pub async fn register(
     State(state): State<AppState>,
+    jar: CookieJar,
     Json(req): Json<users::RegisterService>,
 ) -> Response<String> {
+    let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
+        return ResponseCode::InternalError.into();
+    };
+
+    if let Some(s) = jar.get("session")
+        && let Ok(s) = redis
+            .get::<_, String>(format!("session-{}", s.value()))
+            .await
+        && let Some(s) = session::parse_from_str(&s)
+        && s.validate()
+    {
+        return ResponseCode::AlreadyLoggedIn.into();
+    }
+
     req.register(&state.db).await
 }
 
@@ -23,6 +39,17 @@ pub async fn login(
     let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
         return (jar, ResponseCode::InternalError.into());
     };
+
+    if let Some(s) = jar.get("session")
+        && let Ok(s) = redis
+            .get::<_, String>(format!("session-{}", s.value()))
+            .await
+        && let Some(s) = session::parse_from_str(&s)
+        && s.validate()
+    {
+        return (jar, ResponseCode::AlreadyLoggedIn.into());
+    }
+
     let (jar, res) = req.login(&state.db, &mut redis, jar).await;
     (jar, res)
 }

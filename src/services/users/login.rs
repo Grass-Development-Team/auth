@@ -1,6 +1,5 @@
 use crate::internal::serializer::{Response, ResponseCode};
 use crate::internal::utils;
-use crate::internal::utils::session::Session;
 use crate::models::users;
 use axum_extra::extract::CookieJar;
 use axum_extra::extract::cookie::Cookie;
@@ -34,14 +33,6 @@ impl LoginService {
         redis: &mut MultiplexedConnection,
         jar: CookieJar,
     ) -> (CookieJar, Response<LoginResponse>) {
-        // Check for existing valid session
-        if let Some(session) = jar.get("session")
-            && let Ok(session) = self.validate_session(session.value(), redis).await
-            && let Some(res) = self.response_from_session(session, conn).await
-        {
-            return (jar, res);
-        }
-
         // Get user by email
         let Ok(user) = users::get_user_by_email(conn, self.email.clone()).await else {
             return (jar, ResponseCode::UserNotFound.into());
@@ -96,40 +87,6 @@ impl LoginService {
         )
     }
 
-    /// Validates existing session and returns user response if valid
-    async fn response_from_session(
-        &self,
-        session: Session,
-        conn: &DatabaseConnection,
-    ) -> Option<Response<LoginResponse>> {
-        if session.validate()
-            && let Ok(user) = users::get_user_by_id(conn, session.uid).await
-        {
-            let user = user.0;
-            if user.email.eq(&self.email) {
-                if user.status.is_banned() || user.status.is_deleted() {
-                    return Some(ResponseCode::UserBlocked.into());
-                }
-                if user.status.is_inactive() {
-                    return Some(ResponseCode::UserNotActivated.into());
-                }
-
-                return Some(Response::new(
-                    ResponseCode::OK.into(),
-                    ResponseCode::OK.into(),
-                    Some(LoginResponse {
-                        uid: user.uid,
-                        username: user.username,
-                        email: user.email,
-                        nickname: user.nickname,
-                    }),
-                ));
-            }
-        }
-
-        None
-    }
-
     /// Generates a new session token and stores it in Redis
     async fn generate_session(
         &self,
@@ -151,16 +108,5 @@ impl LoginService {
         };
 
         Ok(String::from(sid))
-    }
-
-    /// Validates and retrieves session data from Redis
-    async fn validate_session(
-        &self,
-        session: &str,
-        redis: &mut MultiplexedConnection,
-    ) -> anyhow::Result<utils::session::Session> {
-        let session = redis.get::<_, String>(format!("session-{session}")).await?;
-        let session = serde_json::from_str(&session)?;
-        Ok(session)
     }
 }
