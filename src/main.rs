@@ -75,7 +75,6 @@ async fn main() -> anyhow::Result<()> {
         .get_or_init(async || state::AppState {
             db: Arc::from(db),
             redis: Arc::from(redis),
-            config: config.clone(),
         })
         .await;
 
