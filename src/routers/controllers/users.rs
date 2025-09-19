@@ -130,3 +130,29 @@ pub async fn update_by_uid(
 ) -> Response {
     req.update_by_uid(&state.db, uid, login.level).await
 }
+
+pub async fn reset_password(
+    login: LoginAccess,
+    State(state): State<AppState>,
+    jar: CookieJar,
+    Json(req): Json<users::ResetPasswordService>,
+) -> (CookieJar, Response) {
+    let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
+        return (jar, ResponseCode::InternalError.into());
+    };
+    let session = login.session;
+
+    let res = req.reset_password(&state.db, login.user.0).await;
+
+    if redis
+        .del::<_, String>(format!("session-{session}"))
+        .await
+        .is_err()
+    {
+        return (jar, ResponseCode::InternalError.into());
+    }
+
+    let jar = jar.remove("session");
+
+    (jar, res)
+}

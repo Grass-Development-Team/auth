@@ -210,6 +210,21 @@ impl Model {
     pub async fn check_permission(&self, conn: &impl ConnectionTrait, perm: &str) -> bool {
         permission::check_permission(conn, self.uid, perm).await
     }
+
+    pub async fn update_password(
+        &self,
+        conn: &impl ConnectionTrait,
+        new_password: String,
+    ) -> Result<Model, ModelError> {
+        let mut user = self.clone().into_active_model();
+
+        let salt = utils::rand::string(16);
+        let password = utils::password::generate(new_password.to_owned(), salt.to_owned());
+
+        user.password = Set(format!("sha2:{password}:{salt}"));
+
+        user.update(conn).await.map_err(ModelError::DBError)
+    }
 }
 
 impl AccountStatus {

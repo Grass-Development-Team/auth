@@ -49,6 +49,11 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
         .route(
             "/update/{uid}",
             patch(users::update_by_uid).layer(PermissionAccess::all(&["user:update:all"])),
+        )
+        .route(
+            "/reset_password",
+            patch(users::reset_password)
+                .layer(PermissionAccess::all(&["user:reset_password:self"])),
         );
     let user = Router::new().nest("/user", user);
     let user = if config.dev_mode {

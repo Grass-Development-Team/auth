@@ -45,6 +45,7 @@ pub enum ResponseCode {
     AlreadyLoggedIn,   // 4015
     EmailExists,       // 4016
     UserDeleted,       // 4017
+    DuplicatePassword, // 4018
 }
 
 // Error code
@@ -66,6 +67,7 @@ impl From<ResponseCode> for u16 {
             ResponseCode::AlreadyLoggedIn => 4015,
             ResponseCode::EmailExists => 4016,
             ResponseCode::UserDeleted => 4017,
+            ResponseCode::DuplicatePassword => 4018,
         }
     }
 }
@@ -89,6 +91,7 @@ impl From<ResponseCode> for String {
             ResponseCode::AlreadyLoggedIn => "The account is already logged in".into(),
             ResponseCode::EmailExists => "Email already exists".into(),
             ResponseCode::UserDeleted => "User has been deleted".into(),
+            ResponseCode::DuplicatePassword => "Duplicate passwords are not allowed.".into(),
         }
     }
 }
@@ -154,6 +157,10 @@ impl<T> From<ResponseCode> for Response<T> {
             ResponseCode::UserDeleted => Response::<T>::new_error(
                 ResponseCode::UserDeleted.into(),
                 ResponseCode::UserDeleted.into(),
+            ),
+            ResponseCode::DuplicatePassword => Response::<T>::new_error(
+                ResponseCode::DuplicatePassword.into(),
+                ResponseCode::DuplicatePassword.into(),
             ),
         }
     }
@@ -222,6 +229,10 @@ impl<T> From<ResponseCode> for Json<Response<T>> {
                 ResponseCode::UserDeleted.into(),
                 ResponseCode::UserDeleted.into(),
             )),
+            ResponseCode::DuplicatePassword => Json::from(Response::<T>::new_error(
+                ResponseCode::DuplicatePassword.into(),
+                ResponseCode::DuplicatePassword.into(),
+            )),
         }
     }
 }
@@ -287,6 +298,10 @@ impl IntoResponse for ResponseCode {
             ResponseCode::UserDeleted => {
                 (ResponseCode::OK.into(), ResponseCode::UserDeleted.into())
             }
+            ResponseCode::DuplicatePassword => (
+                ResponseCode::OK.into(),
+                ResponseCode::DuplicatePassword.into(),
+            ),
         };
         (StatusCode::from_u16(status).unwrap(), res).into_response()
     }
