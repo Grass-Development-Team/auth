@@ -62,9 +62,14 @@ async fn main() -> anyhow::Result<()> {
 
     let host = config.host.clone();
 
+    info!("Initializing...");
+
     // Initialize database & redis
     let db = init::db(&config.database.clone()).await?;
+    info!("Database initialized.");
+
     let redis = init::redis(config.redis.clone());
+    info!("Redis initialized.");
 
     state::APP_STATE
         .get_or_init(async || state::AppState {
