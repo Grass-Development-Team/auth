@@ -1,9 +1,6 @@
+use crate::internal::config::Site;
 use crate::internal::config::common::CONFIG_VERSION;
-
-use super::Database;
-use super::Mail;
-use super::Redis;
-use super::Secure;
+use crate::internal::config::{Database, Mail, Redis, Secure, Site};
 
 use serde::{Deserialize, Serialize};
 
@@ -29,17 +26,20 @@ pub struct Config {
     /// Default is false.
     #[serde(default)]
     pub dev_mode: bool,
+    /// Site configuration.
+    #[serde(default)]
+    pub site: Site,
     /// Database type.
     /// Default type is "sqlite".
-    #[serde(default = "Default::default")]
+    #[serde(default)]
     pub database: Database,
     /// Redis configuration.
-    #[serde(default = "Default::default")]
+    #[serde(default)]
     pub redis: Redis,
     /// Mail configuration.
     pub mail: Mail,
     /// Secure configuration.
-    #[serde(default = "Default::default")]
+    #[serde(default)]
     pub secure: Secure,
 }
 
