@@ -4,7 +4,7 @@ use std::io::Read;
 use std::path::Path;
 use tracing::warn;
 
-use super::{Config, Mail};
+use super::Config;
 
 /// Current configuration version.
 pub const CONFIG_VERSION: u8 = 1;
@@ -22,11 +22,6 @@ impl Config {
 
     /// Check if the configuration is valid.
     pub fn check(&mut self) {
-        // Check if host is set, if not then set it to "127.0.0.1"
-        // if self.host.is_none() {
-        //     self.host = Default::default();
-        // }
-
         // Check if port is set or out of range (1..=65535), if not then set it to 7817
         if !(1..=65535).contains(&self.port) {
             warn!(
@@ -81,14 +76,8 @@ impl Default for Config {
             site: Default::default(),
             database: Default::default(),
             redis: Default::default(),
-            mail: Mail {
-                host: "smtp.example.com".into(),
-                port: 587,
-                username: "user@example.com".into(),
-                password: "PassWord".into(),
-                tls: true,
-            },
             secure: Default::default(),
+            mail: Default::default(),
         }
     }
 }

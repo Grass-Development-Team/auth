@@ -1,4 +1,3 @@
-use crate::internal::config::Site;
 use crate::internal::config::common::CONFIG_VERSION;
 use crate::internal::config::{Database, Mail, Redis, Secure, Site};
 
@@ -36,11 +35,11 @@ pub struct Config {
     /// Redis configuration.
     #[serde(default)]
     pub redis: Redis,
-    /// Mail configuration.
-    pub mail: Mail,
     /// Secure configuration.
     #[serde(default)]
     pub secure: Secure,
+    /// Mail configuration.
+    pub mail: Option<Mail>,
 }
 
 fn default_version() -> u8 {
