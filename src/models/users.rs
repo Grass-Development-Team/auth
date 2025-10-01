@@ -142,6 +142,7 @@ pub async fn create_user(
     email: String,
     password: String,
     salt: String,
+    status: AccountStatus,
     nickname: Option<String>,
 ) -> Result<(), ModelError> {
     // Insert User
@@ -154,7 +155,7 @@ pub async fn create_user(
         } else {
             email.split("@").collect::<Vec<&str>>()[0].to_owned()
         }),
-        status: Set(AccountStatus::Inactive),
+        status: Set(status),
         ..Default::default()
     };
     let user = user.insert(conn).await.map_err(ModelError::DBError)?;

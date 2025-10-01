@@ -1,5 +1,6 @@
 use std::sync::OnceLock;
 
+use crate::internal::config::Config;
 use crate::internal::serializer::{Response, ResponseCode};
 use crate::internal::utils;
 use crate::internal::validator::Validatable;
@@ -21,7 +22,11 @@ pub struct RegisterService {
 }
 
 impl RegisterService {
-    pub async fn register(&self, conn: &DatabaseConnection) -> Response<String> {
+    pub async fn register(&self, conn: &DatabaseConnection, config: &Config) -> Response<String> {
+        if !config.site.enable_registration {
+            return ResponseCode::RegistrationDisabled.into();
+        }
+
         if let Err(err) = self.validate() {
             return err.into();
         }
@@ -48,10 +53,17 @@ impl RegisterService {
         let email = self.email.clone();
         let nickname = self.nickname.clone();
 
+        // Check if mail service is enabled
+        let status = if config.mail.is_some() {
+            users::AccountStatus::Inactive
+        } else {
+            users::AccountStatus::Active
+        };
+
         let res: Result<_, TransactionError<ModelError>> = conn
             .transaction(|txn| {
                 Box::pin(async move {
-                    users::create_user(txn, username, email, password, salt, nickname).await
+                    users::create_user(txn, username, email, password, salt, status, nickname).await
                 })
             })
             .await;

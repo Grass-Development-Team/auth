@@ -27,7 +27,7 @@ pub async fn register(
         return ResponseCode::AlreadyLoggedIn.into();
     }
 
-    req.register(&state.db).await
+    req.register(&state.db, &state.config).await
 }
 
 /// User login

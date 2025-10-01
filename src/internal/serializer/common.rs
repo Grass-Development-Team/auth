@@ -36,16 +36,17 @@ pub enum ResponseCode {
     NotFound,      // 404
     InternalError, // 500
     // Internal status code
-    ParamError,        // 4000
-    UserNotFound,      // 4010
-    CredentialInvalid, // 4011
-    UserBlocked,       // 4012
-    UserNotActivated,  // 4013
-    UserExists,        // 4014
-    AlreadyLoggedIn,   // 4015
-    EmailExists,       // 4016
-    UserDeleted,       // 4017
-    DuplicatePassword, // 4018
+    ParamError,           // 4000
+    RegistrationDisabled, // 4001
+    UserNotFound,         // 4010
+    CredentialInvalid,    // 4011
+    UserBlocked,          // 4012
+    UserNotActivated,     // 4013
+    UserExists,           // 4014
+    AlreadyLoggedIn,      // 4015
+    EmailExists,          // 4016
+    UserDeleted,          // 4017
+    DuplicatePassword,    // 4018
 }
 
 // Error code
@@ -59,6 +60,7 @@ impl From<ResponseCode> for u16 {
             ResponseCode::NotFound => 404,
             ResponseCode::InternalError => 500,
             ResponseCode::ParamError => 4000,
+            ResponseCode::RegistrationDisabled => 4001,
             ResponseCode::UserNotFound => 4010,
             ResponseCode::CredentialInvalid => 4011,
             ResponseCode::UserBlocked => 4012,
@@ -83,6 +85,7 @@ impl From<ResponseCode> for String {
             ResponseCode::NotFound => "Not Found".into(),
             ResponseCode::InternalError => "Internal Error".into(),
             ResponseCode::ParamError => "Parameter Error".into(),
+            ResponseCode::RegistrationDisabled => "Registration is disabled".into(),
             ResponseCode::UserNotFound => "Cannot found user".into(),
             ResponseCode::CredentialInvalid => "Invalid credential".into(),
             ResponseCode::UserBlocked => "The account was blocked".into(),
@@ -125,6 +128,10 @@ impl<T> From<ResponseCode> for Response<T> {
             ResponseCode::ParamError => Response::<T>::new_error(
                 ResponseCode::ParamError.into(),
                 ResponseCode::ParamError.into(),
+            ),
+            ResponseCode::RegistrationDisabled => Response::<T>::new_error(
+                ResponseCode::RegistrationDisabled.into(),
+                ResponseCode::RegistrationDisabled.into(),
             ),
             ResponseCode::UserNotFound => Response::<T>::new_error(
                 ResponseCode::UserNotFound.into(),
@@ -196,6 +203,10 @@ impl<T> From<ResponseCode> for Json<Response<T>> {
             ResponseCode::ParamError => Json::from(Response::<T>::new_error(
                 ResponseCode::ParamError.into(),
                 ResponseCode::ParamError.into(),
+            )),
+            ResponseCode::RegistrationDisabled => Json::from(Response::<T>::new_error(
+                ResponseCode::RegistrationDisabled.into(),
+                ResponseCode::RegistrationDisabled.into(),
             )),
             ResponseCode::UserNotFound => Json::from(Response::<T>::new_error(
                 ResponseCode::UserNotFound.into(),
@@ -273,6 +284,10 @@ impl IntoResponse for ResponseCode {
                 ResponseCode::InternalError.into(),
             ),
             ResponseCode::ParamError => (ResponseCode::OK.into(), ResponseCode::ParamError.into()),
+            ResponseCode::RegistrationDisabled => (
+                ResponseCode::OK.into(),
+                ResponseCode::RegistrationDisabled.into(),
+            ),
             ResponseCode::UserNotFound => {
                 (ResponseCode::OK.into(), ResponseCode::UserNotFound.into())
             }
