@@ -33,13 +33,13 @@ pub fn redis(redis: Redis) -> redis::Client {
         if redis.username.is_some() || redis.password.is_some() {
             format!(
                 "{}{}@",
-                if redis.username.is_some() {
-                    redis.username.unwrap()
+                if let Some(username) = redis.username {
+                    username
                 } else {
                     "".into()
                 },
-                if redis.password.is_some() {
-                    format!(":{}", redis.password.unwrap())
+                if let Some(password) = redis.password {
+                    format!(":{}", password)
                 } else {
                     "".into()
                 }
@@ -48,11 +48,7 @@ pub fn redis(redis: Redis) -> redis::Client {
             "".into()
         },
         redis.host,
-        if redis.port.is_some() {
-            redis.port.unwrap()
-        } else {
-            6379
-        }
+        redis.port.unwrap_or(6379)
     ))
     .unwrap_or_else(|e| panic!("Error connecting to Redis: {e}"))
 }
