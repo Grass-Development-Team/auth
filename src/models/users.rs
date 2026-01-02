@@ -60,9 +60,9 @@ impl ActiveModelBehavior for ActiveModel {}
 pub async fn get_user_by_email(
     conn: &impl ConnectionTrait,
     email: String,
-) -> Result<(Model, Vec<super::user_info::Model>), ModelError> {
+) -> Result<(Model, super::user_info::Model), ModelError> {
     let res = Entity::find()
-        .find_with_related(super::user_info::Entity)
+        .find_also_related(super::user_info::Entity)
         .filter(Column::Email.eq(email))
         .limit(1)
         .all(conn)
@@ -73,8 +73,17 @@ pub async fn get_user_by_email(
             return Err(DBError(err));
         }
     };
-    if !res.is_empty() {
-        Ok(res[0].to_owned())
+
+    if res.is_empty() {
+        return Err(Empty);
+    }
+
+    let res = res[0].to_owned();
+    let user = res.0;
+    let user_info = res.1;
+
+    if let Some(user_info) = user_info {
+        Ok((user, user_info))
     } else {
         Err(Empty)
     }
@@ -84,9 +93,9 @@ pub async fn get_user_by_email(
 pub async fn get_user_by_username(
     conn: &impl ConnectionTrait,
     username: String,
-) -> Result<(Model, Vec<super::user_info::Model>), ModelError> {
+) -> Result<(Model, super::user_info::Model), ModelError> {
     let res = Entity::find()
-        .find_with_related(super::user_info::Entity)
+        .find_also_related(super::user_info::Entity)
         .filter(Column::Username.eq(username))
         .limit(1)
         .all(conn)
@@ -97,8 +106,17 @@ pub async fn get_user_by_username(
             return Err(DBError(err));
         }
     };
-    if !res.is_empty() {
-        Ok(res[0].to_owned())
+
+    if res.is_empty() {
+        return Err(Empty);
+    }
+
+    let res = res[0].to_owned();
+    let user = res.0;
+    let user_info = res.1;
+
+    if let Some(user_info) = user_info {
+        Ok((user, user_info))
     } else {
         Err(Empty)
     }
@@ -108,9 +126,9 @@ pub async fn get_user_by_username(
 pub async fn get_user_by_id(
     conn: &impl ConnectionTrait,
     id: i32,
-) -> Result<(Model, Vec<super::user_info::Model>), ModelError> {
+) -> Result<(Model, super::user_info::Model), ModelError> {
     let res = Entity::find()
-        .find_with_related(super::user_info::Entity)
+        .find_also_related(super::user_info::Entity)
         .filter(Column::Uid.eq(id))
         .limit(1)
         .all(conn)
@@ -121,8 +139,17 @@ pub async fn get_user_by_id(
             return Err(DBError(err));
         }
     };
-    if !res.is_empty() {
-        Ok(res[0].to_owned())
+
+    if res.is_empty() {
+        return Err(Empty);
+    }
+
+    let res = res[0].to_owned();
+    let user = res.0;
+    let user_info = res.1;
+
+    if let Some(user_info) = user_info {
+        Ok((user, user_info))
     } else {
         Err(Empty)
     }

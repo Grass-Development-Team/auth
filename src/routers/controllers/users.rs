@@ -86,7 +86,7 @@ pub async fn logout(
 pub async fn info(login: LoginAccess) -> Response<users::InfoResponse> {
     let service = users::InfoService;
 
-    service.info(login.user.0, login.user.1[0].clone()).await
+    service.info(login.user.0, login.user.1).await
 }
 
 /// User info by uid
@@ -149,8 +149,7 @@ pub async fn update(
     State(state): State<AppState>,
     Json(req): Json<users::UpdateService>,
 ) -> Response {
-    req.update(&state.db, login.user.0, login.user.1[0].clone())
-        .await
+    req.update(&state.db, login.user.0, login.user.1).await
 }
 
 /// User update by uid

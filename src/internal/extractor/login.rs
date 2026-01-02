@@ -13,7 +13,7 @@ use crate::{
 
 pub struct LoginAccess {
     pub session: String,
-    pub user: (users::Model, Vec<user_info::Model>),
+    pub user: (users::Model, user_info::Model),
     pub level: i32,
 }
 

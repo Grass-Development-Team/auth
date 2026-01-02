@@ -118,7 +118,7 @@ impl UpdateService {
             return ResponseCode::Forbidden.into();
         }
 
-        self.update(conn, user.0, user.1[0].clone()).await
+        self.update(conn, user.0, user.1).await
     }
 }
 

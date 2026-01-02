@@ -59,6 +59,6 @@ impl InfoService {
             return ResponseCode::UserDeleted.into();
         }
 
-        self.info(user.0, user.1[0].clone()).await
+        self.info(user.0, user.1).await
     }
 }
