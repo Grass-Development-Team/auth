@@ -1,6 +1,7 @@
 /target
 
 /.idea
+/plans
 
 # Test Files
 config.toml
