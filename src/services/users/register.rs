@@ -63,7 +63,19 @@ impl RegisterService {
         let res: Result<_, TransactionError<ModelError>> = conn
             .transaction(|txn| {
                 Box::pin(async move {
-                    users::create_user(txn, username, email, password, salt, status, nickname).await
+                    users::create_user(
+                        txn,
+                        users::CreateUserParams {
+                            username,
+                            email,
+                            password,
+                            salt,
+                            status,
+                            nickname,
+                            ..Default::default()
+                        },
+                    )
+                    .await
                 })
             })
             .await;

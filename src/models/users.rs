@@ -1,11 +1,10 @@
-use crate::models::common::ModelError;
-use crate::models::common::ModelError::{DBError, Empty};
+use crate::models::common::ModelError::{self, DBError, Empty, ParamsError};
 
 use crate::internal::utils;
 use crate::models::{permission, role, user_info, user_role};
 use sea_orm::ActiveValue::Set;
 use sea_orm::entity::prelude::*;
-use sea_orm::{IntoActiveModel, QuerySelect};
+use sea_orm::{IntoActiveModel, JoinType, QuerySelect};
 use serde::{Deserialize, Serialize};
 
 /// Status of the Account
@@ -155,6 +154,26 @@ pub async fn get_user_by_id(
     }
 }
 
+/// Get user model by role
+pub async fn get_user_by_role(
+    conn: &impl ConnectionTrait,
+    role: &str,
+) -> Result<Vec<(Model, super::user_info::Model)>, ModelError> {
+    let res = Entity::find()
+        .find_also_related(super::user_info::Entity)
+        .join(JoinType::InnerJoin, Relation::UserRole.def())
+        .join(JoinType::InnerJoin, super::user_role::Relation::Role.def())
+        .filter(super::role::Column::Name.eq(role))
+        .all(conn)
+        .await
+        .map_err(DBError)?;
+
+    Ok(res
+        .into_iter()
+        .filter_map(|(user, role)| role.map(|info| (user, info)))
+        .collect())
+}
+
 pub async fn get_user_status(
     conn: &impl ConnectionTrait,
     id: i32,
@@ -163,46 +182,81 @@ pub async fn get_user_status(
     Ok(res.0.status)
 }
 
+pub struct CreateUserParams {
+    pub username: String,
+    pub email: String,
+    pub password: String,
+    pub salt: String,
+    pub status: AccountStatus,
+    pub role: String,
+    pub nickname: Option<String>,
+}
+
+impl Default for CreateUserParams {
+    fn default() -> Self {
+        Self {
+            username: Default::default(),
+            email: Default::default(),
+            password: Default::default(),
+            salt: Default::default(),
+            status: AccountStatus::Inactive,
+            role: "user".into(),
+            nickname: None,
+        }
+    }
+}
+
+impl CreateUserParams {
+    fn check(&self) -> bool {
+        !self.username.is_empty()
+            && !self.email.is_empty()
+            && !self.password.is_empty()
+            && !self.salt.is_empty()
+    }
+}
+
 pub async fn create_user(
     conn: &impl ConnectionTrait,
-    username: String,
-    email: String,
-    password: String,
-    salt: String,
-    status: AccountStatus,
-    nickname: Option<String>,
+    params: CreateUserParams,
 ) -> Result<(), ModelError> {
+    if !params.check() {
+        return Err(ParamsError);
+    }
+
     // Insert User
     let user = ActiveModel {
-        username: Set(username),
-        email: Set(email.clone()),
-        password: Set(format!("sha2:{password}:{salt}")),
-        nickname: Set(if let Some(nickname) = nickname {
+        username: Set(params.username),
+        email: Set(params.email.clone()),
+        password: Set(format!("sha2:{}:{}", params.password, params.salt)),
+        nickname: Set(if let Some(nickname) = params.nickname {
             nickname
         } else {
-            email.split("@").collect::<Vec<&str>>()[0].to_owned()
+            params.email.split("@").collect::<Vec<&str>>()[0].to_owned()
         }),
-        status: Set(status),
+        status: Set(params.status),
         ..Default::default()
     };
     let user = user.insert(conn).await.map_err(ModelError::DBError)?;
 
     // Insert User Info
-    let info = user_info::ActiveModel {
+    user_info::ActiveModel {
         uid: Set(user.uid),
         ..Default::default()
-    };
-    info.insert(conn).await.map_err(ModelError::DBError)?;
+    }
+    .insert(conn)
+    .await
+    .map_err(ModelError::DBError)?;
 
     // Insert User Role
-    // TODO: Default Role setting
-    let role_id = role::get_role_id(conn, "user".into()).await?;
+    let role_id = role::get_role_id(conn, params.role).await?;
 
-    let role = user_role::ActiveModel {
+    user_role::ActiveModel {
         user_id: Set(user.uid),
         role_id: Set(role_id),
-    };
-    role.insert(conn).await.map_err(ModelError::DBError)?;
+    }
+    .insert(conn)
+    .await
+    .map_err(ModelError::DBError)?;
 
     Ok(())
 }
