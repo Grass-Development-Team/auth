@@ -1,7 +1,6 @@
 use colored::Colorize;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectOptions, Database, DatabaseConnection, DbErr,
-    EntityTrait, QueryFilter, Set,
+    ConnectOptions, Database, DatabaseConnection, DbErr, EntityTrait, Set, TransactionTrait,
 };
 use sea_orm_migration::MigratorTrait;
 use tracing::{info, log};
@@ -21,10 +20,6 @@ use crate::models::role::{ActiveModel as RoleActiveModel, Entity as Role};
 use crate::models::role_permissions::{
     ActiveModel as RolePermissionActiveModel, Entity as RolePermission,
 };
-// Import user related entities
-use crate::models::user_info::ActiveModel as UserInfoActiveModel;
-use crate::models::user_role::ActiveModel as UserRoleActiveModel;
-use crate::models::users::ActiveModel as UserActiveModel;
 
 pub async fn init(sql: &DatabaseType) -> Result<DatabaseConnection, DbErr> {
     let url = format!(
@@ -170,23 +165,8 @@ async fn init_roles(db: &DatabaseConnection) -> Result<(), DbErr> {
 }
 
 async fn init_super_admin(db: &DatabaseConnection) -> Result<(), DbErr> {
-    // TODO: Check super admin by role.
-
-    // Check if super admin already exists
-    let super_admin_username = "root";
-    let super_admin_email = "admin@local.email";
-
-    // Check if user already exists
-    if users::get_user_by_username(db, super_admin_username.to_string())
-        .await
-        .is_ok()
-    {
-        return Ok(());
-    }
-
-    if users::get_user_by_email(db, super_admin_email.to_string())
-        .await
-        .is_ok()
+    if let Ok(user) = users::get_user_by_role(db, "super_admin").await
+        && !user.is_empty()
     {
         return Ok(());
     }
@@ -196,46 +176,29 @@ async fn init_super_admin(db: &DatabaseConnection) -> Result<(), DbErr> {
     let salt = utils::rand::string(16);
     let password = utils::password::generate(default_password.to_owned(), salt.to_owned());
 
-    // Create super admin user
-    let super_admin_user = UserActiveModel {
-        username: Set(super_admin_username.to_string()),
-        email: Set(super_admin_email.to_string()),
-        password: Set(format!("sha2:{password}:{salt}")),
-        nickname: Set("Super Administrator".to_string()),
-        status: Set(AccountStatus::Active),
-        ..Default::default()
-    };
-
-    let user = super_admin_user.insert(db).await?;
-
-    // Create user info
-    let user_info = UserInfoActiveModel {
-        uid: Set(user.uid),
-        description: Set(Some("System Super Administrator".to_string())),
-        ..Default::default()
-    };
-
-    user_info.insert(db).await?;
-
-    // Get super_admin role ID
-    let super_admin_role = Role::find()
-        .filter(crate::models::role::Column::Name.eq("super_admin"))
-        .one(db)
-        .await?;
-
-    if let Some(role) = super_admin_role {
-        // Assign super_admin role to the user
-        let user_role = UserRoleActiveModel {
-            user_id: Set(user.uid),
-            role_id: Set(role.id),
-        };
-
-        user_role.insert(db).await?;
-    }
+    db.transaction(|txn| {
+        Box::pin(async move {
+            users::create_user(
+                txn,
+                users::CreateUserParams {
+                    username: "root".into(),
+                    email: "admin@local.email".into(),
+                    password,
+                    salt,
+                    nickname: Some("Super Administrator".into()),
+                    status: AccountStatus::Active,
+                    role: "super_admin".into(),
+                },
+            )
+            .await
+        })
+    })
+    .await
+    .map_err(|_| DbErr::Custom("Failed to create super admin".into()))?;
 
     info!("Super admin account created successfully");
-    info!("Username: {}", super_admin_username.green());
-    info!("Email: {}", super_admin_email.green());
+    info!("Username: {}", "root".green());
+    info!("Email: {}", "admin@local.email".green());
     info!("Default Password: {}", default_password.green());
 
     Ok(())
