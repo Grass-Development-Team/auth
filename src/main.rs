@@ -1,5 +1,6 @@
 mod init;
 
+mod assets;
 mod internal;
 mod middleware;
 mod models;
