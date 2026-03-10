@@ -114,7 +114,7 @@ impl UpdateService {
             return ResponseCode::InternalError.into();
         };
 
-        if level >= op_level {
+        if op_level < level {
             return ResponseCode::Forbidden.into();
         }
 
