@@ -5,7 +5,7 @@ use crate::{
     internal::utils,
     models::{
         common::ModelError::{self, DBError, Empty, ParamsError},
-        permission, role, user_info, user_role,
+        permission, role, user_info, user_role, user_settings,
     },
 };
 
@@ -192,6 +192,16 @@ pub async fn get_user_status(
     Ok(res.0.status)
 }
 
+pub async fn get_user_by_id_with_settings(
+    conn: &impl ConnectionTrait,
+    id: i32,
+) -> Result<(Model, super::user_info::Model, super::user_settings::Model), ModelError> {
+    let (user, info) = get_user_by_id(conn, id).await?;
+    let settings = user_settings::ensure_user_settings(conn, user.uid).await?;
+
+    Ok((user, info, settings))
+}
+
 pub struct CreateUserParams {
     pub username: String,
     pub email:    String,
@@ -257,6 +267,9 @@ pub async fn create_user(
     .await
     .map_err(ModelError::DBError)?;
 
+    // Insert User Settings
+    user_settings::create_default_user_settings(conn, user.uid).await?;
+
     // Insert User Role
     let role_id = role::get_role_id(conn, params.role).await?;
 
@@ -316,6 +329,13 @@ impl Model {
         user.password = Set(format!("sha2:{password}:{salt}"));
 
         user.update(conn).await.map_err(ModelError::DBError)
+    }
+
+    pub async fn get_settings(
+        &self,
+        conn: &impl ConnectionTrait,
+    ) -> Result<super::user_settings::Model, ModelError> {
+        user_settings::ensure_user_settings(conn, self.uid).await
     }
 }
 
