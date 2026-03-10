@@ -8,11 +8,11 @@ use crate::models::common::ModelError;
 #[sea_orm(table_name = "role")]
 pub struct Model {
     #[sea_orm(primary_key, column_type = "Uuid")]
-    pub id: Uuid,
-    pub name: String,
+    pub id:          Uuid,
+    pub name:        String,
     pub description: String,
-    pub level: i32,
-    pub system: bool,
+    pub level:       i32,
+    pub system:      bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

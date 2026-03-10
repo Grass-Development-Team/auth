@@ -1,21 +1,25 @@
 use std::sync::OnceLock;
 
-use crate::internal::config::Config;
-use crate::internal::serializer::{Response, ResponseCode};
-use crate::internal::utils;
-use crate::internal::validator::Validatable;
-use crate::models::common::ModelError;
-use crate::models::users;
 use regex::Regex;
 use sea_orm::{DatabaseConnection, TransactionError, TransactionTrait};
 use serde::Deserialize;
+
+use crate::{
+    internal::{
+        config::Config,
+        serializer::{Response, ResponseCode},
+        utils,
+        validator::Validatable,
+    },
+    models::{common::ModelError, users},
+};
 
 static EMAIL_RE: OnceLock<Regex> = OnceLock::new();
 static PASSWORD_RE: OnceLock<Regex> = OnceLock::new();
 
 #[derive(Deserialize)]
 pub struct RegisterService {
-    pub email: String,
+    pub email:    String,
     pub username: String,
     pub password: String,
     pub nickname: Option<String>,

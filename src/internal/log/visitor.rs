@@ -1,6 +1,5 @@
-use std::collections::BTreeMap;
-use std::error::Error;
-use std::fmt::Debug;
+use std::{collections::BTreeMap, error::Error, fmt::Debug};
+
 use tracing::field::Field;
 
 pub struct Visitor {

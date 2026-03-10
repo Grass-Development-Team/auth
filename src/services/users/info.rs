@@ -11,19 +11,19 @@ use crate::{
 
 #[derive(Serialize, Deserialize)]
 pub struct InfoResponse {
-    pub uid: i32,
-    pub status: &'static str,
-    pub username: String,
-    pub email: String,
-    pub nickname: String,
+    pub uid:         i32,
+    pub status:      &'static str,
+    pub username:    String,
+    pub email:       String,
+    pub nickname:    String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub avatar: Option<String>,
+    pub avatar:      Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub state: Option<String>,
+    pub state:       Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub gender: Option<Gender>,
+    pub gender:      Option<Gender>,
 }
 
 pub struct InfoService;
@@ -31,15 +31,15 @@ pub struct InfoService;
 impl InfoService {
     pub async fn info(&self, user: users::Model, info: user_info::Model) -> Response<InfoResponse> {
         let res = InfoResponse {
-            uid: user.uid,
-            status: user.status.into(),
-            username: user.username,
-            email: user.email,
-            nickname: user.nickname,
-            avatar: info.avatar,
+            uid:         user.uid,
+            status:      user.status.into(),
+            username:    user.username,
+            email:       user.email,
+            nickname:    user.nickname,
+            avatar:      info.avatar,
             description: info.description,
-            state: info.state,
-            gender: info.gender,
+            state:       info.state,
+            gender:      info.gender,
         };
 
         Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), Some(res))

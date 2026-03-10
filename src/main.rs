@@ -8,18 +8,15 @@ mod routers;
 mod services;
 mod state;
 
+use std::{io, sync::Arc};
+
 use anyhow::Ok;
 use axum::Router;
 use colored::Colorize;
-use std::io;
-use std::sync::Arc;
-use tokio::net::TcpListener;
-use tokio::signal;
-use tokio::sync::oneshot;
+use tokio::{net::TcpListener, signal, sync::oneshot};
 use tracing::{info, warn};
 
-use crate::internal::config::Config;
-use crate::routers::get_router;
+use crate::{internal::config::Config, routers::get_router};
 
 async fn shutdown_signal() {
     let ctrl_c = async {
@@ -74,8 +71,8 @@ async fn main() -> anyhow::Result<()> {
 
     state::APP_STATE
         .get_or_init(async || state::AppState {
-            db: Arc::from(db),
-            redis: Arc::from(redis),
+            db:     Arc::from(db),
+            redis:  Arc::from(redis),
             config: Arc::from(config.clone()),
         })
         .await;

@@ -13,8 +13,8 @@ use crate::{
 
 pub struct LoginAccess {
     pub session: String,
-    pub user: (users::Model, user_info::Model),
-    pub level: i32,
+    pub user:    (users::Model, user_info::Model),
+    pub level:   i32,
 }
 
 impl FromRequestParts<AppState> for LoginAccess {

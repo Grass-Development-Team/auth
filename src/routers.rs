@@ -1,19 +1,19 @@
 pub mod controllers;
 
-use axum::Router;
-use axum::http::Method;
-use axum::routing::{any, delete, patch, post};
+use axum::{
+    Router,
+    http::Method,
+    routing::{any, delete, patch, post},
+};
 use tower::ServiceBuilder;
-use tower_http::cors::CorsLayer;
-use tower_http::{cors, services};
+use tower_http::{cors, cors::CorsLayer, services};
 
-use crate::internal::config::Config;
-use crate::middleware::permission::PermissionAccess;
-
-// Routers
-use crate::routers::controllers::common;
-use crate::routers::controllers::users;
-use crate::state::AppState;
+use crate::{
+    internal::config::Config,
+    middleware::permission::PermissionAccess,
+    routers::controllers::{common, users},
+    state::AppState,
+};
 
 pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
     // CORS

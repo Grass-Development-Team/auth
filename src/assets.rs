@@ -1,6 +1,6 @@
-use rust_embed::Embed;
-use rust_embed::EmbeddedFile;
 use std::path::{Component, Path, PathBuf};
+
+use rust_embed::{Embed, EmbeddedFile};
 
 #[derive(Embed)]
 #[folder = "assets/"]

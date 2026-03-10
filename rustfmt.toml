@@ -1,0 +1,42 @@
+edition = "2024"
+hard_tabs = false
+tab_spaces = 4
+
+max_width = 100
+comment_width = 80
+wrap_comments = true
+
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
+reorder_imports = true
+
+fn_single_line = false
+brace_style = "SameLineWhere"
+control_brace_style = "AlwaysSameLine"
+
+struct_lit_single_line = true
+enum_discrim_align_threshold = 20
+struct_field_align_threshold = 20
+
+format_strings = true
+trailing_semicolon = true
+
+space_before_colon = false
+space_after_colon = true
+spaces_around_ranges = false
+newline_style = "Auto"
+
+match_arm_blocks = true
+match_block_trailing_comma = true
+match_arm_leading_pipes = "Never"
+
+use_field_init_shorthand = true
+use_try_shorthand = true
+
+remove_nested_parens = true
+reorder_impl_items = true
+format_macro_matchers = true
+format_macro_bodies = true
+
+normalize_comments = true
+skip_children = false

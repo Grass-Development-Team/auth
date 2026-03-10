@@ -1,14 +1,10 @@
 use std::env;
 
-// Log
-use crate::internal::log::layer::LogLayer;
-use tracing_subscriber::Layer;
-use tracing_subscriber::filter::LevelFilter;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{
+    Layer, filter::LevelFilter, layer::SubscriberExt, util::SubscriberInitExt,
+};
 
-use crate::internal::config::Redis;
-
+use crate::internal::{config::Redis, log::layer::LogLayer};
 pub use crate::models::init as db;
 
 /// Initialize the logger

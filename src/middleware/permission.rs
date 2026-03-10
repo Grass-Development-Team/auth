@@ -23,8 +23,8 @@ enum PermType {
 
 #[derive(Clone)]
 pub struct PermissionAccessService<S> {
-    inner: S,
-    perms: &'static [&'static str],
+    inner:     S,
+    perms:     &'static [&'static str],
     perm_type: PermType,
 }
 
@@ -33,10 +33,9 @@ where
     S: Service<Request<Body>, Response = Response, Error = Infallible> + Clone + Send + 'static,
     S::Future: Send + 'static,
 {
-    type Response = Response;
     type Error = Infallible;
-
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+    type Response = Response;
 
     fn poll_ready(
         &mut self,
@@ -105,7 +104,7 @@ where
                         } else {
                             Ok(serializer::ResponseCode::Forbidden.into_response())
                         }
-                    }
+                    },
                     PermType::Any => {
                         let user_perm: HashSet<&str> =
                             user_perm.iter().map(AsRef::as_ref).collect();
@@ -114,7 +113,7 @@ where
                         } else {
                             Ok(serializer::ResponseCode::Forbidden.into_response())
                         }
-                    }
+                    },
                 }
             }
         };
@@ -124,7 +123,7 @@ where
 
 #[derive(Clone)]
 pub struct PermissionAccess {
-    perms: &'static [&'static str],
+    perms:     &'static [&'static str],
     perm_type: PermType,
 }
 

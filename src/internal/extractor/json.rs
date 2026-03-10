@@ -20,7 +20,7 @@ where
             Ok(data) => {
                 let axum::Json(data) = data;
                 Ok(Json(data))
-            }
+            },
             Err(rejection) => {
                 let err = rejection.body_text();
 
@@ -29,7 +29,7 @@ where
                     ResponseCode::ParamError.into(),
                     Some(err),
                 ))
-            }
+            },
         }
     }
 }

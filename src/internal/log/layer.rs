@@ -1,9 +1,9 @@
-use super::visitor::Visitor;
 use chrono::Local;
 use colored::Colorize;
 use tracing::Event;
-use tracing_subscriber::layer::Context;
-use tracing_subscriber::Layer;
+use tracing_subscriber::{Layer, layer::Context};
+
+use super::visitor::Visitor;
 
 pub struct LogLayer;
 

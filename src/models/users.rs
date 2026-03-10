@@ -1,11 +1,13 @@
-use crate::models::common::ModelError::{self, DBError, Empty, ParamsError};
-
-use crate::internal::utils;
-use crate::models::{permission, role, user_info, user_role};
-use sea_orm::ActiveValue::Set;
-use sea_orm::entity::prelude::*;
-use sea_orm::{IntoActiveModel, JoinType, QuerySelect};
+use sea_orm::{ActiveValue::Set, IntoActiveModel, JoinType, QuerySelect, entity::prelude::*};
 use serde::{Deserialize, Serialize};
+
+use crate::{
+    internal::utils,
+    models::{
+        common::ModelError::{self, DBError, Empty, ParamsError},
+        permission, role, user_info, user_role,
+    },
+};
 
 /// Status of the Account
 /// - Inactive (0): User haven't active the account through link send to email
@@ -15,9 +17,9 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum AccountStatus {
     Inactive = 0,
-    Active = 1,
-    Banned = 2,
-    Deleted = 3,
+    Active   = 1,
+    Banned   = 2,
+    Deleted  = 3,
 }
 
 /// # Users Model
@@ -25,12 +27,12 @@ pub enum AccountStatus {
 #[sea_orm(table_name = "users")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = true)]
-    pub uid: i32,
-    pub email: String,
+    pub uid:      i32,
+    pub email:    String,
     pub username: String,
     pub password: String,
     pub nickname: String,
-    pub status: AccountStatus,
+    pub status:   AccountStatus,
 }
 
 #[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]
@@ -70,7 +72,7 @@ pub async fn get_user_by_email(
         Ok(model) => model,
         Err(err) => {
             return Err(DBError(err));
-        }
+        },
     };
 
     if res.is_empty() {
@@ -103,7 +105,7 @@ pub async fn get_user_by_username(
         Ok(model) => model,
         Err(err) => {
             return Err(DBError(err));
-        }
+        },
     };
 
     if res.is_empty() {
@@ -136,7 +138,7 @@ pub async fn get_user_by_id(
         Ok(model) => model,
         Err(err) => {
             return Err(DBError(err));
-        }
+        },
     };
 
     if res.is_empty() {
@@ -184,11 +186,11 @@ pub async fn get_user_status(
 
 pub struct CreateUserParams {
     pub username: String,
-    pub email: String,
+    pub email:    String,
     pub password: String,
-    pub salt: String,
-    pub status: AccountStatus,
-    pub role: String,
+    pub salt:     String,
+    pub status:   AccountStatus,
+    pub role:     String,
     pub nickname: Option<String>,
 }
 
@@ -196,11 +198,11 @@ impl Default for CreateUserParams {
     fn default() -> Self {
         Self {
             username: Default::default(),
-            email: Default::default(),
+            email:    Default::default(),
             password: Default::default(),
-            salt: Default::default(),
-            status: AccountStatus::Inactive,
-            role: "user".into(),
+            salt:     Default::default(),
+            status:   AccountStatus::Inactive,
+            role:     "user".into(),
             nickname: None,
         }
     }

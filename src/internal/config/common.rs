@@ -1,7 +1,5 @@
-use std::fs;
-use std::fs::File;
-use std::io::Read;
-use std::path::Path;
+use std::{fs, fs::File, io::Read, path::Path};
+
 use tracing::warn;
 
 use super::Config;
@@ -40,7 +38,7 @@ impl Config {
                 return Err(anyhow::Error::msg(format!(
                     "Failed to serialize config: {err}",
                 )));
-            }
+            },
         };
         fs::write(path, config)?;
         Ok(())
@@ -68,16 +66,16 @@ impl From<Config> for String {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            version: CONFIG_VERSION,
-            host: "0.0.0.0".into(),
-            port: 7817,
-            domain: "http://localhost:7817".into(),
+            version:  CONFIG_VERSION,
+            host:     "0.0.0.0".into(),
+            port:     7817,
+            domain:   "http://localhost:7817".into(),
             dev_mode: false,
-            site: Default::default(),
+            site:     Default::default(),
             database: Default::default(),
-            redis: Default::default(),
-            secure: Default::default(),
-            mail: Default::default(),
+            redis:    Default::default(),
+            secure:   Default::default(),
+            mail:     Default::default(),
         }
     }
 }

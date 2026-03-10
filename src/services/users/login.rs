@@ -1,27 +1,30 @@
-use crate::internal::serializer::{Response, ResponseCode};
-use crate::internal::utils;
-use crate::models::users;
-use axum_extra::extract::CookieJar;
-use axum_extra::extract::cookie::Cookie;
-use redis::AsyncCommands;
-use redis::aio::MultiplexedConnection;
+use axum_extra::extract::{CookieJar, cookie::Cookie};
+use redis::{AsyncCommands, aio::MultiplexedConnection};
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use tracing::{error, trace};
 
+use crate::{
+    internal::{
+        serializer::{Response, ResponseCode},
+        utils,
+    },
+    models::users,
+};
+
 /// Response structure for login API
 #[derive(Deserialize, Serialize)]
 pub struct LoginResponse {
-    pub uid: i32,
+    pub uid:      i32,
     pub username: String,
-    pub email: String,
+    pub email:    String,
     pub nickname: String,
 }
 
 /// Service handling user login operations
 #[derive(Deserialize, Serialize)]
 pub struct LoginService {
-    pub email: String,
+    pub email:    String,
     pub password: String,
 }
 
@@ -78,9 +81,9 @@ impl LoginService {
                 ResponseCode::OK.into(),
                 ResponseCode::OK.into(),
                 Some(LoginResponse {
-                    uid: user.uid,
+                    uid:      user.uid,
                     username: user.username,
-                    email: user.email,
+                    email:    user.email,
                     nickname: user.nickname,
                 }),
             ),

@@ -1,11 +1,16 @@
-use crate::internal::extractor::{Json, LoginAccess, OperatorAccess};
-use crate::internal::serializer::{Response, ResponseCode};
-use crate::internal::utils::session;
-use crate::services::users;
-use crate::state::AppState;
 use axum::extract::{Path, State};
 use axum_extra::extract::CookieJar;
 use redis::AsyncCommands;
+
+use crate::{
+    internal::{
+        extractor::{Json, LoginAccess, OperatorAccess},
+        serializer::{Response, ResponseCode},
+        utils::session,
+    },
+    services::users,
+    state::AppState,
+};
 
 /// User register
 pub async fn register(

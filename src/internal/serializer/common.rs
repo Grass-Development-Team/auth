@@ -4,10 +4,10 @@ use serde_json::Value;
 
 #[derive(Serialize, Deserialize)]
 pub struct Response<T = ()> {
-    pub code: u16,
+    pub code:    u16,
     pub message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<T>,
+    pub data:    Option<T>,
 }
 
 impl<T> Response<T> {
@@ -104,7 +104,7 @@ impl<T> From<ResponseCode> for Response<T> {
         match value {
             ResponseCode::OK => {
                 Response::<T>::new_error(ResponseCode::OK.into(), ResponseCode::OK.into())
-            }
+            },
             ResponseCode::BadRequest => Response::<T>::new_error(
                 ResponseCode::BadRequest.into(),
                 ResponseCode::BadRequest.into(),
@@ -278,7 +278,7 @@ impl IntoResponse for ResponseCode {
             ),
             ResponseCode::NotFound => {
                 (ResponseCode::NotFound.into(), ResponseCode::NotFound.into())
-            }
+            },
             ResponseCode::InternalError => (
                 ResponseCode::InternalError.into(),
                 ResponseCode::InternalError.into(),
@@ -290,14 +290,14 @@ impl IntoResponse for ResponseCode {
             ),
             ResponseCode::UserNotFound => {
                 (ResponseCode::OK.into(), ResponseCode::UserNotFound.into())
-            }
+            },
             ResponseCode::CredentialInvalid => (
                 ResponseCode::OK.into(),
                 ResponseCode::CredentialInvalid.into(),
             ),
             ResponseCode::UserBlocked => {
                 (ResponseCode::OK.into(), ResponseCode::UserBlocked.into())
-            }
+            },
             ResponseCode::UserNotActivated => (
                 ResponseCode::OK.into(),
                 ResponseCode::UserNotActivated.into(),
@@ -309,10 +309,10 @@ impl IntoResponse for ResponseCode {
             ),
             ResponseCode::EmailExists => {
                 (ResponseCode::OK.into(), ResponseCode::EmailExists.into())
-            }
+            },
             ResponseCode::UserDeleted => {
                 (ResponseCode::OK.into(), ResponseCode::UserDeleted.into())
-            }
+            },
             ResponseCode::DuplicatePassword => (
                 ResponseCode::OK.into(),
                 ResponseCode::DuplicatePassword.into(),

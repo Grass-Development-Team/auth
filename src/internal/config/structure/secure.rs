@@ -9,7 +9,8 @@ fn default_jwt_secret() -> String {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Secure {
     /// JWT Secret key.
-    /// If not set, a random key will be generated and stored in the config file.
+    /// If not set, a random key will be generated and stored in the config
+    /// file.
     #[serde(default = "default_jwt_secret")]
     pub jwt_secret: String,
 }

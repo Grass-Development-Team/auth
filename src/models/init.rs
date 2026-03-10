@@ -6,19 +6,15 @@ use sea_orm_migration::MigratorTrait;
 use tracing::{info, log};
 use uuid::Uuid;
 
-use crate::internal::config::Database as DatabaseType;
-use crate::internal::utils;
-
-use crate::models::migration::Migrator;
-use crate::models::users::{self, AccountStatus};
-
-// Import the permission entity
-use crate::models::permission::{ActiveModel as PermissionActiveModel, Entity as Permission};
-// Import the role entity
-use crate::models::role::{ActiveModel as RoleActiveModel, Entity as Role};
-// Import the role_permissions entity
-use crate::models::role_permissions::{
-    ActiveModel as RolePermissionActiveModel, Entity as RolePermission,
+use crate::{
+    internal::{config::Database as DatabaseType, utils},
+    models::{
+        migration::Migrator,
+        permission::{ActiveModel as PermissionActiveModel, Entity as Permission},
+        role::{ActiveModel as RoleActiveModel, Entity as Role},
+        role_permissions::{ActiveModel as RolePermissionActiveModel, Entity as RolePermission},
+        users::{self, AccountStatus},
+    },
 };
 
 pub async fn init(sql: &DatabaseType) -> Result<DatabaseConnection, DbErr> {
@@ -107,10 +103,10 @@ async fn init_permissions(db: &DatabaseConnection) -> Result<(), DbErr> {
     for (name, description) in permissions {
         if !existing_set.contains(name) {
             new_permissions.push(PermissionActiveModel {
-                id: Set(Uuid::new_v4()),
-                name: Set(name.to_string()),
+                id:          Set(Uuid::new_v4()),
+                name:        Set(name.to_string()),
                 description: Set(description.to_string()),
-                system: Set(true),
+                system:      Set(true),
             });
         }
     }
@@ -148,11 +144,11 @@ async fn init_roles(db: &DatabaseConnection) -> Result<(), DbErr> {
     for (name, description, level) in roles {
         if !existing_set.contains(name) {
             new_roles.push(RoleActiveModel {
-                id: Set(Uuid::new_v4()),
-                name: Set(name.to_string()),
+                id:          Set(Uuid::new_v4()),
+                name:        Set(name.to_string()),
                 description: Set(description.to_string()),
-                level: Set(level),
-                system: Set(true),
+                level:       Set(level),
+                system:      Set(true),
             });
         }
     }
@@ -300,7 +296,7 @@ async fn init_role_permissions(db: &DatabaseConnection) -> Result<(), DbErr> {
                     let relationship = (role_id, permission_id);
                     if !existing_set.contains(&relationship) {
                         new_role_permissions.push(RolePermissionActiveModel {
-                            role_id: Set(role_id),
+                            role_id:       Set(role_id),
                             permission_id: Set(permission_id),
                         });
                     }

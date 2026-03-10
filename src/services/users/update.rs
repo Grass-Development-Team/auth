@@ -17,12 +17,12 @@ use crate::{
 pub struct UpdateService {
     // pub email: Option<String>,
     // pub username: Option<String>,
-    pub nickname: Option<String>,
+    pub nickname:    Option<String>,
     // pub status: Option<AccountStatus>,
-    pub avatar: Option<String>,
+    pub avatar:      Option<String>,
     pub description: Option<String>,
-    pub state: Option<String>,
-    pub gender: Option<Gender>,
+    pub state:       Option<String>,
+    pub gender:      Option<Gender>,
 }
 
 impl UpdateService {
@@ -96,7 +96,7 @@ impl UpdateService {
             Err(err) => {
                 tracing::error!("Error updating user: {err}");
                 ResponseCode::InternalError.into()
-            }
+            },
         }
     }
 
