@@ -1,4 +1,7 @@
-use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection, IntoActiveModel};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue::Set, DatabaseConnection, DbErr, IntoActiveModel,
+    TransactionTrait,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -15,10 +18,7 @@ use crate::{
 
 #[derive(Deserialize, Serialize)]
 pub struct UpdateService {
-    // pub email: Option<String>,
-    // pub username: Option<String>,
     pub nickname:    Option<String>,
-    // pub status: Option<AccountStatus>,
     pub avatar:      Option<String>,
     pub description: Option<String>,
     pub state:       Option<String>,
@@ -44,52 +44,51 @@ impl UpdateService {
             return err;
         }
 
-        let res: anyhow::Result<()> = async {
-            let mut user = user.into_active_model();
-            // if let Some(email) = self.email.clone() {
-            //     user.email = Set(email);
-            // }
-            // if let Some(username) = &self.username {
-            //     user.username = Set(username.clone());
-            // }
-            if let Some(nickname) = &self.nickname {
-                user.nickname = Set(nickname.clone());
-            }
-            // if let Some(status) = &self.status {
-            //     user.status = Set(status.clone());
-            // }
-            user.update(conn).await?;
+        let mut user = user.into_active_model();
 
-            let mut info = info.into_active_model();
-            if let Some(avatar) = &self.avatar {
-                info.avatar = Set(if avatar.is_empty() {
-                    None
-                } else {
-                    Some(avatar.clone())
-                });
-            }
-            if let Some(description) = &self.description {
-                info.description = Set(if description.is_empty() {
-                    None
-                } else {
-                    Some(description.clone())
-                });
-            }
-            if let Some(state) = &self.state {
-                info.state = Set(if state.is_empty() {
-                    None
-                } else {
-                    Some(state.clone())
-                });
-            }
-            if let Some(gender) = &self.gender {
-                info.gender = Set(Some(gender.clone()));
-            }
-            info.update(conn).await?;
-
-            Ok(())
+        if let Some(nickname) = &self.nickname {
+            user.nickname = Set(nickname.clone());
         }
-        .await;
+
+        let mut info = info.into_active_model();
+
+        if let Some(avatar) = &self.avatar {
+            info.avatar = Set(if avatar.is_empty() {
+                None
+            } else {
+                Some(avatar.clone())
+            });
+        }
+
+        if let Some(description) = &self.description {
+            info.description = Set(if description.is_empty() {
+                None
+            } else {
+                Some(description.clone())
+            });
+        }
+
+        if let Some(state) = &self.state {
+            info.state = Set(if state.is_empty() {
+                None
+            } else {
+                Some(state.clone())
+            });
+        }
+
+        if let Some(gender) = &self.gender {
+            info.gender = Set(Some(gender.clone()));
+        }
+
+        let res = conn
+            .transaction(|txn| {
+                Box::pin(async move {
+                    user.update(txn).await?;
+                    info.update(txn).await?;
+                    Ok::<(), DbErr>(())
+                })
+            })
+            .await;
 
         match res {
             Ok(_) => ResponseCode::OK.into(),
