@@ -22,10 +22,22 @@ use crate::{
 pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
     // CORS
     let api_cors = CorsLayer::new()
-        .allow_methods([Method::GET, Method::POST])
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PATCH,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
         .allow_origin(cors::Any);
     let api_cors = ServiceBuilder::new().layer(api_cors).into_inner();
-    let internal_cors = CorsLayer::new().allow_methods([Method::GET, Method::POST]);
+    let internal_cors = CorsLayer::new().allow_methods([
+        Method::GET,
+        Method::POST,
+        Method::PATCH,
+        Method::DELETE,
+        Method::OPTIONS,
+    ]);
     let internal_cors = ServiceBuilder::new().layer(internal_cors).into_inner();
 
     // User
