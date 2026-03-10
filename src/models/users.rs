@@ -38,20 +38,28 @@ pub struct Model {
 #[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(has_one = "super::user_info::Entity", on_delete = "Cascade")]
-    UserInfo,
+    Info,
+    #[sea_orm(has_one = "super::user_settings::Entity", on_delete = "Cascade")]
+    Settings,
     #[sea_orm(has_many = "super::user_role::Entity", on_delete = "Cascade")]
-    UserRole,
+    Roles,
 }
 
 impl Related<super::user_info::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::UserInfo.def()
+        Relation::Info.def()
     }
 }
 
 impl Related<super::user_role::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::UserRole.def()
+        Relation::Roles.def()
+    }
+}
+
+impl Related<super::user_settings::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Settings.def()
     }
 }
 
@@ -163,7 +171,7 @@ pub async fn get_user_by_role(
 ) -> Result<Vec<(Model, super::user_info::Model)>, ModelError> {
     let res = Entity::find()
         .find_also_related(super::user_info::Entity)
-        .join(JoinType::InnerJoin, Relation::UserRole.def())
+        .join(JoinType::InnerJoin, Relation::Roles.def())
         .join(JoinType::InnerJoin, super::user_role::Relation::Role.def())
         .filter(super::role::Column::Name.eq(role))
         .all(conn)
