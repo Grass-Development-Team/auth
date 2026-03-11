@@ -69,9 +69,10 @@ impl ActiveModelBehavior for ActiveModel {}
 pub async fn get_user_by_email(
     conn: &impl ConnectionTrait,
     email: String,
-) -> Result<(Model, super::user_info::Model), ModelError> {
+) -> Result<(Model, super::user_info::Model, super::user_settings::Model), ModelError> {
     let res = Entity::find()
         .find_also_related(super::user_info::Entity)
+        .find_also_related(super::user_settings::Entity)
         .filter(Column::Email.eq(email))
         .limit(1)
         .all(conn)
@@ -89,22 +90,28 @@ pub async fn get_user_by_email(
 
     let res = res[0].to_owned();
     let user = res.0;
-    let user_info = res.1;
+    let Some(user_info) = res.1 else {
+        tracing::error!("User info not found for user with uid: {}", user.uid);
 
-    if let Some(user_info) = user_info {
-        Ok((user, user_info))
-    } else {
-        Err(Empty)
-    }
+        return Err(Empty);
+    };
+    let Some(user_settings) = res.2 else {
+        tracing::error!("User settings not found for user with uid: {}", user.uid);
+
+        return Err(Empty);
+    };
+
+    Ok((user, user_info, user_settings))
 }
 
 /// Get user model by username
 pub async fn get_user_by_username(
     conn: &impl ConnectionTrait,
     username: String,
-) -> Result<(Model, super::user_info::Model), ModelError> {
+) -> Result<(Model, super::user_info::Model, super::user_settings::Model), ModelError> {
     let res = Entity::find()
         .find_also_related(super::user_info::Entity)
+        .find_also_related(super::user_settings::Entity)
         .filter(Column::Username.eq(username))
         .limit(1)
         .all(conn)
@@ -122,22 +129,28 @@ pub async fn get_user_by_username(
 
     let res = res[0].to_owned();
     let user = res.0;
-    let user_info = res.1;
+    let Some(user_info) = res.1 else {
+        tracing::error!("User info not found for user with uid: {}", user.uid);
 
-    if let Some(user_info) = user_info {
-        Ok((user, user_info))
-    } else {
-        Err(Empty)
-    }
+        return Err(Empty);
+    };
+    let Some(user_settings) = res.2 else {
+        tracing::error!("User settings not found for user with uid: {}", user.uid);
+
+        return Err(Empty);
+    };
+
+    Ok((user, user_info, user_settings))
 }
 
 /// Get user model by id
 pub async fn get_user_by_id(
     conn: &impl ConnectionTrait,
     id: i32,
-) -> Result<(Model, super::user_info::Model), ModelError> {
+) -> Result<(Model, super::user_info::Model, super::user_settings::Model), ModelError> {
     let res = Entity::find()
         .find_also_related(super::user_info::Entity)
+        .find_also_related(super::user_settings::Entity)
         .filter(Column::Uid.eq(id))
         .limit(1)
         .all(conn)
@@ -155,22 +168,28 @@ pub async fn get_user_by_id(
 
     let res = res[0].to_owned();
     let user = res.0;
-    let user_info = res.1;
+    let Some(user_info) = res.1 else {
+        tracing::error!("User info not found for user with uid: {}", user.uid);
 
-    if let Some(user_info) = user_info {
-        Ok((user, user_info))
-    } else {
-        Err(Empty)
-    }
+        return Err(Empty);
+    };
+    let Some(user_settings) = res.2 else {
+        tracing::error!("User settings not found for user with uid: {}", user.uid);
+
+        return Err(Empty);
+    };
+
+    Ok((user, user_info, user_settings))
 }
 
 /// Get user model by role
 pub async fn get_user_by_role(
     conn: &impl ConnectionTrait,
     role: &str,
-) -> Result<Vec<(Model, super::user_info::Model)>, ModelError> {
+) -> Result<Vec<(Model, super::user_info::Model, super::user_settings::Model)>, ModelError> {
     let res = Entity::find()
         .find_also_related(super::user_info::Entity)
+        .find_also_related(super::user_settings::Entity)
         .join(JoinType::InnerJoin, Relation::Roles.def())
         .join(JoinType::InnerJoin, super::user_role::Relation::Role.def())
         .filter(super::role::Column::Name.eq(role))
@@ -180,7 +199,20 @@ pub async fn get_user_by_role(
 
     Ok(res
         .into_iter()
-        .filter_map(|(user, role)| role.map(|info| (user, info)))
+        .filter_map(|(user, info, settings)| {
+            let Some(info) = info else {
+                tracing::error!("User info not found for user with uid: {}", user.uid);
+
+                return None;
+            };
+            let Some(settings) = settings else {
+                tracing::error!("User settings not found for user with uid: {}", user.uid);
+
+                return None;
+            };
+
+            Some((user, info, settings))
+        })
         .collect())
 }
 
@@ -190,16 +222,6 @@ pub async fn get_user_status(
 ) -> Result<AccountStatus, ModelError> {
     let res = get_user_by_id(conn, id).await?;
     Ok(res.0.status)
-}
-
-pub async fn get_user_by_id_with_settings(
-    conn: &impl ConnectionTrait,
-    id: i32,
-) -> Result<(Model, super::user_info::Model, super::user_settings::Model), ModelError> {
-    let (user, info) = get_user_by_id(conn, id).await?;
-    let settings = user_settings::ensure_user_settings(conn, user.uid).await?;
-
-    Ok((user, info, settings))
 }
 
 pub struct CreateUserParams {
@@ -285,7 +307,7 @@ pub async fn create_user(
 }
 
 pub async fn delete_user(conn: &impl ConnectionTrait, id: i32) -> Result<(), ModelError> {
-    let (user, _) = get_user_by_id(conn, id).await?;
+    let (user, _, _) = get_user_by_id(conn, id).await?;
 
     let mut user = user.into_active_model();
     user.status = Set(AccountStatus::Deleted);
@@ -329,13 +351,6 @@ impl Model {
         user.password = Set(format!("sha2:{password}:{salt}"));
 
         user.update(conn).await.map_err(ModelError::DBError)
-    }
-
-    pub async fn get_settings(
-        &self,
-        conn: &impl ConnectionTrait,
-    ) -> Result<super::user_settings::Model, ModelError> {
-        user_settings::ensure_user_settings(conn, self.uid).await
     }
 }
 

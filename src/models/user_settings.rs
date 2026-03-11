@@ -14,6 +14,7 @@ pub struct Model {
     pub uid:                i32,
     pub show_email:         bool,
     pub show_gender:        bool,
+    pub show_state:         bool,
     pub show_last_login_at: bool,
     pub locale:             String,
     pub timezone:           String,
@@ -43,6 +44,7 @@ pub struct CreateUserSettingsParams {
     pub uid:                i32,
     pub show_email:         bool,
     pub show_gender:        bool,
+    pub show_state:         bool,
     pub show_last_login_at: bool,
     pub locale:             String,
     pub timezone:           String,
@@ -54,6 +56,7 @@ impl Default for CreateUserSettingsParams {
             uid:                0,
             show_email:         false,
             show_gender:        true,
+            show_state:         true,
             show_last_login_at: false,
             locale:             DEFAULT_LOCALE.into(),
             timezone:           DEFAULT_TIMEZONE.into(),
@@ -71,6 +74,7 @@ impl CreateUserSettingsParams {
 pub struct UpdateUserSettingsParams {
     pub show_email:         Option<bool>,
     pub show_gender:        Option<bool>,
+    pub show_state:         Option<bool>,
     pub show_last_login_at: Option<bool>,
     pub locale:             Option<String>,
     pub timezone:           Option<String>,
@@ -119,6 +123,7 @@ pub async fn create_user_settings(
         uid:                Set(params.uid),
         show_email:         Set(params.show_email),
         show_gender:        Set(params.show_gender),
+        show_state:         Set(params.show_state),
         show_last_login_at: Set(params.show_last_login_at),
         locale:             Set(params.locale),
         timezone:           Set(params.timezone),
@@ -142,17 +147,6 @@ pub async fn create_default_user_settings(
     .await
 }
 
-pub async fn ensure_user_settings(
-    conn: &impl ConnectionTrait,
-    uid: i32,
-) -> Result<Model, ModelError> {
-    match get_user_settings_by_uid(conn, uid).await {
-        Ok(settings) => Ok(settings),
-        Err(Empty) => create_default_user_settings(conn, uid).await,
-        Err(err) => Err(err),
-    }
-}
-
 pub async fn update_user_settings(
     conn: &impl ConnectionTrait,
     uid: i32,
@@ -170,6 +164,9 @@ pub async fn update_user_settings(
     }
     if let Some(show_gender) = params.show_gender {
         settings.show_gender = Set(show_gender);
+    }
+    if let Some(show_state) = params.show_state {
+        settings.show_state = Set(show_state);
     }
     if let Some(show_last_login_at) = params.show_last_login_at {
         settings.show_last_login_at = Set(show_last_login_at);

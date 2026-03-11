@@ -30,6 +30,12 @@ impl MigrationTrait for Migration {
                             .default(true),
                     )
                     .col(
+                        ColumnDef::new(UserSettings::ShowState)
+                            .boolean()
+                            .not_null()
+                            .default(true),
+                    )
+                    .col(
                         ColumnDef::new(UserSettings::ShowLastLoginAt)
                             .boolean()
                             .not_null()
@@ -90,6 +96,7 @@ enum UserSettings {
     Uid,
     ShowEmail,
     ShowGender,
+    ShowState,
     ShowLastLoginAt,
     Locale,
     Timezone,
