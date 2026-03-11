@@ -41,18 +41,8 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(false),
                     )
-                    .col(
-                        ColumnDef::new(UserSettings::Locale)
-                            .string()
-                            .not_null()
-                            .default("zh-CN"),
-                    )
-                    .col(
-                        ColumnDef::new(UserSettings::Timezone)
-                            .string()
-                            .not_null()
-                            .default("Asia/Shanghai"),
-                    )
+                    .col(ColumnDef::new(UserSettings::Locale).string())
+                    .col(ColumnDef::new(UserSettings::Timezone).string())
                     .to_owned(),
             )
             .await?;
