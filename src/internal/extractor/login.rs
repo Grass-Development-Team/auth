@@ -7,13 +7,13 @@ use crate::{
         serializer::ResponseCode,
         utils::{self},
     },
-    models::{role, user_info, users},
+    models::{role, user_info, user_settings, users},
     state::AppState,
 };
 
 pub struct LoginAccess {
     pub session: String,
-    pub user:    (users::Model, user_info::Model),
+    pub user:    (users::Model, user_info::Model, user_settings::Model),
     pub level:   i32,
 }
 

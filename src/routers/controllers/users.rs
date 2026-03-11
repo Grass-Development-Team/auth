@@ -88,10 +88,14 @@ pub async fn logout(
 }
 
 /// User info
-pub async fn info(login: LoginAccess) -> Response<users::InfoResponse> {
+pub async fn info(
+    State(state): State<AppState>,
+    login: LoginAccess,
+) -> Response<users::InfoResponse> {
     let service = users::InfoService;
+    let (user, info, settings) = login.user;
 
-    service.info(login.user.0, login.user.1).await
+    service.info(&state.db, user, info, settings).await
 }
 
 /// User info by uid
