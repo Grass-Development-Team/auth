@@ -103,10 +103,11 @@ async fn init_permissions(db: &DatabaseConnection) -> Result<(), DbErr> {
     for (name, description) in permissions {
         if !existing_set.contains(name) {
             new_permissions.push(PermissionActiveModel {
-                id:          Set(Uuid::new_v4()),
-                name:        Set(name.to_string()),
+                id: Set(Uuid::new_v4()),
+                name: Set(name.to_string()),
                 description: Set(description.to_string()),
-                system:      Set(true),
+                system: Set(true),
+                ..Default::default()
             });
         }
     }
@@ -144,11 +145,12 @@ async fn init_roles(db: &DatabaseConnection) -> Result<(), DbErr> {
     for (name, description, level) in roles {
         if !existing_set.contains(name) {
             new_roles.push(RoleActiveModel {
-                id:          Set(Uuid::new_v4()),
-                name:        Set(name.to_string()),
+                id: Set(Uuid::new_v4()),
+                name: Set(name.to_string()),
                 description: Set(description.to_string()),
-                level:       Set(level),
-                system:      Set(true),
+                level: Set(level),
+                system: Set(true),
+                ..Default::default()
             });
         }
     }
@@ -296,8 +298,9 @@ async fn init_role_permissions(db: &DatabaseConnection) -> Result<(), DbErr> {
                     let relationship = (role_id, permission_id);
                     if !existing_set.contains(&relationship) {
                         new_role_permissions.push(RolePermissionActiveModel {
-                            role_id:       Set(role_id),
+                            role_id: Set(role_id),
                             permission_id: Set(permission_id),
+                            ..Default::default()
                         });
                     }
                 }

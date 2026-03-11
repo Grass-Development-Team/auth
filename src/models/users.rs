@@ -27,12 +27,15 @@ pub enum AccountStatus {
 #[sea_orm(table_name = "users")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = true)]
-    pub uid:      i32,
-    pub email:    String,
-    pub username: String,
-    pub password: String,
-    pub nickname: String,
-    pub status:   AccountStatus,
+    pub uid:        i32,
+    pub email:      String,
+    pub username:   String,
+    pub password:   String,
+    pub nickname:   String,
+    pub status:     AccountStatus,
+    pub created_at: DateTimeUtc,
+    pub updated_at: DateTimeUtc,
+    pub deleted_at: Option<DateTimeUtc>,
 }
 
 #[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]
@@ -298,6 +301,7 @@ pub async fn create_user(
     user_role::ActiveModel {
         user_id: Set(user.uid),
         role_id: Set(role_id),
+        ..Default::default()
     }
     .insert(conn)
     .await

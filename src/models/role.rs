@@ -13,6 +13,9 @@ pub struct Model {
     pub description: String,
     pub level:       i32,
     pub system:      bool,
+    pub created_at:  DateTimeUtc,
+    pub updated_at:  DateTimeUtc,
+    pub deleted_at:  Option<DateTimeUtc>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

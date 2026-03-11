@@ -18,6 +18,9 @@ pub struct Model {
     pub show_last_login_at: bool,
     pub locale:             String,
     pub timezone:           String,
+    pub created_at:         DateTimeUtc,
+    pub updated_at:         DateTimeUtc,
+    pub deleted_at:         Option<DateTimeUtc>,
 }
 
 #[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]
@@ -120,13 +123,14 @@ pub async fn create_user_settings(
     }
 
     ActiveModel {
-        uid:                Set(params.uid),
-        show_email:         Set(params.show_email),
-        show_gender:        Set(params.show_gender),
-        show_state:         Set(params.show_state),
+        uid: Set(params.uid),
+        show_email: Set(params.show_email),
+        show_gender: Set(params.show_gender),
+        show_state: Set(params.show_state),
         show_last_login_at: Set(params.show_last_login_at),
-        locale:             Set(params.locale),
-        timezone:           Set(params.timezone),
+        locale: Set(params.locale),
+        timezone: Set(params.timezone),
+        ..Default::default()
     }
     .insert(conn)
     .await

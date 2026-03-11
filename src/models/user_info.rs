@@ -19,6 +19,9 @@ pub struct Model {
     pub description: Option<String>,
     pub state:       Option<String>,
     pub gender:      Option<Gender>,
+    pub created_at:  DateTimeUtc,
+    pub updated_at:  DateTimeUtc,
+    pub deleted_at:  Option<DateTimeUtc>,
 }
 
 #[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]
