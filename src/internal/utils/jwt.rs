@@ -45,5 +45,5 @@ pub fn unwrap(jwt: &str, secret: &str) -> jsonwebtoken::errors::Result<Claim> {
 }
 
 pub fn validate(claim: &Claim) -> bool {
-    claim.exp < (Utc::now().timestamp() as usize)
+    claim.exp > (Utc::now().timestamp() as usize)
 }
