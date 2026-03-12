@@ -1,5 +1,6 @@
 use std::sync::OnceLock;
 
+use minijinja::context;
 use regex::Regex;
 use sea_orm::{DatabaseConnection, TransactionError, TransactionTrait};
 use serde::Deserialize;
@@ -7,6 +8,7 @@ use serde::Deserialize;
 use crate::{
     internal::{
         config::Config,
+        mail::Mailer,
         serializer::{Response, ResponseCode},
         utils,
         validator::Validatable,
@@ -26,7 +28,12 @@ pub struct RegisterService {
 }
 
 impl RegisterService {
-    pub async fn register(&self, conn: &DatabaseConnection, config: &Config) -> Response<String> {
+    pub async fn register(
+        &self,
+        conn: &DatabaseConnection,
+        config: &Config,
+        mailer: Option<&Mailer>,
+    ) -> Response<String> {
         if !config.site.enable_registration {
             return ResponseCode::RegistrationDisabled.into();
         }
@@ -58,7 +65,7 @@ impl RegisterService {
         let nickname = self.nickname.clone();
 
         // Check if mail service is enabled
-        let status = if config.mail.is_some() {
+        let status = if mailer.is_some() {
             users::AccountStatus::Inactive
         } else {
             users::AccountStatus::Active
@@ -84,11 +91,40 @@ impl RegisterService {
             })
             .await;
 
-        if res.is_err() {
+        if let Err(err) = res {
+            tracing::warn!("Failed to create user: {}", err);
+
             return ResponseCode::InternalError.into();
         }
 
-        // TODO: Send Verification Email
+        if let Some(mailer) = mailer {
+            if let Err(err) = mailer
+                .send_mail(
+                    &self.email,
+                    "Account registration received",
+                    "register",
+                    context! {
+                        username => self.username.clone(),
+                        email => self.email.clone(),
+                        domain => config.domain.clone(),
+                        site_name => config.site.name.clone(),
+                    },
+                )
+                .await
+            {
+                tracing::warn!(
+                    "Failed to send registration email to {}: {}",
+                    self.email,
+                    err
+                );
+            } else {
+                return Response::new(
+                    ResponseCode::OK.into(),
+                    ResponseCode::OK.into(),
+                    Some("Verification email sent successfully".into()),
+                );
+            }
+        }
 
         Response::new(
             ResponseCode::OK.into(),

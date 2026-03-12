@@ -19,10 +19,7 @@ use colored::Colorize;
 use tokio::{net::TcpListener, signal, sync::oneshot};
 use tracing::{info, warn};
 
-use crate::{
-    internal::{config::Config, mail::Mailer},
-    routers::get_router,
-};
+use crate::{internal::config::Config, routers::get_router};
 
 async fn shutdown_signal() {
     let ctrl_c = async {

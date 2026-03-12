@@ -1,11 +1,17 @@
-use anyhow::{Context, Result};
+use std::{path::Path, sync::Arc};
+
+use anyhow::{Context, Result, anyhow};
 use lettre::{
     Message, SmtpTransport, Transport,
     message::{Mailbox, header::ContentType},
     transport::smtp::authentication::Credentials,
 };
+use minijinja::{AutoEscape, Environment, Value};
 
-use crate::internal::config::{Mail, MailSecure};
+use crate::{
+    assets::AssetManager,
+    internal::config::{Mail, MailSecure},
+};
 
 pub fn init(config: &Mail) -> Result<Mailer> {
     Mailer::new(config)
@@ -15,6 +21,7 @@ pub fn init(config: &Mail) -> Result<Mailer> {
 pub struct Mailer {
     sender:    Mailbox,
     transport: SmtpTransport,
+    templates: Arc<Environment<'static>>,
 }
 
 impl Mailer {
@@ -45,10 +52,33 @@ impl Mailer {
             ))
             .build();
 
-        Ok(Self { sender, transport })
+        let templates = Self::load_templates()?;
+
+        Ok(Self {
+            sender,
+            transport,
+            templates: Arc::new(templates),
+        })
     }
 
-    pub async fn send_plain_text(&self, to: &str, subject: &str, body: &str) -> Result<()> {
+    pub async fn send_mail(
+        &self,
+        to: &str,
+        subject: &str,
+        template: &str,
+        context: Value,
+    ) -> Result<()> {
+        let content = self
+            .templates
+            .get_template(template)
+            .with_context(|| format!("Mail template not found: {template}"))?
+            .render(context)
+            .with_context(|| format!("Failed to render mail template: {template}"))?;
+
+        self.send_html(to, subject, &content).await
+    }
+
+    async fn send_html(&self, to: &str, subject: &str, body: &str) -> Result<()> {
         let to: Mailbox = to
             .parse()
             .with_context(|| format!("Invalid recipient address: {to}"))?;
@@ -57,7 +87,7 @@ impl Mailer {
             .from(self.sender.clone())
             .to(to)
             .subject(subject)
-            .header(ContentType::TEXT_PLAIN)
+            .header(ContentType::TEXT_HTML)
             .body(body.to_owned())
             .context("Failed to build email message")?;
 
@@ -68,5 +98,41 @@ impl Mailer {
             .context("SMTP send failed")?;
 
         Ok(())
+    }
+
+    fn load_templates() -> Result<Environment<'static>> {
+        let mut env = Environment::new();
+        env.set_auto_escape_callback(|_| AutoEscape::Html);
+
+        let mut loaded = 0usize;
+        for (path, file) in AssetManager::get_dir("templates/mails") {
+            if !path.ends_with(".html") {
+                continue;
+            }
+
+            let Some(filename) = Path::new(&path).file_name().and_then(|v| v.to_str()) else {
+                continue;
+            };
+            let Some(name) = filename.strip_suffix(".html") else {
+                continue;
+            };
+
+            let source = String::from_utf8(file.data.into_owned())
+                .with_context(|| format!("Mail template is not valid UTF-8: {path}"))?;
+            let name: &'static str = Box::leak(name.to_owned().into_boxed_str());
+            let source: &'static str = Box::leak(source.into_boxed_str());
+
+            env.add_template(name, source)
+                .with_context(|| format!("Failed to parse mail template: {path}"))?;
+            loaded += 1;
+        }
+
+        if loaded == 0 {
+            return Err(anyhow!(
+                "No mail templates found under templates/mails/*.html"
+            ));
+        }
+
+        Ok(env)
     }
 }
