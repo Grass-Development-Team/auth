@@ -36,12 +36,22 @@ impl InfoService {
         user: users::Model,
         info: user_info::Model,
         settings: user_settings::Model,
+        op: Option<users::Model>,
     ) -> Response<InfoResponse> {
-        let read_all_permission = user.check_permission(conn, "user:read:all").await;
+        let is_self = op.is_none();
+        let read_all_permission = if let Some(op) = &op {
+            op.check_permission(conn, "user:read:all").await
+        } else {
+            false
+        };
 
-        let show_email = read_all_permission || settings.show_email;
-        let show_gender = read_all_permission || settings.show_gender;
-        let show_state = read_all_permission || settings.show_state;
+        if !read_all_permission && user.status.is_deleted() {
+            return ResponseCode::UserDeleted.into();
+        }
+
+        let show_email = is_self || read_all_permission || settings.show_email;
+        let show_gender = is_self || read_all_permission || settings.show_gender;
+        let show_state = is_self || read_all_permission || settings.show_state;
 
         let res = InfoResponse {
             uid:         user.uid,
@@ -68,10 +78,6 @@ impl InfoService {
             return ResponseCode::UserNotFound.into();
         };
 
-        if !op.check_permission(conn, "user:read:all").await && user.status.is_deleted() {
-            return ResponseCode::UserDeleted.into();
-        }
-
-        self.info(conn, user, info, settings).await
+        self.info(conn, user, info, settings, Some(op)).await
     }
 }

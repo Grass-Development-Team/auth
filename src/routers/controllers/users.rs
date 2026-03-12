@@ -95,7 +95,7 @@ pub async fn info(
     let service = users::InfoService;
     let (user, info, settings) = login.user;
 
-    service.info(&state.db, user, info, settings).await
+    service.info(&state.db, user, info, settings, None).await
 }
 
 /// User info by uid
