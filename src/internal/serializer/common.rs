@@ -26,7 +26,7 @@ impl From<Response> for Value {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub enum ResponseCode {
     // Http status code
     OK,            // 200
@@ -47,6 +47,47 @@ pub enum ResponseCode {
     EmailExists,          // 4016
     UserDeleted,          // 4017
     DuplicatePassword,    // 4018
+}
+
+impl ResponseCode {
+    pub fn http_status(self) -> StatusCode {
+        match self {
+            ResponseCode::OK => StatusCode::OK,
+            ResponseCode::BadRequest => StatusCode::BAD_REQUEST,
+            ResponseCode::Unauthorized => StatusCode::UNAUTHORIZED,
+            ResponseCode::Forbidden => StatusCode::FORBIDDEN,
+            ResponseCode::NotFound => StatusCode::NOT_FOUND,
+            ResponseCode::InternalError => StatusCode::INTERNAL_SERVER_ERROR,
+            ResponseCode::ParamError => StatusCode::BAD_REQUEST,
+            ResponseCode::RegistrationDisabled => StatusCode::FORBIDDEN,
+            ResponseCode::UserNotFound => StatusCode::NOT_FOUND,
+            ResponseCode::CredentialInvalid => StatusCode::UNAUTHORIZED,
+            ResponseCode::UserBlocked => StatusCode::FORBIDDEN,
+            ResponseCode::UserNotActivated => StatusCode::FORBIDDEN,
+            ResponseCode::UserExists => StatusCode::CONFLICT,
+            ResponseCode::AlreadyLoggedIn => StatusCode::CONFLICT,
+            ResponseCode::EmailExists => StatusCode::CONFLICT,
+            ResponseCode::UserDeleted => StatusCode::NOT_FOUND,
+            ResponseCode::DuplicatePassword => StatusCode::CONFLICT,
+        }
+    }
+}
+
+fn status_from_code(code: u16) -> StatusCode {
+    match code {
+        4000 => StatusCode::BAD_REQUEST,
+        4001 => StatusCode::FORBIDDEN,
+        4010 => StatusCode::NOT_FOUND,
+        4011 => StatusCode::UNAUTHORIZED,
+        4012 => StatusCode::FORBIDDEN,
+        4013 => StatusCode::FORBIDDEN,
+        4014 => StatusCode::CONFLICT,
+        4015 => StatusCode::CONFLICT,
+        4016 => StatusCode::CONFLICT,
+        4017 => StatusCode::NOT_FOUND,
+        4018 => StatusCode::CONFLICT,
+        _ => StatusCode::from_u16(code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+    }
 }
 
 // Error code
@@ -101,150 +142,13 @@ impl From<ResponseCode> for String {
 
 impl<T> From<ResponseCode> for Response<T> {
     fn from(value: ResponseCode) -> Self {
-        match value {
-            ResponseCode::OK => {
-                Response::<T>::new_error(ResponseCode::OK.into(), ResponseCode::OK.into())
-            },
-            ResponseCode::BadRequest => Response::<T>::new_error(
-                ResponseCode::BadRequest.into(),
-                ResponseCode::BadRequest.into(),
-            ),
-            ResponseCode::Unauthorized => Response::<T>::new_error(
-                ResponseCode::Unauthorized.into(),
-                ResponseCode::Unauthorized.into(),
-            ),
-            ResponseCode::Forbidden => Response::<T>::new_error(
-                ResponseCode::Forbidden.into(),
-                ResponseCode::Forbidden.into(),
-            ),
-            ResponseCode::NotFound => Response::<T>::new_error(
-                ResponseCode::NotFound.into(),
-                ResponseCode::NotFound.into(),
-            ),
-            ResponseCode::InternalError => Response::<T>::new_error(
-                ResponseCode::InternalError.into(),
-                ResponseCode::InternalError.into(),
-            ),
-            ResponseCode::ParamError => Response::<T>::new_error(
-                ResponseCode::ParamError.into(),
-                ResponseCode::ParamError.into(),
-            ),
-            ResponseCode::RegistrationDisabled => Response::<T>::new_error(
-                ResponseCode::RegistrationDisabled.into(),
-                ResponseCode::RegistrationDisabled.into(),
-            ),
-            ResponseCode::UserNotFound => Response::<T>::new_error(
-                ResponseCode::UserNotFound.into(),
-                ResponseCode::UserNotFound.into(),
-            ),
-            ResponseCode::CredentialInvalid => Response::<T>::new_error(
-                ResponseCode::CredentialInvalid.into(),
-                ResponseCode::CredentialInvalid.into(),
-            ),
-            ResponseCode::UserBlocked => Response::<T>::new_error(
-                ResponseCode::UserBlocked.into(),
-                ResponseCode::UserBlocked.into(),
-            ),
-            ResponseCode::UserNotActivated => Response::<T>::new_error(
-                ResponseCode::UserNotActivated.into(),
-                ResponseCode::UserNotActivated.into(),
-            ),
-            ResponseCode::UserExists => Response::<T>::new_error(
-                ResponseCode::UserExists.into(),
-                ResponseCode::UserExists.into(),
-            ),
-            ResponseCode::AlreadyLoggedIn => Response::<T>::new_error(
-                ResponseCode::AlreadyLoggedIn.into(),
-                ResponseCode::AlreadyLoggedIn.into(),
-            ),
-            ResponseCode::EmailExists => Response::<T>::new_error(
-                ResponseCode::EmailExists.into(),
-                ResponseCode::EmailExists.into(),
-            ),
-            ResponseCode::UserDeleted => Response::<T>::new_error(
-                ResponseCode::UserDeleted.into(),
-                ResponseCode::UserDeleted.into(),
-            ),
-            ResponseCode::DuplicatePassword => Response::<T>::new_error(
-                ResponseCode::DuplicatePassword.into(),
-                ResponseCode::DuplicatePassword.into(),
-            ),
-        }
+        Response::<T>::new_error(value.into(), value.into())
     }
 }
 
 impl<T> From<ResponseCode> for Json<Response<T>> {
     fn from(value: ResponseCode) -> Self {
-        match value {
-            ResponseCode::OK => Json::from(Response::<T>::new_error(
-                ResponseCode::OK.into(),
-                ResponseCode::OK.into(),
-            )),
-            ResponseCode::BadRequest => Json::from(Response::<T>::new_error(
-                ResponseCode::BadRequest.into(),
-                ResponseCode::BadRequest.into(),
-            )),
-            ResponseCode::Unauthorized => Json::from(Response::<T>::new_error(
-                ResponseCode::Unauthorized.into(),
-                ResponseCode::Unauthorized.into(),
-            )),
-            ResponseCode::Forbidden => Json::from(Response::<T>::new_error(
-                ResponseCode::Forbidden.into(),
-                ResponseCode::Forbidden.into(),
-            )),
-            ResponseCode::NotFound => Json::from(Response::<T>::new_error(
-                ResponseCode::NotFound.into(),
-                ResponseCode::NotFound.into(),
-            )),
-            ResponseCode::InternalError => Json::from(Response::<T>::new_error(
-                ResponseCode::InternalError.into(),
-                ResponseCode::InternalError.into(),
-            )),
-            ResponseCode::ParamError => Json::from(Response::<T>::new_error(
-                ResponseCode::ParamError.into(),
-                ResponseCode::ParamError.into(),
-            )),
-            ResponseCode::RegistrationDisabled => Json::from(Response::<T>::new_error(
-                ResponseCode::RegistrationDisabled.into(),
-                ResponseCode::RegistrationDisabled.into(),
-            )),
-            ResponseCode::UserNotFound => Json::from(Response::<T>::new_error(
-                ResponseCode::UserNotFound.into(),
-                ResponseCode::UserNotFound.into(),
-            )),
-            ResponseCode::CredentialInvalid => Json::from(Response::<T>::new_error(
-                ResponseCode::CredentialInvalid.into(),
-                ResponseCode::CredentialInvalid.into(),
-            )),
-            ResponseCode::UserBlocked => Json::from(Response::<T>::new_error(
-                ResponseCode::UserBlocked.into(),
-                ResponseCode::UserBlocked.into(),
-            )),
-            ResponseCode::UserNotActivated => Json::from(Response::<T>::new_error(
-                ResponseCode::UserNotActivated.into(),
-                ResponseCode::UserNotActivated.into(),
-            )),
-            ResponseCode::UserExists => Json::from(Response::<T>::new_error(
-                ResponseCode::UserExists.into(),
-                ResponseCode::UserExists.into(),
-            )),
-            ResponseCode::AlreadyLoggedIn => Json::from(Response::<T>::new_error(
-                ResponseCode::AlreadyLoggedIn.into(),
-                ResponseCode::AlreadyLoggedIn.into(),
-            )),
-            ResponseCode::EmailExists => Json::from(Response::<T>::new_error(
-                ResponseCode::EmailExists.into(),
-                ResponseCode::EmailExists.into(),
-            )),
-            ResponseCode::UserDeleted => Json::from(Response::<T>::new_error(
-                ResponseCode::UserDeleted.into(),
-                ResponseCode::UserDeleted.into(),
-            )),
-            ResponseCode::DuplicatePassword => Json::from(Response::<T>::new_error(
-                ResponseCode::DuplicatePassword.into(),
-                ResponseCode::DuplicatePassword.into(),
-            )),
-        }
+        Json::from(Response::<T>::from(value))
     }
 }
 
@@ -253,71 +157,84 @@ where
     T: Serialize,
 {
     fn into_response(self) -> axum::response::Response {
-        let status = if self.code < 1000 { self.code } else { 200 };
+        let status = status_from_code(self.code);
         let res = Json(self);
 
-        (StatusCode::from_u16(status).unwrap(), res).into_response()
+        (status, res).into_response()
     }
 }
 
 impl IntoResponse for ResponseCode {
     fn into_response(self) -> axum::response::Response {
-        let (status, res): (u16, Json<Response>) = match self {
-            ResponseCode::OK => (ResponseCode::OK.into(), ResponseCode::OK.into()),
-            ResponseCode::BadRequest => (
-                ResponseCode::BadRequest.into(),
-                ResponseCode::BadRequest.into(),
-            ),
-            ResponseCode::Unauthorized => (
-                ResponseCode::Unauthorized.into(),
-                ResponseCode::Unauthorized.into(),
-            ),
-            ResponseCode::Forbidden => (
-                ResponseCode::Forbidden.into(),
-                ResponseCode::Forbidden.into(),
-            ),
-            ResponseCode::NotFound => {
-                (ResponseCode::NotFound.into(), ResponseCode::NotFound.into())
-            },
-            ResponseCode::InternalError => (
-                ResponseCode::InternalError.into(),
-                ResponseCode::InternalError.into(),
-            ),
-            ResponseCode::ParamError => (ResponseCode::OK.into(), ResponseCode::ParamError.into()),
-            ResponseCode::RegistrationDisabled => (
-                ResponseCode::OK.into(),
-                ResponseCode::RegistrationDisabled.into(),
-            ),
-            ResponseCode::UserNotFound => {
-                (ResponseCode::OK.into(), ResponseCode::UserNotFound.into())
-            },
-            ResponseCode::CredentialInvalid => (
-                ResponseCode::OK.into(),
-                ResponseCode::CredentialInvalid.into(),
-            ),
-            ResponseCode::UserBlocked => {
-                (ResponseCode::OK.into(), ResponseCode::UserBlocked.into())
-            },
-            ResponseCode::UserNotActivated => (
-                ResponseCode::OK.into(),
-                ResponseCode::UserNotActivated.into(),
-            ),
-            ResponseCode::UserExists => (ResponseCode::OK.into(), ResponseCode::UserExists.into()),
-            ResponseCode::AlreadyLoggedIn => (
-                ResponseCode::OK.into(),
-                ResponseCode::AlreadyLoggedIn.into(),
-            ),
-            ResponseCode::EmailExists => {
-                (ResponseCode::OK.into(), ResponseCode::EmailExists.into())
-            },
-            ResponseCode::UserDeleted => {
-                (ResponseCode::OK.into(), ResponseCode::UserDeleted.into())
-            },
-            ResponseCode::DuplicatePassword => (
-                ResponseCode::OK.into(),
-                ResponseCode::DuplicatePassword.into(),
-            ),
-        };
-        (StatusCode::from_u16(status).unwrap(), res).into_response()
+        (self.http_status(), Json::<Response>::from(self)).into_response()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn response_code_http_status_mapping_is_correct() {
+        assert_eq!(ResponseCode::OK.http_status(), StatusCode::OK);
+        assert_eq!(
+            ResponseCode::Unauthorized.http_status(),
+            StatusCode::UNAUTHORIZED
+        );
+        assert_eq!(
+            ResponseCode::ParamError.http_status(),
+            StatusCode::BAD_REQUEST
+        );
+        assert_eq!(
+            ResponseCode::UserNotFound.http_status(),
+            StatusCode::NOT_FOUND
+        );
+        assert_eq!(
+            ResponseCode::EmailExists.http_status(),
+            StatusCode::CONFLICT
+        );
+    }
+
+    #[test]
+    fn response_code_into_response_uses_http_status_mapping() {
+        assert_eq!(
+            ResponseCode::CredentialInvalid.into_response().status(),
+            StatusCode::UNAUTHORIZED
+        );
+        assert_eq!(
+            ResponseCode::RegistrationDisabled.into_response().status(),
+            StatusCode::FORBIDDEN
+        );
+        assert_eq!(
+            ResponseCode::DuplicatePassword.into_response().status(),
+            StatusCode::CONFLICT
+        );
+    }
+
+    #[test]
+    fn response_into_response_maps_business_code_to_http_status() {
+        let conflict = Response::<()>::new(4016, "Email already exists".into(), None);
+        assert_eq!(conflict.into_response().status(), StatusCode::CONFLICT);
+
+        let not_found = Response::<()>::new(4010, "Cannot found user".into(), None);
+        assert_eq!(not_found.into_response().status(), StatusCode::NOT_FOUND);
+
+        let unauthorized = Response::<()>::new(4011, "Invalid credential".into(), None);
+        assert_eq!(
+            unauthorized.into_response().status(),
+            StatusCode::UNAUTHORIZED
+        );
+    }
+
+    #[test]
+    fn response_into_response_keeps_http_code_and_handles_unknown_code() {
+        let plain_http = Response::<()>::new(418, "teapot".into(), None);
+        assert_eq!(plain_http.into_response().status(), StatusCode::IM_A_TEAPOT);
+
+        let unknown = Response::<()>::new(4999, "unknown".into(), None);
+        assert_eq!(
+            unknown.into_response().status(),
+            StatusCode::INTERNAL_SERVER_ERROR
+        );
     }
 }
