@@ -1,4 +1,4 @@
-use axum_extra::extract::{CookieJar, cookie::Cookie};
+use axum_extra::extract::CookieJar;
 use redis::{AsyncCommands, aio::MultiplexedConnection};
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -6,6 +6,7 @@ use tracing::{error, trace};
 
 use crate::{
     internal::{
+        config::Config,
         serializer::{Response, ResponseCode},
         utils,
     },
@@ -35,6 +36,7 @@ impl LoginService {
         conn: &DatabaseConnection,
         redis: &mut MultiplexedConnection,
         jar: CookieJar,
+        config: &Config,
     ) -> (CookieJar, Response<LoginResponse>) {
         // Get user by email
         let Ok(user) = users::get_user_by_email(conn, self.email.clone()).await else {
@@ -72,7 +74,8 @@ impl LoginService {
         let Ok(session) = self.generate_session(&user, redis).await else {
             return (jar, ResponseCode::InternalError.into());
         };
-        let jar = jar.add(Cookie::new("session", session));
+        let session_cookie = utils::cookie::build_session_cookie(session, !config.dev_mode);
+        let jar = jar.add(session_cookie);
 
         // Return success response with new session cookie
         (

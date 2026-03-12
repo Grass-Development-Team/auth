@@ -6,7 +6,7 @@ use crate::{
     internal::{
         extractor::{Json, LoginAccess, OperatorAccess},
         serializer::{Response, ResponseCode},
-        utils::session,
+        utils::{cookie::CookieJarExt, session},
     },
     services::users,
     state::AppState,
@@ -55,7 +55,7 @@ pub async fn login(
         return (jar, ResponseCode::AlreadyLoggedIn.into());
     }
 
-    let (jar, res) = req.login(&state.db, &mut redis, jar).await;
+    let (jar, res) = req.login(&state.db, &mut redis, jar, &state.config).await;
     (jar, res)
 }
 
@@ -79,7 +79,7 @@ pub async fn logout(
         return (jar, ResponseCode::InternalError.into());
     }
 
-    let jar = jar.remove("session");
+    let jar = jar.remove_session_cookie();
 
     (
         jar,
@@ -136,7 +136,7 @@ pub async fn delete(
         return (jar, ResponseCode::InternalError.into());
     }
 
-    let jar = jar.remove("session");
+    let jar = jar.remove_session_cookie();
 
     (jar, res)
 }
@@ -193,7 +193,7 @@ pub async fn reset_password(
         return (jar, ResponseCode::InternalError.into());
     }
 
-    let jar = jar.remove("session");
+    let jar = jar.remove_session_cookie();
 
     (jar, res)
 }
