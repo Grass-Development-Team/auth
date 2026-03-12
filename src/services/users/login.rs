@@ -103,8 +103,13 @@ impl LoginService {
         let sid = uuid::Uuid::new_v4();
         trace!("Generate session id: {:?}", sid);
 
-        if let Err(err) =
-            redis.set(format!("session-{sid}"), session).await as Result<(), redis::RedisError>
+        if let Err(err) = redis
+            .set_ex(
+                format!("session-{sid}"),
+                session,
+                utils::session::SESSION_TTL_SECONDS,
+            )
+            .await as Result<(), redis::RedisError>
         {
             error!("Redis error: {}", err);
             return Err(err.into());
