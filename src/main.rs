@@ -19,7 +19,10 @@ use colored::Colorize;
 use tokio::{net::TcpListener, signal, sync::oneshot};
 use tracing::{info, warn};
 
-use crate::{internal::config::Config, routers::get_router};
+use crate::{
+    internal::{config::Config, mail::Mailer},
+    routers::get_router,
+};
 
 async fn shutdown_signal() {
     let ctrl_c = async {
@@ -65,18 +68,28 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Initializing...");
 
-    // Initialize database & redis
+    // Initialize
     let db = init::db(&config.database.clone()).await?;
     info!("Database initialized.");
 
-    let redis = init::redis(config.redis.clone());
+    let redis = init::redis(&config.redis)?;
     info!("Redis initialized.");
+
+    let mail = if let Some(mail) = &config.mail {
+        Some(Arc::new(init::mail(mail)?))
+    } else {
+        None
+    };
+    if mail.is_some() {
+        info!("Mail initialized.");
+    }
 
     state::APP_STATE
         .get_or_init(async || state::AppState {
-            db:     Arc::from(db),
-            redis:  Arc::from(redis),
+            db: Arc::from(db),
+            redis: Arc::from(redis),
             config: Arc::from(config.clone()),
+            mail,
         })
         .await;
 

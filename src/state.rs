@@ -3,7 +3,7 @@ use std::sync::Arc;
 use sea_orm::DatabaseConnection;
 use tokio::sync::OnceCell;
 
-use crate::internal::config;
+use crate::internal::{config, mail::Mailer};
 
 pub static APP_STATE: OnceCell<AppState> = OnceCell::const_new();
 
@@ -12,4 +12,5 @@ pub struct AppState {
     pub db:     Arc<DatabaseConnection>,
     pub redis:  Arc<redis::Client>,
     pub config: Arc<config::Config>,
+    pub mail:   Option<Arc<Mailer>>,
 }
