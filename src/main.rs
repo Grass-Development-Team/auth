@@ -1,3 +1,6 @@
+// Why fucking shit has this rule??
+#![allow(clippy::upper_case_acronyms)]
+
 mod init;
 
 mod assets;
