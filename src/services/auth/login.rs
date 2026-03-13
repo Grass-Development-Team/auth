@@ -108,7 +108,7 @@ impl LoginService {
 
         if let Err(err) = redis
             .set_ex(
-                format!("session-{sid}"),
+                format!("session::{sid}"),
                 session,
                 utils::session::SESSION_TTL_SECONDS,
             )

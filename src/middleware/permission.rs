@@ -82,7 +82,8 @@ where
                     return Ok(serializer::ResponseCode::Unauthorized.into_response());
                 };
 
-                let Ok(session) = redis.get::<_, String>(format!("session-{session}")).await else {
+                let Ok(session) = redis.get::<_, String>(format!("session::{session}")).await
+                else {
                     return Ok(serializer::ResponseCode::Unauthorized.into_response());
                 };
 

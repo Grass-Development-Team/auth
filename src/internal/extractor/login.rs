@@ -39,7 +39,7 @@ impl FromRequestParts<AppState> for LoginAccess {
         };
         let session_str = session_cookie.value().to_owned();
         let Ok(session) = redis
-            .get::<_, String>(format!("session-{session_str}"))
+            .get::<_, String>(format!("session::{session_str}"))
             .await
         else {
             return Err(ResponseCode::Unauthorized);

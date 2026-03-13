@@ -12,7 +12,7 @@ use crate::{
     state::AppState,
 };
 
-/// User register
+/// Auth register
 pub async fn register(
     State(state): State<AppState>,
     jar: CookieJar,
@@ -24,7 +24,7 @@ pub async fn register(
 
     if let Some(s) = jar.get("session")
         && let Ok(s) = redis
-            .get::<_, String>(format!("session-{}", s.value()))
+            .get::<_, String>(format!("session::{}", s.value()))
             .await
         && let Some(s) = session::parse_from_str(&s)
         && s.validate()
@@ -36,7 +36,7 @@ pub async fn register(
         .await
 }
 
-/// User login
+/// Auth login
 pub async fn login(
     State(state): State<AppState>,
     jar: CookieJar,
@@ -48,7 +48,7 @@ pub async fn login(
 
     if let Some(s) = jar.get("session")
         && let Ok(s) = redis
-            .get::<_, String>(format!("session-{}", s.value()))
+            .get::<_, String>(format!("session::{}", s.value()))
             .await
         && let Some(s) = session::parse_from_str(&s)
         && s.validate()
@@ -60,7 +60,7 @@ pub async fn login(
     (jar, res)
 }
 
-/// User logout
+/// Auth logout
 pub async fn logout(
     login: LoginAccess,
     State(state): State<AppState>,
@@ -73,7 +73,7 @@ pub async fn logout(
     let session = login.session;
 
     if redis
-        .del::<_, String>(format!("session-{session}"))
+        .del::<_, String>(format!("session::{session}"))
         .await
         .is_err()
     {
@@ -88,7 +88,7 @@ pub async fn logout(
     )
 }
 
-/// User reset password
+/// Auth reset password
 pub async fn reset_password(
     login: LoginAccess,
     State(state): State<AppState>,
@@ -100,10 +100,12 @@ pub async fn reset_password(
     };
     let session = login.session;
 
-    let res = req.reset_password(&state.db, login.user.0).await;
+    let res = req
+        .reset_password(&state.db, &mut redis, login.user.0)
+        .await;
 
     if redis
-        .del::<_, String>(format!("session-{session}"))
+        .del::<_, String>(format!("session::{session}"))
         .await
         .is_err()
     {

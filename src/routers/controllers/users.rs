@@ -54,7 +54,7 @@ pub async fn delete(
     }
 
     if redis
-        .del::<_, String>(format!("session-{session}"))
+        .del::<_, String>(format!("session::{session}"))
         .await
         .is_err()
     {
