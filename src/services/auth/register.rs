@@ -42,17 +42,14 @@ impl RegisterService {
             return err.into();
         }
 
-        if users::get_user_by_username(conn, self.username.clone())
+        if users::get_user_by_username(conn, &self.username)
             .await
             .is_ok()
         {
             return ResponseCode::UserExists.into();
         }
 
-        if users::get_user_by_email(conn, self.email.clone())
-            .await
-            .is_ok()
-        {
+        if users::get_user_by_email(conn, &self.email).await.is_ok() {
             return ResponseCode::EmailExists.into();
         }
 

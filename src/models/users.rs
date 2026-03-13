@@ -71,7 +71,7 @@ impl ActiveModelBehavior for ActiveModel {}
 /// Get user model by email
 pub async fn get_user_by_email(
     conn: &impl ConnectionTrait,
-    email: String,
+    email: &str,
 ) -> Result<(Model, super::user_info::Model, super::user_settings::Model), ModelError> {
     let res = Entity::find()
         .find_also_related(super::user_info::Entity)
@@ -110,7 +110,7 @@ pub async fn get_user_by_email(
 /// Get user model by username
 pub async fn get_user_by_username(
     conn: &impl ConnectionTrait,
-    username: String,
+    username: &str,
 ) -> Result<(Model, super::user_info::Model, super::user_settings::Model), ModelError> {
     let res = Entity::find()
         .find_also_related(super::user_info::Entity)

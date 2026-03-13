@@ -39,7 +39,7 @@ impl LoginService {
         config: &Config,
     ) -> (CookieJar, Response<LoginResponse>) {
         // Get user by email
-        let Ok(user) = users::get_user_by_email(conn, self.email.clone()).await else {
+        let Ok(user) = users::get_user_by_email(conn, &self.email).await else {
             return (jar, ResponseCode::UserNotFound.into());
         };
 
