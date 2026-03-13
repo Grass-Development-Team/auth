@@ -8,12 +8,12 @@ A simple authentication service for user registration, login, and role-based acc
 
 ## TODO
 
-- [] Basic Authentication
-- [] Role-Based Access Control
-- [] OIDC Authentication
-- [] Multi-Factor Authentication
-- [] Passcode & Other Authentication Methods
-- [] User Management
+- [ ] Basic Authentication
+- [ ] Role-Based Access Control
+- [ ] OIDC Authentication
+- [ ] Multi-Factor Authentication
+- [ ] Passcode & Other Authentication Methods
+- [ ] User Management
 
 ## Getting Started
 
