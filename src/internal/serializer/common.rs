@@ -38,6 +38,7 @@ pub enum ResponseCode {
     // Internal status code
     ParamError,           // 4000
     RegistrationDisabled, // 4001
+    MailServiceDisabled,  // 4002
     UserNotFound,         // 4010
     CredentialInvalid,    // 4011
     UserBlocked,          // 4012
@@ -60,6 +61,7 @@ impl ResponseCode {
             ResponseCode::InternalError => StatusCode::INTERNAL_SERVER_ERROR,
             ResponseCode::ParamError => StatusCode::BAD_REQUEST,
             ResponseCode::RegistrationDisabled => StatusCode::FORBIDDEN,
+            ResponseCode::MailServiceDisabled => StatusCode::INTERNAL_SERVER_ERROR,
             ResponseCode::UserNotFound => StatusCode::NOT_FOUND,
             ResponseCode::CredentialInvalid => StatusCode::UNAUTHORIZED,
             ResponseCode::UserBlocked => StatusCode::FORBIDDEN,
@@ -77,6 +79,7 @@ fn status_from_code(code: u16) -> StatusCode {
     match code {
         4000 => StatusCode::BAD_REQUEST,
         4001 => StatusCode::FORBIDDEN,
+        4002 => StatusCode::INTERNAL_SERVER_ERROR,
         4010 => StatusCode::NOT_FOUND,
         4011 => StatusCode::UNAUTHORIZED,
         4012 => StatusCode::FORBIDDEN,
@@ -102,6 +105,7 @@ impl From<ResponseCode> for u16 {
             ResponseCode::InternalError => 500,
             ResponseCode::ParamError => 4000,
             ResponseCode::RegistrationDisabled => 4001,
+            ResponseCode::MailServiceDisabled => 4002,
             ResponseCode::UserNotFound => 4010,
             ResponseCode::CredentialInvalid => 4011,
             ResponseCode::UserBlocked => 4012,
@@ -127,6 +131,7 @@ impl From<ResponseCode> for String {
             ResponseCode::InternalError => "Internal Error".into(),
             ResponseCode::ParamError => "Parameter Error".into(),
             ResponseCode::RegistrationDisabled => "Registration is disabled".into(),
+            ResponseCode::MailServiceDisabled => "Mail service is disabled".into(),
             ResponseCode::UserNotFound => "Cannot found user".into(),
             ResponseCode::CredentialInvalid => "Invalid credential".into(),
             ResponseCode::UserBlocked => "The account was blocked".into(),

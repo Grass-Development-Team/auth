@@ -116,3 +116,16 @@ pub async fn reset_password(
 
     (jar, res)
 }
+
+/// Auth forget password
+pub async fn forget_password(
+    State(state): State<AppState>,
+    Json(req): Json<auth::ForgetPasswordService>,
+) -> Response<String> {
+    let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
+        return ResponseCode::InternalError.into();
+    };
+
+    req.forget_password(&state.db, &mut redis, &state.config, state.mail.as_deref())
+        .await
+}
