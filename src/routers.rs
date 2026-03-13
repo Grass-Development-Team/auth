@@ -15,80 +15,102 @@ use crate::{
     assets::AssetManager,
     internal::{config::Config, utils::content_type},
     middleware::permission::PermissionAccess,
-    routers::controllers::{common, users},
+    routers::controllers::{auth, common, users},
     state::AppState,
 };
 
 pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
     // CORS
-    let api_cors = CorsLayer::new()
-        .allow_methods([
+    let public_cors = {
+        let cors = CorsLayer::new()
+            .allow_methods([
+                Method::GET,
+                Method::POST,
+                Method::PATCH,
+                Method::DELETE,
+                Method::OPTIONS,
+            ])
+            .allow_origin(cors::Any);
+        ServiceBuilder::new().layer(cors).into_inner()
+    };
+    let internal_cors = {
+        let cors = CorsLayer::new().allow_methods([
             Method::GET,
             Method::POST,
             Method::PATCH,
             Method::DELETE,
             Method::OPTIONS,
-        ])
-        .allow_origin(cors::Any);
-    let api_cors = ServiceBuilder::new().layer(api_cors).into_inner();
-    let internal_cors = CorsLayer::new().allow_methods([
-        Method::GET,
-        Method::POST,
-        Method::PATCH,
-        Method::DELETE,
-        Method::OPTIONS,
-    ]);
-    let internal_cors = ServiceBuilder::new().layer(internal_cors).into_inner();
-
-    // User
-    let user = Router::new()
-        .route("/login", post(users::login))
-        .route("/register", post(users::register))
-        .route(
-            "/info",
-            any(users::info).layer(PermissionAccess::all(&["user:read:self"])),
-        )
-        .route("/info/{uid}", any(users::info_by_uid))
-        .route("/logout", any(users::logout))
-        .route(
-            "/delete",
-            delete(users::delete).layer(PermissionAccess::all(&["user:delete:self"])),
-        )
-        .route(
-            "/delete/{uid}",
-            delete(users::delete_by_uid).layer(PermissionAccess::all(&["user:delete:all"])),
-        )
-        .route(
-            "/update",
-            patch(users::update).layer(PermissionAccess::all(&["user:update:self"])),
-        )
-        .route(
-            "/update/{uid}",
-            patch(users::update_by_uid).layer(PermissionAccess::all(&["user:update:all"])),
-        )
-        .route(
-            "/reset_password",
-            patch(users::reset_password)
-                .layer(PermissionAccess::all(&["user:reset_password:self"])),
-        );
-    let user = Router::new().nest("/user", user);
-    let user = if config.dev_mode {
-        user.layer(api_cors.clone())
-    } else {
-        user.layer(internal_cors.clone())
+        ]);
+        ServiceBuilder::new().layer(cors).into_inner()
     };
 
     // Oauth
-    let oauth = Router::new();
-    let oauth = Router::new().nest("/oauth", oauth);
+    let oauth = {
+        let oauth = Router::new();
+        Router::new().nest("/oauth", oauth)
+    };
+
+    let api_v1 = {
+        // Auth
+        let auth = {
+            let route = Router::new()
+                .route("/login", post(auth::login))
+                .route("/logout", any(auth::logout))
+                .route("/register", post(auth::register))
+                .route(
+                    "/reset-password",
+                    patch(auth::reset_password)
+                        .layer(PermissionAccess::all(&["user:reset_password:self"])),
+                );
+            let route = Router::new().nest("/auth", route);
+            if config.dev_mode {
+                route.layer(public_cors.clone())
+            } else {
+                route.layer(internal_cors.clone())
+            }
+        };
+
+        // User
+        let user = {
+            let route = Router::new()
+                .route(
+                    "/info",
+                    any(users::info).layer(PermissionAccess::all(&["user:read:self"])),
+                )
+                .route("/info/{uid}", any(users::info_by_uid))
+                .route(
+                    "/delete",
+                    delete(users::delete).layer(PermissionAccess::all(&["user:delete:self"])),
+                )
+                .route(
+                    "/delete/{uid}",
+                    delete(users::delete_by_uid).layer(PermissionAccess::all(&["user:delete:all"])),
+                )
+                .route(
+                    "/update",
+                    patch(users::update).layer(PermissionAccess::all(&["user:update:self"])),
+                )
+                .route(
+                    "/update/{uid}",
+                    patch(users::update_by_uid).layer(PermissionAccess::all(&["user:update:all"])),
+                );
+            Router::new().nest("/user", route)
+        };
+
+        let common = Router::new()
+            .route("/ping", any(common::ping))
+            .fallback(common::not_found)
+            .layer(public_cors);
+
+        let route = Router::new().merge(auth).merge(user).merge(common);
+        Router::new().nest("/v1", route)
+    };
 
     // API
-    let common = Router::new()
-        .route("/ping", any(common::ping))
-        .fallback(common::not_found)
-        .layer(api_cors);
-    let api = Router::new().merge(user).merge(common);
-    let api = Router::new().nest("/api", api);
+    let api = {
+        let route = Router::new().merge(api_v1);
+        Router::new().nest("/api", route)
+    };
 
     app.merge(api).merge(oauth).fallback(static_asset_fallback)
 }
