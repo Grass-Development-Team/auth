@@ -1,3 +1,6 @@
+// Why fucking shit has this rule??
+#![allow(clippy::upper_case_acronyms)]
+
 mod init;
 
 mod assets;
@@ -62,18 +65,28 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Initializing...");
 
-    // Initialize database & redis
+    // Initialize
     let db = init::db(&config.database.clone()).await?;
     info!("Database initialized.");
 
-    let redis = init::redis(config.redis.clone());
+    let redis = init::redis(&config.redis)?;
     info!("Redis initialized.");
+
+    let mail = if let Some(mail) = &config.mail {
+        Some(Arc::new(init::mail(mail)?))
+    } else {
+        None
+    };
+    if mail.is_some() {
+        info!("Mail initialized.");
+    }
 
     state::APP_STATE
         .get_or_init(async || state::AppState {
-            db:     Arc::from(db),
-            redis:  Arc::from(redis),
+            db: Arc::from(db),
+            redis: Arc::from(redis),
             config: Arc::from(config.clone()),
+            mail,
         })
         .await;
 

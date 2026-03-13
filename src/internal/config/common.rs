@@ -28,6 +28,17 @@ impl Config {
             );
             self.port = 7817;
         }
+
+        if let Some(mail) = &mut self.mail
+            && mail.port == Some(0)
+        {
+            warn!(
+                "Mail port is set to 0, using default port {} for secure mode {:?}",
+                mail.secure.default_port(),
+                mail.secure
+            );
+            mail.port = None;
+        }
     }
 
     /// Writes the configuration file.

@@ -5,7 +5,7 @@ use tracing_subscriber::{
 };
 
 use crate::internal::{config::Redis, log::layer::LogLayer};
-pub use crate::models::init as db;
+pub use crate::{internal::mail::init as mail, models::init as db};
 
 /// Initialize the logger
 pub fn logger() {
@@ -23,18 +23,18 @@ pub fn logger() {
 }
 
 /// Initialize Redis client
-pub fn redis(redis: Redis) -> redis::Client {
+pub fn redis(redis: &Redis) -> Result<redis::Client, redis::RedisError> {
     redis::Client::open(format!(
         "redis://{}{}:{}",
         if redis.username.is_some() || redis.password.is_some() {
             format!(
                 "{}{}@",
-                if let Some(username) = redis.username {
+                if let Some(username) = redis.username.clone() {
                     username
                 } else {
                     "".into()
                 },
-                if let Some(password) = redis.password {
+                if let Some(password) = redis.password.clone() {
                     format!(":{}", password)
                 } else {
                     "".into()
@@ -46,5 +46,4 @@ pub fn redis(redis: Redis) -> redis::Client {
         redis.host,
         redis.port.unwrap_or(6379)
     ))
-    .unwrap_or_else(|e| panic!("Error connecting to Redis: {e}"))
 }
