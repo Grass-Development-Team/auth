@@ -8,6 +8,7 @@ use crate::{
         serializer::{Response, ResponseCode},
         utils::{cookie::CookieJarExt, session},
     },
+    models::users,
     services::auth,
     state::AppState,
 };
@@ -90,7 +91,6 @@ pub async fn logout(
 
 /// Auth reset password
 pub async fn reset_password(
-    login: LoginAccess,
     State(state): State<AppState>,
     jar: CookieJar,
     Json(req): Json<auth::ResetPasswordService>,
@@ -98,16 +98,36 @@ pub async fn reset_password(
     let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
         return (jar, ResponseCode::InternalError.into());
     };
-    let session = login.session;
 
-    let res = req
-        .reset_password(&state.db, &mut redis, login.user.0)
-        .await;
+    let session = jar.get("session").map(|v| v.value().to_owned());
+    let mut login_user: Option<users::Model> = None;
 
-    if redis
-        .del::<_, String>(format!("session::{session}"))
-        .await
-        .is_err()
+    if let Some(session) = &session
+        && let Ok(payload) = redis.get::<_, String>(format!("session::{session}")).await
+        && let Some(session) = session::parse_from_str(&payload)
+        && session.validate()
+        && let Ok((user, _, _)) = users::get_user_by_id(&*state.db, session.uid).await
+    {
+        if !user
+            .check_permission(&*state.db, "user:reset_password:self")
+            .await
+        {
+            return (jar, ResponseCode::Forbidden.into());
+        }
+
+        login_user = Some(user);
+    }
+
+    let res = req.reset_password(&state.db, &mut redis, login_user).await;
+    if res.code != u16::from(ResponseCode::OK) {
+        return (jar, res);
+    }
+
+    if let Some(session) = session
+        && redis
+            .del::<_, String>(format!("session::{session}"))
+            .await
+            .is_err()
     {
         return (jar, ResponseCode::InternalError.into());
     }

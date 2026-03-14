@@ -58,11 +58,7 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
                 .route("/logout", any(auth::logout))
                 .route("/register", post(auth::register))
                 .route("/forget-password", post(auth::forget_password))
-                .route(
-                    "/reset-password",
-                    patch(auth::reset_password)
-                        .layer(PermissionAccess::all(&["user:reset_password:self"])),
-                );
+                .route("/reset-password", patch(auth::reset_password));
             let route = Router::new().nest("/auth", route);
             if config.dev_mode {
                 route.layer(public_cors.clone())
