@@ -1,5 +1,5 @@
-use crate::internal::serializer::ResponseCode;
+use crate::internal::error::AppError;
 
-pub trait Validatable<T = ResponseCode> {
+pub trait Validatable<T = AppError> {
     fn validate(&self) -> Result<(), T>;
 }

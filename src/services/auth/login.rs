@@ -1,14 +1,11 @@
-use axum_extra::extract::CookieJar;
-use redis::{AsyncCommands, aio::MultiplexedConnection};
+use redis::aio::MultiplexedConnection;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
-use tracing::{error, trace};
 
 use crate::{
     internal::{
-        config::Config,
-        serializer::{Response, ResponseCode},
-        utils,
+        error::{AppError, AppErrorKind},
+        session::SessionService,
     },
     models::users,
 };
@@ -30,94 +27,72 @@ pub struct LoginService {
 }
 
 impl LoginService {
-    /// Main login handler - validates credentials and returns session
+    /// Main login handler - validates credentials and returns response data and
+    /// session id.
     pub async fn login(
         &self,
         conn: &DatabaseConnection,
         redis: &mut MultiplexedConnection,
-        jar: CookieJar,
-        config: &Config,
-    ) -> (CookieJar, Response<LoginResponse>) {
+    ) -> Result<(LoginResponse, String), AppError> {
         // Get user by email
         let Ok(user) = users::get_user_by_email(conn, &self.email).await else {
-            return (jar, ResponseCode::UserNotFound.into());
+            return Err(AppError::biz(
+                AppErrorKind::UserNotFound,
+                "auth.login.find_user",
+            ));
         };
 
         let user = user.0;
 
         if user.status.is_deleted() {
-            return (jar, ResponseCode::UserDeleted.into());
+            return Err(AppError::biz(
+                AppErrorKind::UserDeleted,
+                "auth.login.find_user",
+            ));
+        }
+
+        if user.status.is_banned() {
+            return Err(AppError::biz(
+                AppErrorKind::UserBlocked,
+                "auth.login.check_status",
+            ));
+        }
+
+        if user.status.is_inactive() {
+            return Err(AppError::biz(
+                AppErrorKind::UserNotActivated,
+                "auth.login.check_status",
+            ));
         }
 
         // Validate credentials and account status
         if !user.check_password(self.password.to_owned()) {
-            return (
-                jar,
-                Response::new_error(
-                    ResponseCode::CredentialInvalid.into(),
-                    "Wrong password".into(),
-                ),
-            );
-        }
-
-        if user.status.is_banned() {
-            return (jar, ResponseCode::UserBlocked.into());
-        }
-
-        if user.status.is_inactive() {
-            return (jar, ResponseCode::UserNotActivated.into());
+            return Err(AppError::biz(
+                AppErrorKind::CredentialInvalid,
+                "auth.login.verify_password",
+            )
+            .with_detail("Wrong password"));
         }
 
         // TODO: 2-factor authentication
 
-        // Create new session
-        let Ok(session) = self.generate_session(&user, redis).await else {
-            return (jar, ResponseCode::InternalError.into());
-        };
-        let session_cookie = utils::cookie::build_session_cookie(session, !config.dev_mode);
-        let jar = jar.add(session_cookie);
+        let session_id = SessionService::create(redis, user.uid)
+            .await
+            .map_err(|err| {
+                err.with_detail(format!(
+                    "Failed to create login session ({OP_CREATE_SESSION})",
+                    OP_CREATE_SESSION = "auth.login.create_session"
+                ))
+            })?;
 
-        // Return success response with new session cookie
-        (
-            jar,
-            Response::new(
-                ResponseCode::OK.into(),
-                ResponseCode::OK.into(),
-                Some(LoginResponse {
-                    uid:      user.uid,
-                    username: user.username,
-                    email:    user.email,
-                    nickname: user.nickname,
-                }),
-            ),
-        )
-    }
-
-    /// Generates a new session token and stores it in Redis
-    async fn generate_session(
-        &self,
-        users: &users::Model,
-        redis: &mut MultiplexedConnection,
-    ) -> anyhow::Result<String> {
-        let session = utils::session::generate(users.uid);
-        trace!("Generate session: {:?}", session);
-        let session = serde_json::to_string(&session)?;
-        trace!("Session string: {:?}", session);
-        let sid = uuid::Uuid::new_v4();
-        trace!("Generate session id: {:?}", sid);
-
-        if let Err(err) = redis
-            .set_ex(
-                format!("session::{sid}"),
-                session,
-                utils::session::SESSION_TTL_SECONDS,
-            )
-            .await as Result<(), redis::RedisError>
-        {
-            error!("Redis error: {}", err);
-            return Err(err.into());
-        };
-
-        Ok(String::from(sid))
+        Ok((
+            LoginResponse {
+                uid:      user.uid,
+                username: user.username,
+                email:    user.email,
+                nickname: user.nickname,
+            },
+            session_id,
+        ))
     }
 }

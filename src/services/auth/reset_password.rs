@@ -3,51 +3,38 @@ use sea_orm::DatabaseConnection;
 use serde::Deserialize;
 
 use crate::{
-    internal::serializer::{Response, ResponseCode},
+    internal::error::{AppError, AppErrorKind},
     models::users,
 };
 
 #[derive(Deserialize)]
-#[serde(untagged)]
-pub enum ResetPasswordService {
-    WithToken(ResetPasswordServiceWithToken),
-    WithPassword(ResetPasswordServiceWithPassword),
+pub struct ResetPasswordQuery {
+    pub token: String,
 }
 
 #[derive(Deserialize)]
-pub struct ResetPasswordServiceWithToken {
+pub struct ResetPasswordWithTokenService {
     pub token:        String,
     pub new_password: String,
 }
 
 #[derive(Deserialize)]
-pub struct ResetPasswordServiceWithPassword {
+pub struct ResetPasswordWithPasswordService {
     pub old_password: String,
     pub new_password: String,
 }
 
-impl ResetPasswordService {
+impl ResetPasswordWithTokenService {
     pub async fn reset_password(
         &self,
         conn: &DatabaseConnection,
         redis: &mut MultiplexedConnection,
-        user: Option<users::Model>,
-    ) -> Response {
-        match self {
-            ResetPasswordService::WithToken(service) => service.reset_password(conn, redis).await,
-            ResetPasswordService::WithPassword(service) => service.reset_password(conn, user).await,
-        }
-    }
-}
-
-impl ResetPasswordServiceWithToken {
-    pub async fn reset_password(
-        &self,
-        conn: &DatabaseConnection,
-        redis: &mut MultiplexedConnection,
-    ) -> Response {
+    ) -> Result<(), AppError> {
         if self.token.is_empty() || self.new_password.is_empty() {
-            return ResponseCode::ParamError.into();
+            return Err(AppError::biz(
+                AppErrorKind::ParamError,
+                "auth.reset_password.token.validate_params",
+            ));
         }
 
         let key = format!("password-reset::{}", self.token);
@@ -55,58 +42,88 @@ impl ResetPasswordServiceWithToken {
             Ok(uid) => uid,
             Err(err) => {
                 tracing::error!("Error consuming reset token: {err}");
-                return ResponseCode::InternalError.into();
+                return Err(AppError::infra(
+                    AppErrorKind::InternalError,
+                    "auth.reset_password.token.consume_token",
+                    err,
+                ));
             },
         };
 
         let Some(uid) = uid else {
-            return ResponseCode::Unauthorized.into();
+            return Err(AppError::biz(
+                AppErrorKind::Unauthorized,
+                "auth.reset_password.token.consume_token",
+            ));
         };
 
         let Ok((user, _, _)) = users::get_user_by_id(conn, uid).await else {
-            return ResponseCode::Unauthorized.into();
+            return Err(AppError::biz(
+                AppErrorKind::Unauthorized,
+                "auth.reset_password.token.find_user",
+            ));
         };
 
         if user.status.is_deleted() {
-            return ResponseCode::UserDeleted.into();
+            return Err(AppError::biz(
+                AppErrorKind::UserDeleted,
+                "auth.reset_password.token.check_user_status",
+            ));
         }
 
         if user.check_password(self.new_password.clone()) {
-            return ResponseCode::DuplicatePassword.into();
+            return Err(AppError::biz(
+                AppErrorKind::DuplicatePassword,
+                "auth.reset_password.token.check_password",
+            ));
         }
 
         if let Err(err) = user.update_password(conn, self.new_password.clone()).await {
             tracing::error!("Error updating password by token: {err}");
-            return ResponseCode::InternalError.into();
+            return Err(AppError::infra(
+                AppErrorKind::InternalError,
+                "auth.reset_password.token.update_password",
+                err,
+            ));
         }
 
-        ResponseCode::OK.into()
+        Ok(())
     }
 }
 
-impl ResetPasswordServiceWithPassword {
+impl ResetPasswordWithPasswordService {
     pub async fn reset_password(
         &self,
         conn: &DatabaseConnection,
-        user: Option<users::Model>,
-    ) -> Response {
-        let Some(user) = user else {
-            return ResponseCode::Unauthorized.into();
-        };
+        user: &users::Model,
+    ) -> Result<(), AppError> {
+        // TODO: Check permission whether user:reset_password:other or
+        // user:reset_password:self
 
         if !user.check_password(self.old_password.clone()) {
-            return ResponseCode::Unauthorized.into();
+            return Err(AppError::biz(
+                AppErrorKind::Unauthorized,
+                "auth.reset_password.password.verify_old_password",
+            )
+            .with_detail("Wrong password"));
         }
 
         if self.old_password == self.new_password {
-            return ResponseCode::DuplicatePassword.into();
+            return Err(AppError::biz(
+                AppErrorKind::DuplicatePassword,
+                "auth.reset_password.password.check_new_password",
+            ));
         }
 
         if let Err(err) = user.update_password(conn, self.new_password.clone()).await {
             tracing::error!("Error updating password: {err}");
-            return ResponseCode::InternalError.into();
+            return Err(AppError::infra(
+                AppErrorKind::InternalError,
+                "auth.reset_password.password.update_password",
+                err,
+            ));
         }
 
-        ResponseCode::OK.into()
+        Ok(())
     }
 }

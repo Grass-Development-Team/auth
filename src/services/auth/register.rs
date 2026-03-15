@@ -8,8 +8,8 @@ use serde::Deserialize;
 use crate::{
     internal::{
         config::Config,
+        error::{AppError, AppErrorKind},
         mail::Mailer,
-        serializer::{Response, ResponseCode},
         utils,
         validator::Validatable,
     },
@@ -33,24 +33,41 @@ impl RegisterService {
         conn: &DatabaseConnection,
         config: &Config,
         mailer: Option<&Mailer>,
-    ) -> Response<String> {
+    ) -> Result<String, AppError> {
         if !config.site.enable_registration {
-            return ResponseCode::RegistrationDisabled.into();
+            return Err(AppError::biz(
+                AppErrorKind::RegistrationDisabled,
+                "auth.register.check_enabled",
+            ));
         }
 
-        if let Err(err) = self.validate() {
-            return err.into();
+        self.validate()?;
+
+        if let Ok(user) = users::get_user_by_email(conn, &self.email).await {
+            if let Some(mailer) = mailer
+                && user.0.status.is_inactive()
+            {
+                // TODO: Check if the verification token has expired
+                return match self.send_verification_email(mailer, config).await {
+                    Ok(_) => Ok("Verification email sent successfully".into()),
+                    Err(err) => Err(err),
+                };
+            }
+
+            return Err(AppError::biz(
+                AppErrorKind::EmailExists,
+                "auth.register.check_email_exists",
+            ));
         }
 
         if users::get_user_by_username(conn, &self.username)
             .await
             .is_ok()
         {
-            return ResponseCode::UserExists.into();
-        }
-
-        if users::get_user_by_email(conn, &self.email).await.is_ok() {
-            return ResponseCode::EmailExists.into();
+            return Err(AppError::biz(
+                AppErrorKind::UserExists,
+                "auth.register.check_username_exists",
+            ));
         }
 
         // Encrypt Password
@@ -89,50 +106,56 @@ impl RegisterService {
             .await;
 
         if let Err(err) = res {
-            tracing::warn!("Failed to create user: {}", err);
-
-            return ResponseCode::InternalError.into();
+            return Err(AppError::infra(
+                AppErrorKind::InternalError,
+                "auth.register.create_user",
+                err,
+            ));
         }
 
         if let Some(mailer) = mailer {
-            if let Err(err) = mailer
-                .send_mail(
-                    &self.email,
-                    "Account registration received",
-                    "register",
-                    context! {
-                        username => self.username.clone(),
-                        email => self.email.clone(),
-                        domain => config.domain.clone(),
-                        site_name => config.site.name.clone(),
-                    },
-                )
-                .await
-            {
-                tracing::warn!(
-                    "Failed to send registration email to {}: {}",
-                    self.email,
-                    err
-                );
-            } else {
-                return Response::new(
-                    ResponseCode::OK.into(),
-                    ResponseCode::OK.into(),
-                    Some("Verification email sent successfully".into()),
-                );
-            }
+            return match self.send_verification_email(mailer, config).await {
+                Ok(_) => Ok("Verification email sent successfully".into()),
+                Err(err) => Err(err),
+            };
         }
 
-        Response::new(
-            ResponseCode::OK.into(),
-            ResponseCode::OK.into(),
-            Some("Register successfully".into()),
-        )
+        Ok("Register successfully".into())
+    }
+
+    async fn send_verification_email(
+        &self,
+        mailer: &Mailer,
+        config: &Config,
+    ) -> Result<(), AppError> {
+        // TODO: Send verification link
+        match mailer
+            .send_mail(
+                &self.email,
+                "Account registration received",
+                "register",
+                context! {
+                    username => self.username.clone(),
+                    email => self.email.clone(),
+                    domain => config.domain.clone(),
+                    site_name => config.site.name.clone(),
+                },
+            )
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(err) => Err(AppError::infra(
+                AppErrorKind::VerificationEmailSendFailed,
+                "auth.register.send_verification_email",
+                err,
+            )
+            .with_detail("Verification email could not be sent. Please try again later.")),
+        }
     }
 }
 
 impl Validatable for RegisterService {
-    fn validate(&self) -> Result<(), ResponseCode> {
+    fn validate(&self) -> Result<(), AppError> {
         // Validate Username
         if self.username.len() < 3
             || self.username.len() > 32
@@ -141,13 +164,21 @@ impl Validatable for RegisterService {
                 .chars()
                 .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
         {
-            return Err(ResponseCode::ParamError);
+            return Err(
+                AppError::biz(AppErrorKind::ParamError, "auth.register.validate").with_detail(
+                    "Username must be between 3 and 32 characters and can only contain \
+                     alphanumeric characters, underscores, and hyphens.",
+                ),
+            );
         }
 
         // Validate Email
         let email_re = EMAIL_RE.get_or_init(|| Regex::new(r"^[\w\.-]+@[\w\.-]+\.\w+$").unwrap());
         if !email_re.is_match(&self.email) {
-            return Err(ResponseCode::ParamError);
+            return Err(
+                AppError::biz(AppErrorKind::ParamError, "auth.register.validate")
+                    .with_detail("Email must be a valid email address."),
+            );
         }
 
         // Validate Password
@@ -155,13 +186,24 @@ impl Validatable for RegisterService {
             Regex::new(r#"^[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':",.<>/?]{8,64}$"#).unwrap()
         });
         if !password_re.is_match(&self.password) {
-            return Err(ResponseCode::ParamError);
+            return Err(
+                AppError::biz(AppErrorKind::ParamError, "auth.register.validate").with_detail(
+                    "Password must be between 8 and 64 characters and contain at least one letter \
+                     and one number.",
+                ),
+            );
         }
         if !self.password.chars().any(|c| c.is_ascii_alphabetic()) {
-            return Err(ResponseCode::ParamError);
+            return Err(
+                AppError::biz(AppErrorKind::ParamError, "auth.register.validate")
+                    .with_detail("Password must contain at least one letter."),
+            );
         }
         if !self.password.chars().any(|c| c.is_ascii_digit()) {
-            return Err(ResponseCode::ParamError);
+            return Err(
+                AppError::biz(AppErrorKind::ParamError, "auth.register.validate")
+                    .with_detail("Password must contain at least one number."),
+            );
         }
 
         Ok(())

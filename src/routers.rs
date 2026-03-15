@@ -1,4 +1,5 @@
 pub mod controllers;
+pub mod response;
 
 use axum::{
     Router,
@@ -6,7 +7,7 @@ use axum::{
     extract::Request,
     http::{HeaderValue, Method, StatusCode, header},
     response::{IntoResponse, Response},
-    routing::{any, delete, patch, post},
+    routing::{any, delete, get, patch, post},
 };
 use tower::ServiceBuilder;
 use tower_http::{cors, cors::CorsLayer};
@@ -58,7 +59,18 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
                 .route("/logout", any(auth::logout))
                 .route("/register", post(auth::register))
                 .route("/forget-password", post(auth::forget_password))
-                .route("/reset-password", patch(auth::reset_password));
+                .route("/reset-password", get(auth::reset_password))
+                .route(
+                    "/reset-password/token",
+                    patch(auth::reset_password_with_token),
+                )
+                .route(
+                    "/reset-password/password",
+                    patch(auth::reset_password_with_password).layer(PermissionAccess::any(&[
+                        "user:reset_password:self",
+                        "user:reset_password:other",
+                    ])),
+                );
             let route = Router::new().nest("/auth", route);
             if config.dev_mode {
                 route.layer(public_cors.clone())

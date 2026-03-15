@@ -36,18 +36,19 @@ pub enum ResponseCode {
     NotFound,      // 404
     InternalError, // 500
     // Internal status code
-    ParamError,           // 4000
-    RegistrationDisabled, // 4001
-    MailServiceDisabled,  // 4002
-    UserNotFound,         // 4010
-    CredentialInvalid,    // 4011
-    UserBlocked,          // 4012
-    UserNotActivated,     // 4013
-    UserExists,           // 4014
-    AlreadyLoggedIn,      // 4015
-    EmailExists,          // 4016
-    UserDeleted,          // 4017
-    DuplicatePassword,    // 4018
+    ParamError,                  // 4000
+    RegistrationDisabled,        // 4001
+    MailServiceDisabled,         // 4002
+    UserNotFound,                // 4010
+    CredentialInvalid,           // 4011
+    UserBlocked,                 // 4012
+    UserNotActivated,            // 4013
+    UserExists,                  // 4014
+    AlreadyLoggedIn,             // 4015
+    EmailExists,                 // 4016
+    UserDeleted,                 // 4017
+    DuplicatePassword,           // 4018
+    VerificationEmailSendFailed, // 4020
 }
 
 impl ResponseCode {
@@ -71,6 +72,8 @@ impl ResponseCode {
             ResponseCode::EmailExists => StatusCode::CONFLICT,
             ResponseCode::UserDeleted => StatusCode::NOT_FOUND,
             ResponseCode::DuplicatePassword => StatusCode::CONFLICT,
+            // Registration already succeeded, but sending verification email failed.
+            ResponseCode::VerificationEmailSendFailed => StatusCode::OK,
         }
     }
 }
@@ -89,6 +92,7 @@ fn status_from_code(code: u16) -> StatusCode {
         4016 => StatusCode::CONFLICT,
         4017 => StatusCode::NOT_FOUND,
         4018 => StatusCode::CONFLICT,
+        4020 => StatusCode::OK,
         _ => StatusCode::from_u16(code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -115,6 +119,7 @@ impl From<ResponseCode> for u16 {
             ResponseCode::EmailExists => 4016,
             ResponseCode::UserDeleted => 4017,
             ResponseCode::DuplicatePassword => 4018,
+            ResponseCode::VerificationEmailSendFailed => 4020,
         }
     }
 }
@@ -141,6 +146,9 @@ impl From<ResponseCode> for String {
             ResponseCode::EmailExists => "Email already exists".into(),
             ResponseCode::UserDeleted => "User has been deleted".into(),
             ResponseCode::DuplicatePassword => "Duplicate passwords are not allowed.".into(),
+            ResponseCode::VerificationEmailSendFailed => {
+                "Account created, but verification email could not be sent".into()
+            },
         }
     }
 }
@@ -198,6 +206,10 @@ mod tests {
             ResponseCode::EmailExists.http_status(),
             StatusCode::CONFLICT
         );
+        assert_eq!(
+            ResponseCode::VerificationEmailSendFailed.http_status(),
+            StatusCode::OK
+        );
     }
 
     #[test]
@@ -214,6 +226,12 @@ mod tests {
             ResponseCode::DuplicatePassword.into_response().status(),
             StatusCode::CONFLICT
         );
+        assert_eq!(
+            ResponseCode::VerificationEmailSendFailed
+                .into_response()
+                .status(),
+            StatusCode::OK
+        );
     }
 
     #[test]
@@ -229,6 +247,13 @@ mod tests {
             unauthorized.into_response().status(),
             StatusCode::UNAUTHORIZED
         );
+
+        let partial_ok = Response::<()>::new(
+            4020,
+            "Account created, but verification email could not be sent".into(),
+            None,
+        );
+        assert_eq!(partial_ok.into_response().status(), StatusCode::OK);
     }
 
     #[test]

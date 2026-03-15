@@ -1,13 +1,15 @@
 use axum::extract::{Path, State};
 use axum_extra::extract::CookieJar;
-use redis::AsyncCommands;
 
 use crate::{
     internal::{
+        error::{AppError, AppErrorKind},
         extractor::{Json, LoginAccess, OperatorAccess},
         serializer::{Response, ResponseCode},
+        session::SessionService,
         utils::cookie::CookieJarExt,
     },
+    routers::response::app_error_to_response,
     services::users,
     state::AppState,
 };
@@ -20,7 +22,10 @@ pub async fn info(
     let service = users::InfoService;
     let (user, info, settings) = login.user;
 
-    service.info(&state.db, user, info, settings, None).await
+    match service.info(&state.db, user, info, settings, None).await {
+        Ok(data) => Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), Some(data)),
+        Err(err) => app_error_to_response(err),
+    }
 }
 
 /// User info by uid
@@ -31,7 +36,10 @@ pub async fn info_by_uid(
 ) -> Response<users::InfoResponse> {
     let service = users::InfoService;
 
-    service.info_by_uid(&state.db, uid, login.user.0).await
+    match service.info_by_uid(&state.db, uid, login.user.0).await {
+        Ok(data) => Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), Some(data)),
+        Err(err) => app_error_to_response(err),
+    }
 }
 
 /// User delete
@@ -41,29 +49,36 @@ pub async fn delete(
     jar: CookieJar,
     Json(req): Json<users::DeleteService>,
 ) -> (CookieJar, Response) {
-    let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
-        return (jar, ResponseCode::InternalError.into());
+    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
+        Ok(redis) => redis,
+        Err(err) => {
+            return (
+                jar,
+                app_error_to_response(
+                    AppError::infra(
+                        AppErrorKind::InternalError,
+                        "users.controller.delete.redis",
+                        err,
+                    )
+                    .with_detail("Unable to connect to redis"),
+                ),
+            );
+        },
     };
 
     let session = login.session;
 
-    let res = req.delete(&state.db, login.user.0).await;
-
-    if res.is_err() {
-        return (jar, res);
+    if let Err(err) = req.delete(&state.db, login.user.0).await {
+        return (jar, app_error_to_response(err));
     }
 
-    if redis
-        .del::<_, String>(format!("session::{session}"))
-        .await
-        .is_err()
-    {
-        return (jar, ResponseCode::InternalError.into());
+    if let Err(err) = SessionService::delete(&mut redis, &session).await {
+        return (jar, app_error_to_response(err));
     }
 
     let jar = jar.remove_session_cookie();
 
-    (jar, res)
+    (jar, ResponseCode::OK.into())
 }
 
 /// User delete by uid
@@ -74,7 +89,10 @@ pub async fn delete_by_uid(
 ) -> Response {
     let service = users::AdminDeleteService;
 
-    service.delete(&state.db, uid, login.level).await
+    match service.delete(&state.db, uid, login.level).await {
+        Ok(()) => ResponseCode::OK.into(),
+        Err(err) => app_error_to_response(err),
+    }
 }
 
 /// User update
@@ -83,7 +101,10 @@ pub async fn update(
     State(state): State<AppState>,
     Json(req): Json<users::UpdateService>,
 ) -> Response {
-    req.update(&state.db, login.user.0, login.user.1).await
+    match req.update(&state.db, login.user.0, login.user.1).await {
+        Ok(()) => ResponseCode::OK.into(),
+        Err(err) => app_error_to_response(err),
+    }
 }
 
 /// User update by uid
@@ -93,5 +114,8 @@ pub async fn update_by_uid(
     Path(uid): Path<i32>,
     Json(req): Json<users::UpdateService>,
 ) -> Response {
-    req.update_by_uid(&state.db, uid, login.level).await
+    match req.update_by_uid(&state.db, uid, login.level).await {
+        Ok(()) => ResponseCode::OK.into(),
+        Err(err) => app_error_to_response(err),
+    }
 }

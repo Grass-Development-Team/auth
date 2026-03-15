@@ -1,64 +1,77 @@
-use axum::extract::State;
+use axum::{
+    extract::{Query, State},
+    http::StatusCode,
+};
 use axum_extra::extract::CookieJar;
-use redis::AsyncCommands;
 
 use crate::{
     internal::{
-        extractor::{Json, LoginAccess},
+        error::{AppError, AppErrorKind},
+        extractor::{GuestAccess, Json, LoginAccess},
         serializer::{Response, ResponseCode},
-        utils::{cookie::CookieJarExt, session},
+        session::SessionService,
+        utils::cookie::{self, CookieJarExt},
     },
-    models::users,
+    routers::response::app_error_to_response,
     services::auth,
     state::AppState,
 };
 
 /// Auth register
 pub async fn register(
+    _guest: GuestAccess,
     State(state): State<AppState>,
-    jar: CookieJar,
     Json(req): Json<auth::RegisterService>,
 ) -> Response<String> {
-    let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
-        return ResponseCode::InternalError.into();
-    };
-
-    if let Some(s) = jar.get("session")
-        && let Ok(s) = redis
-            .get::<_, String>(format!("session::{}", s.value()))
-            .await
-        && let Some(s) = session::parse_from_str(&s)
-        && s.validate()
-    {
-        return ResponseCode::AlreadyLoggedIn.into();
-    }
-
-    req.register(&state.db, &state.config, state.mail.as_deref())
+    match req
+        .register(&state.db, &state.config, state.mail.as_deref())
         .await
+    {
+        Ok(message) => Response::new(
+            ResponseCode::OK.into(),
+            ResponseCode::OK.into(),
+            Some(message),
+        ),
+        Err(err) => app_error_to_response(err),
+    }
 }
 
 /// Auth login
 pub async fn login(
+    _: GuestAccess,
     State(state): State<AppState>,
     jar: CookieJar,
     Json(req): Json<auth::LoginService>,
 ) -> (CookieJar, Response<auth::LoginResponse>) {
-    let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
-        return (jar, ResponseCode::InternalError.into());
+    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
+        Ok(redis) => redis,
+        Err(err) => {
+            return (
+                jar,
+                app_error_to_response(
+                    AppError::infra(
+                        AppErrorKind::InternalError,
+                        "auth.controller.login.redis",
+                        err,
+                    )
+                    .with_detail("Unable to connect to redis"),
+                ),
+            );
+        },
     };
 
-    if let Some(s) = jar.get("session")
-        && let Ok(s) = redis
-            .get::<_, String>(format!("session::{}", s.value()))
-            .await
-        && let Some(s) = session::parse_from_str(&s)
-        && s.validate()
-    {
-        return (jar, ResponseCode::AlreadyLoggedIn.into());
-    }
+    match req.login(&state.db, &mut redis).await {
+        Ok((data, sid)) => {
+            let session_cookie = cookie::build_session_cookie(sid, !state.config.dev_mode);
+            let jar = jar.add(session_cookie);
 
-    let (jar, res) = req.login(&state.db, &mut redis, jar, &state.config).await;
-    (jar, res)
+            (
+                jar,
+                Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), Some(data)),
+            )
+        },
+        Err(err) => (jar, app_error_to_response(err)),
+    }
 }
 
 /// Auth logout
@@ -67,18 +80,27 @@ pub async fn logout(
     State(state): State<AppState>,
     jar: CookieJar,
 ) -> (CookieJar, Response<String>) {
-    let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
-        return (jar, ResponseCode::InternalError.into());
+    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
+        Ok(redis) => redis,
+        Err(err) => {
+            return (
+                jar,
+                app_error_to_response(
+                    AppError::infra(
+                        AppErrorKind::InternalError,
+                        "auth.controller.logout.redis",
+                        err,
+                    )
+                    .with_detail("Unable to connect to redis"),
+                ),
+            );
+        },
     };
 
     let session = login.session;
 
-    if redis
-        .del::<_, String>(format!("session::{session}"))
-        .await
-        .is_err()
-    {
-        return (jar, ResponseCode::InternalError.into());
+    if let Err(err) = SessionService::delete(&mut redis, &session).await {
+        return (jar, app_error_to_response(err));
     }
 
     let jar = jar.remove_session_cookie();
@@ -89,52 +111,73 @@ pub async fn logout(
     )
 }
 
-/// Auth reset password
-pub async fn reset_password(
+/// Auth reset password page placeholder
+pub async fn reset_password(Query(query): Query<auth::ResetPasswordQuery>) -> StatusCode {
+    // TODO: Reset Password Page
+    let _token = query.token;
+    StatusCode::OK
+}
+
+/// Auth reset password with token
+pub async fn reset_password_with_token(
     State(state): State<AppState>,
-    jar: CookieJar,
-    Json(req): Json<auth::ResetPasswordService>,
-) -> (CookieJar, Response) {
-    let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
-        return (jar, ResponseCode::InternalError.into());
+    Json(req): Json<auth::ResetPasswordWithTokenService>,
+) -> Response {
+    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
+        Ok(redis) => redis,
+        Err(err) => {
+            return app_error_to_response(
+                AppError::infra(
+                    AppErrorKind::InternalError,
+                    "auth.controller.reset_password_token.redis",
+                    err,
+                )
+                .with_detail("Unable to connect to redis"),
+            );
+        },
     };
 
-    let session = jar.get("session").map(|v| v.value().to_owned());
-    let mut login_user: Option<users::Model> = None;
+    match req.reset_password(&state.db, &mut redis).await {
+        Ok(()) => ResponseCode::OK.into(),
+        Err(err) => app_error_to_response(err),
+    }
+}
 
-    if let Some(session) = &session
-        && let Ok(payload) = redis.get::<_, String>(format!("session::{session}")).await
-        && let Some(session) = session::parse_from_str(&payload)
-        && session.validate()
-        && let Ok((user, _, _)) = users::get_user_by_id(&*state.db, session.uid).await
-    {
-        if !user
-            .check_permission(&*state.db, "user:reset_password:self")
-            .await
-        {
-            return (jar, ResponseCode::Forbidden.into());
-        }
-
-        login_user = Some(user);
+/// Auth reset password with current password
+pub async fn reset_password_with_password(
+    login: LoginAccess,
+    State(state): State<AppState>,
+    jar: CookieJar,
+    Json(req): Json<auth::ResetPasswordWithPasswordService>,
+) -> (CookieJar, Response) {
+    if let Err(err) = req.reset_password(&state.db, &login.user.0).await {
+        return (jar, app_error_to_response(err));
     }
 
-    let res = req.reset_password(&state.db, &mut redis, login_user).await;
-    if res.code != u16::from(ResponseCode::OK) {
-        return (jar, res);
-    }
+    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
+        Ok(redis) => redis,
+        Err(err) => {
+            return (
+                jar,
+                app_error_to_response(
+                    AppError::infra(
+                        AppErrorKind::InternalError,
+                        "auth.controller.reset_password_password.redis",
+                        err,
+                    )
+                    .with_detail("Unable to connect to redis"),
+                ),
+            );
+        },
+    };
 
-    if let Some(session) = session
-        && redis
-            .del::<_, String>(format!("session::{session}"))
-            .await
-            .is_err()
-    {
-        return (jar, ResponseCode::InternalError.into());
+    if let Err(err) = SessionService::delete(&mut redis, &login.session).await {
+        return (jar, app_error_to_response(err));
     }
 
     let jar = jar.remove_session_cookie();
 
-    (jar, res)
+    (jar, ResponseCode::OK.into())
 }
 
 /// Auth forget password
@@ -142,10 +185,29 @@ pub async fn forget_password(
     State(state): State<AppState>,
     Json(req): Json<auth::ForgetPasswordService>,
 ) -> Response<String> {
-    let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
-        return ResponseCode::InternalError.into();
+    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
+        Ok(redis) => redis,
+        Err(err) => {
+            return app_error_to_response(
+                AppError::infra(
+                    AppErrorKind::InternalError,
+                    "auth.controller.forget_password.redis",
+                    err,
+                )
+                .with_detail("Unable to connect to redis"),
+            );
+        },
     };
 
-    req.forget_password(&state.db, &mut redis, &state.config, state.mail.as_deref())
+    match req
+        .forget_password(&state.db, &mut redis, &state.config, state.mail.as_deref())
         .await
+    {
+        Ok(message) => Response::new(
+            ResponseCode::OK.into(),
+            ResponseCode::OK.into(),
+            Some(message),
+        ),
+        Err(err) => app_error_to_response(err),
+    }
 }

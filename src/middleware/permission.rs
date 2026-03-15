@@ -10,7 +10,7 @@ use redis::AsyncCommands;
 use tower::{Layer, Service};
 
 use crate::{
-    internal::{serializer, utils},
+    internal::{self, serializer},
     models::permission,
     state::APP_STATE,
 };
@@ -87,7 +87,7 @@ where
                     return Ok(serializer::ResponseCode::Unauthorized.into_response());
                 };
 
-                let Some(session) = utils::session::parse_from_str(&session) else {
+                let Some(session) = internal::session::parse_from_str(&session) else {
                     return Ok(serializer::ResponseCode::InternalError.into_response());
                 };
 

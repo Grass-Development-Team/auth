@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     internal::{
-        serializer::{Response, ResponseCode},
+        error::{AppError, AppErrorKind},
         validator::Validatable,
     },
     models::{
@@ -31,18 +31,22 @@ impl UpdateService {
         conn: &DatabaseConnection,
         user: users::Model,
         info: user_info::Model,
-    ) -> Response {
+    ) -> Result<(), AppError> {
         if user.status.is_inactive() {
-            return ResponseCode::UserNotActivated.into();
+            return Err(AppError::biz(
+                AppErrorKind::UserNotActivated,
+                "users.update.check_user_status",
+            ));
         }
 
         if user.status.is_banned() {
-            return ResponseCode::UserBlocked.into();
+            return Err(AppError::biz(
+                AppErrorKind::UserBlocked,
+                "users.update.check_user_status",
+            ));
         }
 
-        if let Err(err) = self.validate() {
-            return err;
-        }
+        self.validate()?;
 
         let mut user = user.into_active_model();
 
@@ -91,10 +95,14 @@ impl UpdateService {
             .await;
 
         match res {
-            Ok(_) => ResponseCode::OK.into(),
+            Ok(_) => Ok(()),
             Err(err) => {
                 tracing::error!("Error updating user: {err}");
-                ResponseCode::InternalError.into()
+                Err(AppError::infra(
+                    AppErrorKind::InternalError,
+                    "users.update.persist",
+                    err,
+                ))
             },
         }
     }
@@ -104,33 +112,42 @@ impl UpdateService {
         conn: &DatabaseConnection,
         uid: i32,
         op_level: i32,
-    ) -> Response {
+    ) -> Result<(), AppError> {
         let Ok(user) = users::get_user_by_id(conn, uid).await else {
-            return ResponseCode::UserNotFound.into();
+            return Err(AppError::biz(
+                AppErrorKind::UserNotFound,
+                "users.update_by_uid.find_user",
+            ));
         };
 
-        let Ok(level) = role::get_user_role_level(conn, uid).await else {
-            return ResponseCode::InternalError.into();
-        };
+        let level = role::get_user_role_level(conn, uid).await.map_err(|err| {
+            AppError::infra(
+                AppErrorKind::InternalError,
+                "users.update_by_uid.role_level",
+                err,
+            )
+        })?;
 
         if op_level < level {
-            return ResponseCode::Forbidden.into();
+            return Err(AppError::biz(
+                AppErrorKind::Forbidden,
+                "users.update_by_uid.check_permission",
+            ));
         }
 
         self.update(conn, user.0, user.1).await
     }
 }
 
-impl Validatable<Response> for UpdateService {
-    fn validate(&self) -> Result<(), Response> {
+impl Validatable for UpdateService {
+    fn validate(&self) -> Result<(), AppError> {
         if let Some(nickname) = &self.nickname
             && nickname.len() < 3
         {
-            return Err(Response::new(
-                ResponseCode::ParamError.into(),
-                "Nickname should be at least 3 characters long".into(),
-                None,
-            ));
+            return Err(
+                AppError::biz(AppErrorKind::ParamError, "users.update.validate")
+                    .with_detail("Nickname should be at least 3 characters long"),
+            );
         }
 
         Ok(())
