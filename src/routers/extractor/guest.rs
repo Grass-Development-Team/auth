@@ -1,8 +1,11 @@
 use axum::{extract::FromRequestParts, http::request::Parts};
 use axum_extra::extract::CookieJar;
-use redis::AsyncCommands;
 
-use crate::{internal::session, routers::serializer::ResponseCode, state::AppState};
+use crate::{
+    internal::session::{SessionLookup, SessionService},
+    routers::serializer::ResponseCode,
+    state::AppState,
+};
 
 pub struct GuestAccess;
 
@@ -25,21 +28,14 @@ impl FromRequestParts<AppState> for GuestAccess {
             return Err(ResponseCode::InternalError);
         };
 
-        let Ok(payload) = redis
-            .get::<_, String>(format!("session::{}", session_cookie.value()))
+        let state = SessionService::resolve(&mut redis, session_cookie.value())
             .await
-        else {
-            return Ok(GuestAccess);
-        };
+            .map_err(|_| ResponseCode::InternalError)?;
 
-        let Some(session) = session::parse_from_str(&payload) else {
-            return Ok(GuestAccess);
-        };
-
-        if session.validate() {
-            return Err(ResponseCode::AlreadyLoggedIn);
+        if matches!(state, SessionLookup::Valid(_)) {
+            Err(ResponseCode::AlreadyLoggedIn)
+        } else {
+            Ok(GuestAccess)
         }
-
-        Ok(GuestAccess)
     }
 }

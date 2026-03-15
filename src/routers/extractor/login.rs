@@ -1,9 +1,8 @@
 use axum::{extract::FromRequestParts, http::request::Parts};
 use axum_extra::extract::CookieJar;
-use redis::AsyncCommands;
 
 use crate::{
-    internal::session,
+    internal::session::{SessionLookup, SessionService},
     models::{role, user_info, user_settings, users},
     routers::serializer::ResponseCode,
     state::AppState,
@@ -36,20 +35,12 @@ impl FromRequestParts<AppState> for LoginAccess {
             return Err(ResponseCode::Unauthorized);
         };
         let session_str = session_cookie.value().to_owned();
-        let Ok(session) = redis
-            .get::<_, String>(format!("session::{session_str}"))
+        let lookup = SessionService::resolve(&mut redis, &session_str)
             .await
-        else {
+            .map_err(|_| ResponseCode::InternalError)?;
+        let SessionLookup::Valid(session) = lookup else {
             return Err(ResponseCode::Unauthorized);
         };
-
-        let Some(session) = session::parse_from_str(&session) else {
-            return Err(ResponseCode::Unauthorized);
-        };
-
-        if !session.validate() {
-            return Err(ResponseCode::Unauthorized);
-        }
 
         let user = users::get_user_by_id(conn, session.uid).await;
 

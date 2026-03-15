@@ -6,10 +6,14 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::cookie::Cookie;
-use redis::AsyncCommands;
 use tower::{Layer, Service};
 
-use crate::{internal, models::permission, routers::serializer::ResponseCode, state::APP_STATE};
+use crate::{
+    internal::session::{SessionLookup, SessionService},
+    models::permission,
+    routers::serializer::ResponseCode,
+    state::APP_STATE,
+};
 
 #[derive(Clone)]
 enum PermType {
@@ -78,13 +82,12 @@ where
                     return Ok(ResponseCode::Unauthorized.into_response());
                 };
 
-                let Ok(session) = redis.get::<_, String>(format!("session::{session}")).await
-                else {
-                    return Ok(ResponseCode::Unauthorized.into_response());
+                let lookup = match SessionService::resolve(&mut redis, &session).await {
+                    Ok(lookup) => lookup,
+                    Err(_) => return Ok(ResponseCode::InternalError.into_response()),
                 };
-
-                let Some(session) = internal::session::parse_from_str(&session) else {
-                    return Ok(ResponseCode::InternalError.into_response());
+                let SessionLookup::Valid(session) = lookup else {
+                    return Ok(ResponseCode::Unauthorized.into_response());
                 };
 
                 let Ok(user_perm) = permission::get_permissions_by_uid(&*db, session.uid).await
