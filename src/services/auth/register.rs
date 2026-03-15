@@ -154,7 +154,7 @@ impl RegisterService {
     }
 }
 
-impl Validatable for RegisterService {
+impl Validatable<AppError> for RegisterService {
     fn validate(&self) -> Result<(), AppError> {
         // Validate Username
         if self.username.len() < 3

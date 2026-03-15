@@ -136,7 +136,7 @@ impl UpdateService {
     }
 }
 
-impl Validatable for UpdateService {
+impl Validatable<AppError> for UpdateService {
     fn validate(&self) -> Result<(), AppError> {
         if let Some(nickname) = &self.nickname
             && nickname.len() < 3

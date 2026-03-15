@@ -1,5 +1,3 @@
-use crate::internal::error::AppError;
-
-pub trait Validatable<T = AppError> {
+pub trait Validatable<T> {
     fn validate(&self) -> Result<(), T>;
 }
