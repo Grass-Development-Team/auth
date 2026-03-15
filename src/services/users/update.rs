@@ -96,14 +96,11 @@ impl UpdateService {
 
         match res {
             Ok(_) => Ok(()),
-            Err(err) => {
-                tracing::error!("Error updating user: {err}");
-                Err(AppError::infra(
-                    AppErrorKind::InternalError,
-                    "users.update.persist",
-                    err,
-                ))
-            },
+            Err(err) => Err(AppError::infra(
+                AppErrorKind::InternalError,
+                "users.update.persist",
+                err,
+            )),
         }
     }
 

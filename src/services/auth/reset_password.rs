@@ -41,7 +41,6 @@ impl ResetPasswordWithTokenService {
         let uid: Option<i32> = match redis::cmd("GETDEL").arg(&key).query_async(redis).await {
             Ok(uid) => uid,
             Err(err) => {
-                tracing::error!("Error consuming reset token: {err}");
                 return Err(AppError::infra(
                     AppErrorKind::InternalError,
                     "auth.reset_password.token.consume_token",
@@ -79,7 +78,6 @@ impl ResetPasswordWithTokenService {
         }
 
         if let Err(err) = user.update_password(conn, self.new_password.clone()).await {
-            tracing::error!("Error updating password by token: {err}");
             return Err(AppError::infra(
                 AppErrorKind::InternalError,
                 "auth.reset_password.token.update_password",
@@ -116,7 +114,6 @@ impl ResetPasswordWithPasswordService {
         }
 
         if let Err(err) = user.update_password(conn, self.new_password.clone()).await {
-            tracing::error!("Error updating password: {err}");
             return Err(AppError::infra(
                 AppErrorKind::InternalError,
                 "auth.reset_password.password.update_password",

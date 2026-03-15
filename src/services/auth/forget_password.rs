@@ -64,12 +64,6 @@ impl ForgetPasswordService {
             )
             .await
         {
-            tracing::warn!(
-                "Failed to write forget-password token to redis for {}: {}",
-                self.email,
-                err
-            );
-
             return Err(AppError::infra(
                 AppErrorKind::InternalError,
                 "auth.forget_password.store_token",
@@ -93,12 +87,6 @@ impl ForgetPasswordService {
             )
             .await
         {
-            tracing::warn!(
-                "Failed to send forget-password email to {}: {}",
-                self.email,
-                err
-            );
-
             return Err(AppError::infra(
                 AppErrorKind::InternalError,
                 "auth.forget_password.send_mail",
