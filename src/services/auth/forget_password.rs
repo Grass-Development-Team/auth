@@ -7,8 +7,8 @@ use uuid::Uuid;
 use crate::{
     internal::{
         config::Config,
+        error::{AppError, AppErrorKind},
         mail::Mailer,
-        serializer::{Response, ResponseCode},
     },
     models::users,
 };
@@ -27,17 +27,26 @@ impl ForgetPasswordService {
         redis: &mut MultiplexedConnection,
         config: &Config,
         mailer: Option<&Mailer>,
-    ) -> Response<String> {
+    ) -> Result<String, AppError> {
         let Some(mailer) = mailer else {
-            return ResponseCode::MailServiceDisabled.into();
+            return Err(AppError::biz(
+                AppErrorKind::MailServiceDisabled,
+                "auth.forget_password.check_mailer",
+            ));
         };
 
         let Ok(user) = users::get_user_by_email(conn, &self.email).await else {
-            return ResponseCode::UserNotFound.into();
+            return Err(AppError::biz(
+                AppErrorKind::UserNotFound,
+                "auth.forget_password.find_user",
+            ));
         };
 
         if user.0.status != users::AccountStatus::Active {
-            return ResponseCode::UserNotActivated.into();
+            return Err(AppError::biz(
+                AppErrorKind::UserNotActivated,
+                "auth.forget_password.check_user_status",
+            ));
         }
 
         let token = Uuid::new_v4().to_string();
@@ -60,7 +69,12 @@ impl ForgetPasswordService {
                 self.email,
                 err
             );
-            return ResponseCode::InternalError.into();
+
+            return Err(AppError::infra(
+                AppErrorKind::InternalError,
+                "auth.forget_password.store_token",
+                err,
+            ));
         }
 
         if let Err(err) = mailer
@@ -84,13 +98,14 @@ impl ForgetPasswordService {
                 self.email,
                 err
             );
-            return ResponseCode::InternalError.into();
+
+            return Err(AppError::infra(
+                AppErrorKind::InternalError,
+                "auth.forget_password.send_mail",
+                err,
+            ));
         }
 
-        Response::new(
-            ResponseCode::OK.into(),
-            ResponseCode::OK.into(),
-            Some("Reset instructions have been sent".into()),
-        )
+        Ok("Reset instructions have been sent".into())
     }
 }

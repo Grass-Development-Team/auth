@@ -3,10 +3,7 @@ use axum_extra::extract::CookieJar;
 use redis::AsyncCommands;
 
 use crate::{
-    internal::{
-        serializer::ResponseCode,
-        utils::{self},
-    },
+    internal::{serializer::ResponseCode, session},
     models::{role, user_info, user_settings, users},
     state::AppState,
 };
@@ -45,7 +42,7 @@ impl FromRequestParts<AppState> for LoginAccess {
             return Err(ResponseCode::Unauthorized);
         };
 
-        let Some(session) = utils::session::parse_from_str(&session) else {
+        let Some(session) = session::parse_from_str(&session) else {
             return Err(ResponseCode::Unauthorized);
         };
 

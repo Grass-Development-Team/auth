@@ -2,7 +2,7 @@ use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    internal::serializer::{Response, ResponseCode},
+    internal::error::{AppError, AppErrorKind},
     models::{
         user_info::{self, Gender},
         user_settings, users,
@@ -37,7 +37,7 @@ impl InfoService {
         info: user_info::Model,
         settings: user_settings::Model,
         op: Option<users::Model>,
-    ) -> Response<InfoResponse> {
+    ) -> Result<InfoResponse, AppError> {
         let is_self = op.is_none();
         let read_all_permission = if let Some(op) = &op {
             op.check_permission(conn, "user:read:all").await
@@ -46,7 +46,10 @@ impl InfoService {
         };
 
         if !read_all_permission && user.status.is_deleted() {
-            return ResponseCode::UserDeleted.into();
+            return Err(AppError::biz(
+                AppErrorKind::UserDeleted,
+                "users.info.check_user_status",
+            ));
         }
 
         let show_email = is_self || read_all_permission || settings.show_email;
@@ -65,7 +68,7 @@ impl InfoService {
             gender:      if show_gender { info.gender } else { None },
         };
 
-        Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), Some(res))
+        Ok(res)
     }
 
     pub async fn info_by_uid(
@@ -73,9 +76,12 @@ impl InfoService {
         conn: &DatabaseConnection,
         uid: i32,
         op: users::Model,
-    ) -> Response<InfoResponse> {
+    ) -> Result<InfoResponse, AppError> {
         let Ok((user, info, settings)) = users::get_user_by_id(conn, uid).await else {
-            return ResponseCode::UserNotFound.into();
+            return Err(AppError::biz(
+                AppErrorKind::UserNotFound,
+                "users.info_by_uid.find_user",
+            ));
         };
 
         self.info(conn, user, info, settings, Some(op)).await

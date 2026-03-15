@@ -2,7 +2,7 @@ use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    internal::serializer::{Response, ResponseCode},
+    internal::error::{AppError, AppErrorKind},
     models::{permission, role, users},
 };
 
@@ -13,54 +13,91 @@ pub struct DeleteService {
 }
 
 impl DeleteService {
-    pub async fn delete(&self, conn: &DatabaseConnection, user: users::Model) -> Response {
+    pub async fn delete(
+        &self,
+        conn: &DatabaseConnection,
+        user: users::Model,
+    ) -> Result<(), AppError> {
         if user.check_permission(conn, "user:undeletable").await {
-            return ResponseCode::Forbidden.into();
+            return Err(AppError::biz(
+                AppErrorKind::Forbidden,
+                "users.delete.check_undeletable",
+            ));
         }
 
         if !user.check_password(self.password.clone()) {
-            return Response::new_error(
-                ResponseCode::CredentialInvalid.into(),
-                "Wrong password".into(),
-            );
+            return Err(AppError::biz(
+                AppErrorKind::CredentialInvalid,
+                "users.delete.verify_password",
+            )
+            .with_detail("Wrong password"));
         }
 
-        if users::delete_user(conn, user.uid).await.is_err() {
-            return ResponseCode::InternalError.into();
+        if let Err(err) = users::delete_user(conn, user.uid).await {
+            return Err(AppError::infra(
+                AppErrorKind::InternalError,
+                "users.delete.persist",
+                err,
+            ));
         }
 
-        ResponseCode::OK.into()
+        Ok(())
     }
 }
 
 pub struct AdminDeleteService;
 
 impl AdminDeleteService {
-    pub async fn delete(&self, conn: &DatabaseConnection, uid: i32, op_level: i32) -> Response {
+    pub async fn delete(
+        &self,
+        conn: &DatabaseConnection,
+        uid: i32,
+        op_level: i32,
+    ) -> Result<(), AppError> {
         let Ok(user_status) = users::get_user_status(conn, uid).await else {
-            return ResponseCode::UserNotFound.into();
+            return Err(AppError::biz(
+                AppErrorKind::UserNotFound,
+                "users.admin_delete.find_user_status",
+            ));
         };
 
         if user_status.is_deleted() {
-            return ResponseCode::UserDeleted.into();
+            return Err(AppError::biz(
+                AppErrorKind::UserDeleted,
+                "users.admin_delete.check_user_status",
+            ));
         }
 
         if permission::check_permission(conn, uid, "user:undeletable").await {
-            return ResponseCode::Forbidden.into();
+            return Err(AppError::biz(
+                AppErrorKind::Forbidden,
+                "users.admin_delete.check_undeletable",
+            ));
         }
 
-        let Ok(level) = role::get_user_role_level(conn, uid).await else {
-            return ResponseCode::InternalError.into();
-        };
+        let level = role::get_user_role_level(conn, uid).await.map_err(|err| {
+            AppError::infra(
+                AppErrorKind::InternalError,
+                "users.admin_delete.role_level",
+                err,
+            )
+        })?;
 
         if op_level < level {
-            return ResponseCode::Forbidden.into();
+            return Err(AppError::biz(
+                AppErrorKind::Forbidden,
+                "users.admin_delete.check_operator_level",
+            ));
         }
 
-        if users::delete_user(conn, uid).await.is_err() {
-            return ResponseCode::InternalError.into();
+        if let Err(err) = users::delete_user(conn, uid).await {
+            return Err(AppError::infra(
+                AppErrorKind::InternalError,
+                "users.admin_delete.persist",
+                err,
+            ));
         }
 
-        ResponseCode::OK.into()
+        Ok(())
     }
 }
