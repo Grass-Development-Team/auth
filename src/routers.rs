@@ -1,4 +1,5 @@
 pub mod controllers;
+pub mod extractor;
 pub mod response;
 pub mod serializer;
 

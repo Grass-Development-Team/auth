@@ -1,6 +1,9 @@
 use axum::{extract::FromRequestParts, http::request::Parts};
 
-use crate::{internal::extractor::LoginAccess, routers::serializer::ResponseCode, state::AppState};
+use crate::{
+    routers::{extractor::LoginAccess, serializer::ResponseCode},
+    state::AppState,
+};
 
 pub struct OperatorAccess(pub LoginAccess);
 
