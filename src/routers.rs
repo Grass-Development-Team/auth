@@ -3,6 +3,7 @@ pub mod extractor;
 pub mod middleware;
 pub mod response;
 pub mod serializer;
+pub mod utils;
 
 use axum::{
     Router,
@@ -17,10 +18,11 @@ use tower_http::{cors, cors::CorsLayer};
 
 use crate::{
     assets::AssetManager,
-    internal::{config::Config, utils::content_type},
+    internal::config::Config,
     routers::{
         controllers::{auth, common, users},
         middleware::permission::PermissionAccess,
+        utils::content_type,
     },
     state::AppState,
 };

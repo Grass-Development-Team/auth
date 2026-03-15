@@ -28,32 +28,6 @@ impl From<AppErrorKind> for ResponseCode {
     }
 }
 
-impl From<ResponseCode> for AppErrorKind {
-    fn from(value: ResponseCode) -> Self {
-        match value {
-            ResponseCode::BadRequest => AppErrorKind::BadRequest,
-            ResponseCode::Unauthorized => AppErrorKind::Unauthorized,
-            ResponseCode::Forbidden => AppErrorKind::Forbidden,
-            ResponseCode::NotFound => AppErrorKind::NotFound,
-            ResponseCode::InternalError => AppErrorKind::InternalError,
-            ResponseCode::ParamError => AppErrorKind::ParamError,
-            ResponseCode::RegistrationDisabled => AppErrorKind::RegistrationDisabled,
-            ResponseCode::MailServiceDisabled => AppErrorKind::MailServiceDisabled,
-            ResponseCode::UserNotFound => AppErrorKind::UserNotFound,
-            ResponseCode::CredentialInvalid => AppErrorKind::CredentialInvalid,
-            ResponseCode::UserBlocked => AppErrorKind::UserBlocked,
-            ResponseCode::UserNotActivated => AppErrorKind::UserNotActivated,
-            ResponseCode::UserExists => AppErrorKind::UserExists,
-            ResponseCode::AlreadyLoggedIn => AppErrorKind::AlreadyLoggedIn,
-            ResponseCode::EmailExists => AppErrorKind::EmailExists,
-            ResponseCode::UserDeleted => AppErrorKind::UserDeleted,
-            ResponseCode::DuplicatePassword => AppErrorKind::DuplicatePassword,
-            ResponseCode::VerificationEmailSendFailed => AppErrorKind::VerificationEmailSendFailed,
-            ResponseCode::OK => AppErrorKind::InternalError,
-        }
-    }
-}
-
 pub fn app_error_to_response<T>(err: AppError) -> Response<T> {
     let code: ResponseCode = err.kind.into();
     let detail = err.detail.clone();
