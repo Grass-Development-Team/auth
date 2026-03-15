@@ -1,5 +1,6 @@
 pub mod controllers;
 pub mod response;
+pub mod serializer;
 
 use axum::{
     Router,

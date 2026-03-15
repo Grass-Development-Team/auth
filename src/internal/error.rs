@@ -1,6 +1,6 @@
 use std::{error::Error as StdError, fmt::Display};
 
-use crate::internal::serializer::ResponseCode;
+use crate::routers::serializer::ResponseCode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AppErrorKind {

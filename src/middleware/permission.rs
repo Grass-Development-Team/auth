@@ -9,11 +9,7 @@ use axum_extra::extract::cookie::Cookie;
 use redis::AsyncCommands;
 use tower::{Layer, Service};
 
-use crate::{
-    internal::{self, serializer},
-    models::permission,
-    state::APP_STATE,
-};
+use crate::{internal, models::permission, routers::serializer::ResponseCode, state::APP_STATE};
 
 #[derive(Clone)]
 enum PermType {
@@ -50,7 +46,7 @@ where
         let mut inner = self.inner.clone();
         let fut = async move {
             let Some(state) = APP_STATE.get() else {
-                return Ok(serializer::ResponseCode::InternalError.into_response());
+                return Ok(ResponseCode::InternalError.into_response());
             };
 
             let db = state.db.clone();
@@ -65,7 +61,7 @@ where
                 todo!("Check Token Permission")
             } else {
                 let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
-                    return Ok(serializer::ResponseCode::InternalError.into_response());
+                    return Ok(ResponseCode::InternalError.into_response());
                 };
 
                 // Get session
@@ -79,21 +75,21 @@ where
                     .filter(|c| c.name() == "session")
                     .map(|c| c.value().to_string())
                 else {
-                    return Ok(serializer::ResponseCode::Unauthorized.into_response());
+                    return Ok(ResponseCode::Unauthorized.into_response());
                 };
 
                 let Ok(session) = redis.get::<_, String>(format!("session::{session}")).await
                 else {
-                    return Ok(serializer::ResponseCode::Unauthorized.into_response());
+                    return Ok(ResponseCode::Unauthorized.into_response());
                 };
 
                 let Some(session) = internal::session::parse_from_str(&session) else {
-                    return Ok(serializer::ResponseCode::InternalError.into_response());
+                    return Ok(ResponseCode::InternalError.into_response());
                 };
 
                 let Ok(user_perm) = permission::get_permissions_by_uid(&*db, session.uid).await
                 else {
-                    return Ok(serializer::ResponseCode::InternalError.into_response());
+                    return Ok(ResponseCode::InternalError.into_response());
                 };
 
                 match perm_type {
@@ -103,7 +99,7 @@ where
                         if perms.iter().all(|perm| user_perm.contains(perm)) {
                             inner.call(req).await
                         } else {
-                            Ok(serializer::ResponseCode::Forbidden.into_response())
+                            Ok(ResponseCode::Forbidden.into_response())
                         }
                     },
                     PermType::Any => {
@@ -112,7 +108,7 @@ where
                         if perms.iter().any(|perm| user_perm.contains(perm)) {
                             inner.call(req).await
                         } else {
-                            Ok(serializer::ResponseCode::Forbidden.into_response())
+                            Ok(ResponseCode::Forbidden.into_response())
                         }
                     },
                 }

@@ -1,6 +1,6 @@
-use crate::internal::{
-    error::{AppError, AppErrorKind},
-    serializer::{Response, ResponseCode},
+use crate::{
+    internal::error::{AppError, AppErrorKind},
+    routers::serializer::{Response, ResponseCode},
 };
 
 pub fn app_error_to_response<T>(err: AppError) -> Response<T> {

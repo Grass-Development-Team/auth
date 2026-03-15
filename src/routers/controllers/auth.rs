@@ -8,11 +8,13 @@ use crate::{
     internal::{
         error::{AppError, AppErrorKind},
         extractor::{GuestAccess, Json, LoginAccess},
-        serializer::{Response, ResponseCode},
         session::SessionService,
         utils::cookie::{self, CookieJarExt},
     },
-    routers::response::app_error_to_response,
+    routers::{
+        response::app_error_to_response,
+        serializer::{Response, ResponseCode},
+    },
     services::auth,
     state::AppState,
 };

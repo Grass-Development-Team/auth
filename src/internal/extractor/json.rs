@@ -1,7 +1,7 @@
 use axum::extract::{FromRequest, Request, rejection::JsonRejection};
 use serde::de::DeserializeOwned;
 
-use crate::internal::serializer::{Response, ResponseCode};
+use crate::routers::serializer::{Response, ResponseCode};
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Json<T>(pub T);

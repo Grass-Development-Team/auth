@@ -5,11 +5,13 @@ use crate::{
     internal::{
         error::{AppError, AppErrorKind},
         extractor::{Json, LoginAccess, OperatorAccess},
-        serializer::{Response, ResponseCode},
         session::SessionService,
         utils::cookie::CookieJarExt,
     },
-    routers::response::app_error_to_response,
+    routers::{
+        response::app_error_to_response,
+        serializer::{Response, ResponseCode},
+    },
     services::users,
     state::AppState,
 };

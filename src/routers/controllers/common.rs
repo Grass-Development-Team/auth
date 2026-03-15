@@ -1,4 +1,4 @@
-use crate::internal::serializer::{Response, ResponseCode};
+use crate::routers::serializer::{Response, ResponseCode};
 
 pub async fn not_found() -> Response {
     ResponseCode::NotFound.into()

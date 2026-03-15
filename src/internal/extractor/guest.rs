@@ -2,10 +2,7 @@ use axum::{extract::FromRequestParts, http::request::Parts};
 use axum_extra::extract::CookieJar;
 use redis::AsyncCommands;
 
-use crate::{
-    internal::{serializer::ResponseCode, session},
-    state::AppState,
-};
+use crate::{internal::session, routers::serializer::ResponseCode, state::AppState};
 
 pub struct GuestAccess;
 

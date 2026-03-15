@@ -7,9 +7,6 @@ pub mod log;
 // Error module
 pub mod error;
 
-// Serialization module
-pub mod serializer;
-
 // Session module
 pub mod session;
 
