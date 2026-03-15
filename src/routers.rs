@@ -1,5 +1,6 @@
 pub mod controllers;
 pub mod extractor;
+pub mod middleware;
 pub mod response;
 pub mod serializer;
 
@@ -17,8 +18,10 @@ use tower_http::{cors, cors::CorsLayer};
 use crate::{
     assets::AssetManager,
     internal::{config::Config, utils::content_type},
-    middleware::permission::PermissionAccess,
-    routers::controllers::{auth, common, users},
+    routers::{
+        controllers::{auth, common, users},
+        middleware::permission::PermissionAccess,
+    },
     state::AppState,
 };
 
