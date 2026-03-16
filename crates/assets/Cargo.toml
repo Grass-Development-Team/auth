@@ -1,0 +1,10 @@
+[package]
+name = "assets"
+version.workspace = true
+description.workspace = true
+repository.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+rust-embed.workspace = true

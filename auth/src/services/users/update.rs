@@ -3,12 +3,10 @@ use sea_orm::{
     TransactionTrait,
 };
 use serde::{Deserialize, Serialize};
+use validator::Validatable;
 
 use crate::{
-    internal::{
-        error::{AppError, AppErrorKind},
-        validator::Validatable,
-    },
+    internal::error::{AppError, AppErrorKind},
     models::{
         role,
         user_info::{self, Gender},

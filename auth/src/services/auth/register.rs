@@ -4,6 +4,7 @@ use minijinja::context;
 use regex::Regex;
 use sea_orm::{DatabaseConnection, TransactionError, TransactionTrait};
 use serde::Deserialize;
+use validator::Validatable;
 
 use crate::{
     internal::{
@@ -11,7 +12,6 @@ use crate::{
         error::{AppError, AppErrorKind},
         mail::Mailer,
         utils,
-        validator::Validatable,
     },
     models::{common::ModelError, users},
 };
