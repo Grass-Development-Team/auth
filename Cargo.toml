@@ -1,12 +1,16 @@
-[package]
-name = "auth"
+[workspace]
+resolver = "3"
+members = ["auth", "crates/*"]
+default-members = ["auth"]
+
+[workspace.package]
 version = "0.1.0"
 description = "Universal Auth System for Grass Development Team."
 repository = "https://github.com/Grass-Development-Team/auth"
 license = "Apache-2.0"
 edition = "2024"
 
-[dependencies]
+[workspace.dependencies]
 anyhow = "1.0"
 
 tokio = { version = "1", features = ["full"] }

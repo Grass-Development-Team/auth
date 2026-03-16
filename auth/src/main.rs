@@ -3,7 +3,6 @@
 
 mod init;
 
-mod assets;
 mod internal;
 mod models;
 mod routers;

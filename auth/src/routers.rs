@@ -5,6 +5,7 @@ pub mod response;
 pub mod serializer;
 pub mod utils;
 
+use assets::AssetManager;
 use axum::{
     Router,
     body::Body,
@@ -17,7 +18,6 @@ use tower::ServiceBuilder;
 use tower_http::{cors, cors::CorsLayer};
 
 use crate::{
-    assets::AssetManager,
     internal::config::Config,
     routers::{
         controllers::{auth, common, users},
