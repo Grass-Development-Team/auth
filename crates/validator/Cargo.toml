@@ -1,0 +1,9 @@
+[package]
+name = "validator"
+version.workspace = true
+description.workspace = true
+repository.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]

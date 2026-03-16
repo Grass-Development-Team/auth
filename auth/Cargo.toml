@@ -43,3 +43,4 @@ uuid.workspace = true
 lettre.workspace = true
 
 assets.workspace = true
+validator.workspace = true

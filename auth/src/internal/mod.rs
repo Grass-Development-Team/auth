@@ -13,8 +13,5 @@ pub mod session;
 // Utility module
 pub mod utils;
 
-// Validator module
-pub mod validator;
-
 // Mail module
 pub mod mail;
