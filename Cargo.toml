@@ -56,4 +56,5 @@ lettre = "0.11"
 
 auth = { path = "auth" }
 assets = { path = "crates/assets" }
+jwt = { path = "crates/jwt" }
 validator = { path = "crates/validator" }

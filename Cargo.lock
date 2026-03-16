@@ -202,7 +202,7 @@ dependencies = [
  "base16ct",
  "chrono",
  "colored",
- "jsonwebtoken",
+ "jwt",
  "lettre",
  "minijinja",
  "rand",
@@ -1422,6 +1422,15 @@ dependencies = [
  "serde",
  "serde_json",
  "simple_asn1",
+]
+
+[[package]]
+name = "jwt"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "jsonwebtoken",
+ "serde",
 ]
 
 [[package]]

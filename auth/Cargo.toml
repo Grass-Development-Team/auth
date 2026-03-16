@@ -37,10 +37,10 @@ sha2.workspace = true
 base16ct.workspace = true
 rand.workspace = true
 
-jsonwebtoken.workspace = true
 uuid.workspace = true
 
 lettre.workspace = true
 
 assets.workspace = true
 validator.workspace = true
+jwt.workspace = true
