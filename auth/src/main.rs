@@ -11,11 +11,10 @@ mod state;
 
 use std::{io, sync::Arc};
 
-use anyhow::Ok;
 use axum::Router;
 use colored::Colorize;
 use tokio::{net::TcpListener, signal, sync::oneshot};
-use tracing::{info, warn};
+use tracing::{error, info};
 
 use crate::{internal::config::Config, routers::get_router};
 
@@ -51,10 +50,10 @@ async fn shutdown_signal() {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     init::logger();
-    let mut config = Config::from_file("config.toml").unwrap_or_else(|_| {
-        warn!(message = "Cannot load config file. Use default config instead.");
-        Config::default()
-    });
+    let Ok(mut config) = Config::from_file("config.toml") else {
+        error!("Cannot load config file. Generating default config instead.");
+        return Config::default().write("config.toml");
+    };
 
     config.check();
     config.write("config.toml")?;

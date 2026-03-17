@@ -11,11 +11,11 @@ pub const CONFIG_VERSION: u8 = 1;
 impl Config {
     /// Reads the configuration file from the given path.
     pub fn from_file(path: &str) -> anyhow::Result<Self> {
-        let file: &Path = Path::new(path);
-        let mut file = File::open(file)?;
+        let mut file = File::open(Path::new(path))?;
         let mut config: String = String::new();
         file.read_to_string(&mut config)?;
-        Ok(config.into())
+
+        toml::from_str(&config).map_err(|e| anyhow::anyhow!(e))
     }
 
     /// Check if the configuration is valid.
@@ -53,24 +53,6 @@ impl Config {
         };
         fs::write(path, config)?;
         Ok(())
-    }
-}
-
-impl From<&str> for Config {
-    fn from(value: &str) -> Self {
-        toml::from_str(value).unwrap()
-    }
-}
-
-impl From<String> for Config {
-    fn from(value: String) -> Self {
-        value.as_str().into()
-    }
-}
-
-impl From<Config> for String {
-    fn from(value: Config) -> Self {
-        toml::to_string_pretty(&value).unwrap()
     }
 }
 
