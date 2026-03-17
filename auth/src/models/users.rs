@@ -317,7 +317,7 @@ pub async fn delete_user(conn: &impl ConnectionTrait, id: i32) -> Result<(), Mod
 
 impl Model {
     pub fn check_password(&self, password: String) -> bool {
-        match PasswordManager::verify_password(&password, &self.password) {
+        match PasswordManager::verify(&password, &self.password) {
             Ok(res) => res,
             Err(err) => {
                 tracing::error!("Password verification failed: {err}");
@@ -338,7 +338,7 @@ impl Model {
         let mut user = self.clone().into_active_model();
 
         let salt = PasswordManager::generate_salt();
-        let password = PasswordManager::hash_password(
+        let password = PasswordManager::hash(
             crypto::password::PasswordHashAlgorithm::Argon2id,
             &new_password,
             &salt,

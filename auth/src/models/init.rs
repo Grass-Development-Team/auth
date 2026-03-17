@@ -173,7 +173,7 @@ async fn init_super_admin(db: &DatabaseConnection) -> Result<(), ModelError> {
     // Generate password
     let default_password = utils::rand::string(24);
     let salt = PasswordManager::generate_salt();
-    let password = PasswordManager::hash_password(
+    let password = PasswordManager::hash(
         crypto::password::PasswordHashAlgorithm::Argon2id,
         &default_password,
         &salt,

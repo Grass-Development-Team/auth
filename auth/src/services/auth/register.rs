@@ -17,7 +17,6 @@ use crate::{
 };
 
 static EMAIL_RE: OnceLock<Regex> = OnceLock::new();
-static PASSWORD_RE: OnceLock<Regex> = OnceLock::new();
 
 #[derive(Deserialize)]
 pub struct RegisterService {
@@ -72,20 +71,17 @@ impl RegisterService {
 
         // Encrypt Password
         let salt = PasswordManager::generate_salt();
-        let password = match PasswordManager::hash_password(
-            PasswordHashAlgorithm::Argon2id,
-            &self.password,
-            &salt,
-        ) {
-            Ok(password) => password,
-            Err(err) => {
-                return Err(AppError::infra(
-                    AppErrorKind::InternalError,
-                    "auth.register.hash_password",
-                    err,
-                ));
-            },
-        };
+        let password =
+            match PasswordManager::hash(PasswordHashAlgorithm::Argon2id, &self.password, &salt) {
+                Ok(password) => password,
+                Err(err) => {
+                    return Err(AppError::infra(
+                        AppErrorKind::InternalError,
+                        "auth.register.hash_password",
+                        err,
+                    ));
+                },
+            };
 
         let username = self.username.clone();
         let email = self.email.clone();
@@ -194,29 +190,10 @@ impl Validatable<AppError> for RegisterService {
         }
 
         // Validate Password
-        let password_re = PASSWORD_RE.get_or_init(|| {
-            Regex::new(r#"^[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':",.<>/?]{8,64}$"#).unwrap()
-        });
-        if !password_re.is_match(&self.password) {
-            return Err(
-                AppError::biz(AppErrorKind::ParamError, "auth.register.validate").with_detail(
-                    "Password must be between 8 and 64 characters and contain at least one letter \
-                     and one number.",
-                ),
-            );
-        }
-        if !self.password.chars().any(|c| c.is_ascii_alphabetic()) {
-            return Err(
-                AppError::biz(AppErrorKind::ParamError, "auth.register.validate")
-                    .with_detail("Password must contain at least one letter."),
-            );
-        }
-        if !self.password.chars().any(|c| c.is_ascii_digit()) {
-            return Err(
-                AppError::biz(AppErrorKind::ParamError, "auth.register.validate")
-                    .with_detail("Password must contain at least one number."),
-            );
-        }
+        PasswordManager::validate(&self.password).map_err(|err| {
+            AppError::biz(AppErrorKind::ParamError, "auth.register.validate")
+                .with_detail(err.to_string())
+        })?;
 
         Ok(())
     }

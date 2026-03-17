@@ -1,3 +1,4 @@
+use crypto::password::PasswordManager;
 use redis::aio::MultiplexedConnection;
 use sea_orm::DatabaseConnection;
 use serde::Deserialize;
@@ -36,6 +37,14 @@ impl ResetPasswordWithTokenService {
                 "auth.reset_password.token.validate_params",
             ));
         }
+
+        PasswordManager::validate(&self.new_password).map_err(|err| {
+            AppError::biz(
+                AppErrorKind::ParamError,
+                "auth.reset_password.token.validate_password",
+            )
+            .with_detail(err.to_string())
+        })?;
 
         let key = format!("password-reset::{}", self.token);
         let uid: Option<i32> = match redis::cmd("GETDEL").arg(&key).query_async(redis).await {
@@ -112,6 +121,14 @@ impl ResetPasswordWithPasswordService {
                 "auth.reset_password.password.check_new_password",
             ));
         }
+
+        PasswordManager::validate(&self.new_password).map_err(|err| {
+            AppError::biz(
+                AppErrorKind::ParamError,
+                "auth.reset_password.password.validate_password",
+            )
+            .with_detail(err.to_string())
+        })?;
 
         if let Err(err) = user.update_password(conn, self.new_password.clone()).await {
             return Err(AppError::infra(
