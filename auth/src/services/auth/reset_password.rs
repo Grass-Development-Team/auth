@@ -2,6 +2,7 @@ use crypto::password::PasswordManager;
 use redis::aio::MultiplexedConnection;
 use sea_orm::DatabaseConnection;
 use serde::Deserialize;
+use token::services::PasswordResetTokenService;
 
 use crate::{
     internal::error::{AppError, AppErrorKind},
@@ -46,17 +47,15 @@ impl ResetPasswordWithTokenService {
             .with_detail(err.to_string())
         })?;
 
-        let key = format!("password-reset::{}", self.token);
-        let uid: Option<i32> = match redis::cmd("GETDEL").arg(&key).query_async(redis).await {
-            Ok(uid) => uid,
-            Err(err) => {
-                return Err(AppError::infra(
+        let uid = PasswordResetTokenService::consume_uid(redis, &self.token)
+            .await
+            .map_err(|err| {
+                AppError::infra(
                     AppErrorKind::InternalError,
                     "auth.reset_password.token.consume_token",
                     err,
-                ));
-            },
-        };
+                )
+            })?;
 
         let Some(uid) = uid else {
             return Err(AppError::biz(

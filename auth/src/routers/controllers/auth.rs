@@ -3,12 +3,10 @@ use axum::{
     http::StatusCode,
 };
 use axum_extra::extract::CookieJar;
+use token::services::SessionService;
 
 use crate::{
-    internal::{
-        error::{AppError, AppErrorKind},
-        session::SessionService,
-    },
+    internal::error::{AppError, AppErrorKind},
     routers::{
         extractor::{GuestAccess, Json, LoginAccess},
         response::app_error_to_response,
@@ -102,7 +100,14 @@ pub async fn logout(
     let session = login.session;
 
     if let Err(err) = SessionService::delete(&mut redis, &session).await {
-        return (jar, app_error_to_response(err));
+        return (
+            jar,
+            app_error_to_response(AppError::infra(
+                AppErrorKind::InternalError,
+                "auth.controller.logout.delete_session",
+                err,
+            )),
+        );
     }
 
     let jar = jar.remove_session_cookie();
@@ -174,7 +179,14 @@ pub async fn reset_password_with_password(
     };
 
     if let Err(err) = SessionService::delete(&mut redis, &login.session).await {
-        return (jar, app_error_to_response(err));
+        return (
+            jar,
+            app_error_to_response(AppError::infra(
+                AppErrorKind::InternalError,
+                "auth.controller.reset_password_password.delete_session",
+                err,
+            )),
+        );
     }
 
     let jar = jar.remove_session_cookie();

@@ -1,8 +1,8 @@
 use minijinja::context;
-use redis::{AsyncCommands, aio::MultiplexedConnection};
+use redis::aio::MultiplexedConnection;
 use sea_orm::DatabaseConnection;
 use serde::Deserialize;
-use uuid::Uuid;
+use token::services::PasswordResetTokenService;
 
 use crate::{
     internal::{
@@ -49,27 +49,22 @@ impl ForgetPasswordService {
             ));
         }
 
-        let token = Uuid::new_v4().to_string();
+        let token =
+            PasswordResetTokenService::issue_for_user(redis, user.0.uid, RESET_TOKEN_TTL_SECONDS)
+                .await
+                .map_err(|err| {
+                    AppError::infra(
+                        AppErrorKind::InternalError,
+                        "auth.forget_password.issue_token",
+                        err,
+                    )
+                })?;
+
         let reset_url = format!(
             "{}/api/v1/auth/reset-password?token={}",
             config.domain.trim_end_matches('/'),
             token
         );
-
-        if let Err(err) = redis
-            .set_ex::<_, _, ()>(
-                format!("password-reset::{token}"),
-                user.0.uid,
-                RESET_TOKEN_TTL_SECONDS,
-            )
-            .await
-        {
-            return Err(AppError::infra(
-                AppErrorKind::InternalError,
-                "auth.forget_password.store_token",
-                err,
-            ));
-        }
 
         if let Err(err) = mailer
             .send_mail(

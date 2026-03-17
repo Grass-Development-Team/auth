@@ -1,11 +1,9 @@
 use axum::extract::{Path, State};
 use axum_extra::extract::CookieJar;
+use token::services::SessionService;
 
 use crate::{
-    internal::{
-        error::{AppError, AppErrorKind},
-        session::SessionService,
-    },
+    internal::error::{AppError, AppErrorKind},
     routers::{
         extractor::{Json, LoginAccess, OperatorAccess},
         response::app_error_to_response,
@@ -97,7 +95,14 @@ pub async fn delete(
     }
 
     if let Err(err) = SessionService::delete(&mut redis, &session).await {
-        return (jar, app_error_to_response(err));
+        return (
+            jar,
+            app_error_to_response(AppError::infra(
+                AppErrorKind::InternalError,
+                "users.controller.delete.delete_session",
+                err,
+            )),
+        );
     }
 
     let jar = jar.remove_session_cookie();

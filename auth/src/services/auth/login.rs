@@ -1,11 +1,12 @@
 use redis::aio::MultiplexedConnection;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
+use token::services::SessionService;
 
 use crate::{
     internal::{
         error::{AppError, AppErrorKind},
-        session::SessionService,
+        session::SESSION_TTL_SECONDS,
     },
     models::users,
 };
@@ -76,10 +77,15 @@ impl LoginService {
 
         // TODO: 2-factor authentication
 
-        let session_id = SessionService::create(redis, user.uid)
+        let session_id = SessionService::create(redis, user.uid, SESSION_TTL_SECONDS)
             .await
             .map_err(|err| {
-                err.with_detail(format!(
+                AppError::infra(
+                    AppErrorKind::InternalError,
+                    "auth.login.create_session",
+                    err,
+                )
+                .with_detail(format!(
                     "Failed to create login session ({OP_CREATE_SESSION})",
                     OP_CREATE_SESSION = "auth.login.create_session"
                 ))

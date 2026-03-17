@@ -1,11 +1,8 @@
 use axum::{extract::FromRequestParts, http::request::Parts};
 use axum_extra::extract::CookieJar;
+use token::services::{SessionLookup, SessionService};
 
-use crate::{
-    internal::session::{SessionLookup, SessionService},
-    routers::serializer::ResponseCode,
-    state::AppState,
-};
+use crate::{routers::serializer::ResponseCode, state::AppState};
 
 pub struct GuestAccess;
 

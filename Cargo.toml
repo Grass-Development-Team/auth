@@ -63,3 +63,4 @@ assets = { path = "crates/assets" }
 jwt = { path = "crates/jwt" }
 validator = { path = "crates/validator" }
 crypto = { path = "crates/crypto" }
+token = { path = "crates/token" }

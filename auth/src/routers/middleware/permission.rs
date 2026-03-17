@@ -6,14 +6,10 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::cookie::Cookie;
+use token::services::{SessionLookup, SessionService};
 use tower::{Layer, Service};
 
-use crate::{
-    internal::session::{SessionLookup, SessionService},
-    models::permission,
-    routers::serializer::ResponseCode,
-    state::APP_STATE,
-};
+use crate::{models::permission, routers::serializer::ResponseCode, state::APP_STATE};
 
 #[derive(Clone)]
 enum PermType {

@@ -1,8 +1,8 @@
 use axum::{extract::FromRequestParts, http::request::Parts};
 use axum_extra::extract::CookieJar;
+use token::services::{SessionLookup, SessionService};
 
 use crate::{
-    internal::session::{SessionLookup, SessionService},
     models::{role, user_info, user_settings, users},
     routers::serializer::ResponseCode,
     state::AppState,
