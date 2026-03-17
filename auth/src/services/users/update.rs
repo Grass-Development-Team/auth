@@ -10,25 +10,41 @@ use crate::{
     models::{
         role,
         user_info::{self, Gender},
-        users,
+        user_settings, users,
     },
 };
 
 #[derive(Deserialize, Serialize)]
 pub struct UpdateService {
-    pub nickname:    Option<String>,
-    pub avatar:      Option<String>,
-    pub description: Option<String>,
-    pub state:       Option<String>,
-    pub gender:      Option<Gender>,
+    pub nickname:           Option<String>,
+    pub avatar:             Option<String>,
+    pub description:        Option<String>,
+    pub state:              Option<String>,
+    pub gender:             Option<Gender>,
+    pub show_email:         Option<bool>,
+    pub show_gender:        Option<bool>,
+    pub show_state:         Option<bool>,
+    pub show_last_login_at: Option<bool>,
+    pub locale:             Option<String>,
+    pub timezone:           Option<String>,
 }
 
 impl UpdateService {
+    fn normalize_optional_setting(value: &str) -> Option<String> {
+        let value = value.trim();
+        if value.is_empty() {
+            None
+        } else {
+            Some(value.to_owned())
+        }
+    }
+
     pub async fn update(
         &self,
         conn: &DatabaseConnection,
         user: users::Model,
         info: user_info::Model,
+        settings: user_settings::Model,
     ) -> Result<(), AppError> {
         if user.status.is_inactive() {
             return Err(AppError::biz(
@@ -82,11 +98,38 @@ impl UpdateService {
             info.gender = Set(Some(gender.clone()));
         }
 
+        let mut settings = settings.into_active_model();
+
+        if let Some(show_email) = self.show_email {
+            settings.show_email = Set(show_email);
+        }
+
+        if let Some(show_gender) = self.show_gender {
+            settings.show_gender = Set(show_gender);
+        }
+
+        if let Some(show_state) = self.show_state {
+            settings.show_state = Set(show_state);
+        }
+
+        if let Some(show_last_login_at) = self.show_last_login_at {
+            settings.show_last_login_at = Set(show_last_login_at);
+        }
+
+        if let Some(locale) = &self.locale {
+            settings.locale = Set(Self::normalize_optional_setting(locale));
+        }
+
+        if let Some(timezone) = &self.timezone {
+            settings.timezone = Set(Self::normalize_optional_setting(timezone));
+        }
+
         let res = conn
             .transaction(|txn| {
                 Box::pin(async move {
                     user.update(txn).await?;
                     info.update(txn).await?;
+                    settings.update(txn).await?;
                     Ok::<(), DbErr>(())
                 })
             })
@@ -130,7 +173,7 @@ impl UpdateService {
             ));
         }
 
-        self.update(conn, user.0, user.1).await
+        self.update(conn, user.0, user.1, user.2).await
     }
 }
 

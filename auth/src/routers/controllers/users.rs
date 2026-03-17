@@ -30,6 +30,28 @@ pub async fn info(
     }
 }
 
+/// User setting
+pub async fn setting(login: LoginAccess) -> Response<users::SettingResponse> {
+    let service = users::SettingService;
+    let data = service.setting(login.user.2);
+
+    Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), Some(data))
+}
+
+/// User setting by uid
+pub async fn setting_by_uid(
+    OperatorAccess(_login): OperatorAccess,
+    State(state): State<AppState>,
+    Path(uid): Path<i32>,
+) -> Response<users::SettingResponse> {
+    let service = users::SettingService;
+
+    match service.setting_by_uid(&state.db, uid).await {
+        Ok(data) => Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), Some(data)),
+        Err(err) => app_error_to_response(err),
+    }
+}
+
 /// User info by uid
 pub async fn info_by_uid(
     OperatorAccess(login): OperatorAccess,
@@ -103,7 +125,10 @@ pub async fn update(
     State(state): State<AppState>,
     Json(req): Json<users::UpdateService>,
 ) -> Response {
-    match req.update(&state.db, login.user.0, login.user.1).await {
+    match req
+        .update(&state.db, login.user.0, login.user.1, login.user.2)
+        .await
+    {
         Ok(()) => ResponseCode::OK.into(),
         Err(err) => app_error_to_response(err),
     }

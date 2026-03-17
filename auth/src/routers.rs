@@ -93,7 +93,21 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
                     "/info",
                     any(users::info).layer(PermissionAccess::all(&["user:read:self"])),
                 )
-                .route("/info/{uid}", any(users::info_by_uid))
+                .route(
+                    "/info/{uid}",
+                    any(users::info_by_uid).layer(PermissionAccess::any(&[
+                        "user:read:active",
+                        "user:read:all",
+                    ])),
+                )
+                .route(
+                    "/setting",
+                    any(users::setting).layer(PermissionAccess::all(&["user:read:self"])),
+                )
+                .route(
+                    "/setting/{uid}",
+                    any(users::setting_by_uid).layer(PermissionAccess::all(&["user:read:all"])),
+                )
                 .route(
                     "/delete",
                     delete(users::delete).layer(PermissionAccess::all(&["user:delete:self"])),

@@ -1,4 +1,4 @@
-use sea_orm::{ActiveValue::Set, IntoActiveModel, entity::prelude::*};
+use sea_orm::{ActiveValue::Set, entity::prelude::*};
 use serde::{Deserialize, Serialize};
 
 use crate::models::common::ModelError::{self, DBError, Empty, ParamsError};
@@ -70,34 +70,6 @@ impl CreateUserSettingsParams {
     }
 }
 
-#[derive(Default)]
-pub struct UpdateUserSettingsParams {
-    pub show_email:         Option<bool>,
-    pub show_gender:        Option<bool>,
-    pub show_state:         Option<bool>,
-    pub show_last_login_at: Option<bool>,
-    pub locale:             Option<String>,
-    pub timezone:           Option<String>,
-}
-
-impl UpdateUserSettingsParams {
-    fn check(&self) -> bool {
-        if let Some(locale) = &self.locale
-            && locale.trim().is_empty()
-        {
-            return false;
-        }
-
-        if let Some(timezone) = &self.timezone
-            && timezone.trim().is_empty()
-        {
-            return false;
-        }
-
-        true
-    }
-}
-
 pub async fn get_user_settings_by_uid(
     conn: &impl ConnectionTrait,
     uid: i32,
@@ -146,38 +118,4 @@ pub async fn create_default_user_settings(
         },
     )
     .await
-}
-
-pub async fn update_user_settings(
-    conn: &impl ConnectionTrait,
-    uid: i32,
-    params: UpdateUserSettingsParams,
-) -> Result<Model, ModelError> {
-    if !params.check() {
-        return Err(ParamsError);
-    }
-
-    let settings = get_user_settings_by_uid(conn, uid).await?;
-    let mut settings = settings.into_active_model();
-
-    if let Some(show_email) = params.show_email {
-        settings.show_email = Set(show_email);
-    }
-    if let Some(show_gender) = params.show_gender {
-        settings.show_gender = Set(show_gender);
-    }
-    if let Some(show_state) = params.show_state {
-        settings.show_state = Set(show_state);
-    }
-    if let Some(show_last_login_at) = params.show_last_login_at {
-        settings.show_last_login_at = Set(show_last_login_at);
-    }
-    if let Some(locale) = params.locale {
-        settings.locale = Set(Some(locale));
-    }
-    if let Some(timezone) = params.timezone {
-        settings.timezone = Set(Some(timezone));
-    }
-
-    settings.update(conn).await.map_err(DBError)
 }
