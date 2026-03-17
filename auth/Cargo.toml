@@ -8,6 +8,7 @@ edition.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+thiserror.workspace = true
 
 tokio.workspace = true
 async-trait.workspace = true
@@ -33,7 +34,6 @@ sea-orm.workspace = true
 sea-orm-migration.workspace = true
 redis.workspace = true
 
-sha2.workspace = true
 base16ct.workspace = true
 rand.workspace = true
 
@@ -44,3 +44,4 @@ lettre.workspace = true
 assets.workspace = true
 validator.workspace = true
 jwt.workspace = true
+crypto.workspace = true

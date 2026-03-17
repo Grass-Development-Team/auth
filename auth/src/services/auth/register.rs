@@ -1,5 +1,6 @@
 use std::sync::OnceLock;
 
+use crypto::password::{PasswordHashAlgorithm, PasswordManager};
 use minijinja::context;
 use regex::Regex;
 use sea_orm::{DatabaseConnection, TransactionError, TransactionTrait};
@@ -11,7 +12,6 @@ use crate::{
         config::Config,
         error::{AppError, AppErrorKind},
         mail::Mailer,
-        utils,
     },
     models::{common::ModelError, users},
 };
@@ -71,8 +71,21 @@ impl RegisterService {
         }
 
         // Encrypt Password
-        let salt = utils::rand::string(16);
-        let password = utils::password::generate(self.password.to_owned(), salt.to_owned());
+        let salt = PasswordManager::generate_salt();
+        let password = match PasswordManager::hash_password(
+            PasswordHashAlgorithm::Argon2id,
+            &self.password,
+            &salt,
+        ) {
+            Ok(password) => password,
+            Err(err) => {
+                return Err(AppError::infra(
+                    AppErrorKind::InternalError,
+                    "auth.register.hash_password",
+                    err,
+                ));
+            },
+        };
 
         let username = self.username.clone();
         let email = self.email.clone();
@@ -94,7 +107,6 @@ impl RegisterService {
                             username,
                             email,
                             password,
-                            salt,
                             status,
                             nickname,
                             ..Default::default()

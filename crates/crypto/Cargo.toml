@@ -1,0 +1,16 @@
+[package]
+name = "crypto"
+version.workspace = true
+description.workspace = true
+repository.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+sha2.workspace = true
+base16ct.workspace = true
+base64ct.workspace = true
+argon2.workspace = true
+rand.workspace = true
+subtle.workspace = true

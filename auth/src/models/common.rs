@@ -1,30 +1,17 @@
-use std::error::Error;
-
+use crypto::password::PasswordError;
 use sea_orm::DbErr;
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ModelError {
-    DBError(DbErr),
+    #[error("Database error: {0}")]
+    DBError(#[from] DbErr),
+    #[error("Password error: {0}")]
+    PasswordError(#[from] PasswordError),
+    #[error("Wrong in params")]
     ParamsError,
+    #[error("No entity found or empty result")]
     Empty,
-}
-
-impl std::fmt::Display for ModelError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ModelError::DBError(err) => write!(f, "Database error: {}", err),
-            ModelError::ParamsError => write!(f, "Wrong in params"),
-            ModelError::Empty => write!(f, "No entity found or empty result"),
-        }
-    }
-}
-
-impl std::error::Error for ModelError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            ModelError::DBError(err) => Some(err),
-            ModelError::ParamsError => None,
-            ModelError::Empty => None,
-        }
-    }
+    #[error("Model error: {0}")]
+    Custom(String),
 }

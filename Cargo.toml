@@ -11,7 +11,8 @@ license = "Apache-2.0"
 edition = "2024"
 
 [workspace.dependencies]
-anyhow = "1.0"
+anyhow = "1"
+thiserror = "2"
 
 tokio = { version = "1", features = ["full"] }
 async-trait = "0.1"
@@ -46,8 +47,11 @@ sea-orm-migration = "1.1"
 redis = { version = "0.27.5", features = ["tokio-native-tls-comp"] }
 
 sha2 = "0.10.9"
+argon2 = "0.5"
 base16ct = { version = "0.2.0", features = ["alloc"] }
+base64ct = { version = "1", features = ["alloc"] }
 rand = "0.8.5"
+subtle = "2.6"
 
 jsonwebtoken = "9.3.1"
 uuid = { version = "1.16.0", features = ["v4"] }
@@ -58,3 +62,4 @@ auth = { path = "auth" }
 assets = { path = "crates/assets" }
 jwt = { path = "crates/jwt" }
 validator = { path = "crates/validator" }
+crypto = { path = "crates/crypto" }

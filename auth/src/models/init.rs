@@ -1,7 +1,6 @@
 use colored::Colorize;
-use sea_orm::{
-    ConnectOptions, Database, DatabaseConnection, DbErr, EntityTrait, Set, TransactionTrait,
-};
+use crypto::password::PasswordManager;
+use sea_orm::{ConnectOptions, Database, DatabaseConnection, EntityTrait, Set, TransactionTrait};
 use sea_orm_migration::MigratorTrait;
 use tracing::{info, log};
 use uuid::Uuid;
@@ -9,6 +8,7 @@ use uuid::Uuid;
 use crate::{
     internal::{config::Database as DatabaseType, utils},
     models::{
+        common::ModelError,
         migration::Migrator,
         permission::{ActiveModel as PermissionActiveModel, Entity as Permission},
         role::{ActiveModel as RoleActiveModel, Entity as Role},
@@ -17,7 +17,7 @@ use crate::{
     },
 };
 
-pub async fn init(sql: &DatabaseType) -> Result<DatabaseConnection, DbErr> {
+pub async fn init(sql: &DatabaseType) -> Result<DatabaseConnection, ModelError> {
     let url = format!(
         "postgres://{}:{}@{}:{}/{}",
         sql.username, sql.password, sql.host, sql.port, sql.dbname
@@ -37,7 +37,7 @@ pub async fn init(sql: &DatabaseType) -> Result<DatabaseConnection, DbErr> {
     Ok(db)
 }
 
-async fn init_permissions(db: &DatabaseConnection) -> Result<(), DbErr> {
+async fn init_permissions(db: &DatabaseConnection) -> Result<(), ModelError> {
     // List of permissions to initialize
     let permissions = vec![
         // User Management
@@ -119,7 +119,7 @@ async fn init_permissions(db: &DatabaseConnection) -> Result<(), DbErr> {
     Ok(())
 }
 
-async fn init_roles(db: &DatabaseConnection) -> Result<(), DbErr> {
+async fn init_roles(db: &DatabaseConnection) -> Result<(), ModelError> {
     // List of roles to initialize
     let roles = vec![
         (
@@ -162,7 +162,7 @@ async fn init_roles(db: &DatabaseConnection) -> Result<(), DbErr> {
     Ok(())
 }
 
-async fn init_super_admin(db: &DatabaseConnection) -> Result<(), DbErr> {
+async fn init_super_admin(db: &DatabaseConnection) -> Result<(), ModelError> {
     if let Ok(user) = users::get_user_by_role(db, "super_admin").await
         && !user.is_empty()
     {
@@ -170,9 +170,13 @@ async fn init_super_admin(db: &DatabaseConnection) -> Result<(), DbErr> {
     }
 
     // Generate password
-    let default_password = utils::rand::string(16);
-    let salt = utils::rand::string(16);
-    let password = utils::password::generate(default_password.to_owned(), salt.to_owned());
+    let default_password = utils::rand::string(24);
+    let salt = PasswordManager::generate_salt();
+    let password = PasswordManager::hash_password(
+        crypto::password::PasswordHashAlgorithm::Argon2id,
+        &default_password,
+        &salt,
+    )?;
 
     db.transaction(|txn| {
         Box::pin(async move {
@@ -182,7 +186,6 @@ async fn init_super_admin(db: &DatabaseConnection) -> Result<(), DbErr> {
                     username: "root".into(),
                     email: "admin@local.email".into(),
                     password,
-                    salt,
                     nickname: Some("Super Administrator".into()),
                     status: AccountStatus::Active,
                     role: "super_admin".into(),
@@ -192,7 +195,7 @@ async fn init_super_admin(db: &DatabaseConnection) -> Result<(), DbErr> {
         })
     })
     .await
-    .map_err(|_| DbErr::Custom("Failed to create super admin".into()))?;
+    .map_err(|_| ModelError::Custom("Failed to create super admin".into()))?;
 
     info!("Super admin account created successfully");
     info!("Username: {}", "root".green());
@@ -202,7 +205,7 @@ async fn init_super_admin(db: &DatabaseConnection) -> Result<(), DbErr> {
     Ok(())
 }
 
-async fn init_role_permissions(db: &DatabaseConnection) -> Result<(), DbErr> {
+async fn init_role_permissions(db: &DatabaseConnection) -> Result<(), ModelError> {
     // Get all roles and permissions
     let roles = Role::find().all(db).await?;
     let permissions = Permission::find().all(db).await?;

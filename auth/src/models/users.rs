@@ -1,12 +1,10 @@
+use crypto::password::PasswordManager;
 use sea_orm::{ActiveValue::Set, IntoActiveModel, JoinType, QuerySelect, entity::prelude::*};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    internal::utils,
-    models::{
-        common::ModelError::{self, DBError, Empty, ParamsError},
-        permission, role, user_info, user_role, user_settings,
-    },
+use crate::models::{
+    common::ModelError::{self, DBError, Empty, ParamsError},
+    permission, role, user_info, user_role, user_settings,
 };
 
 /// Status of the Account
@@ -231,7 +229,6 @@ pub struct CreateUserParams {
     pub username: String,
     pub email:    String,
     pub password: String,
-    pub salt:     String,
     pub status:   AccountStatus,
     pub role:     String,
     pub nickname: Option<String>,
@@ -243,7 +240,6 @@ impl Default for CreateUserParams {
             username: Default::default(),
             email:    Default::default(),
             password: Default::default(),
-            salt:     Default::default(),
             status:   AccountStatus::Inactive,
             role:     "user".into(),
             nickname: None,
@@ -253,10 +249,7 @@ impl Default for CreateUserParams {
 
 impl CreateUserParams {
     fn check(&self) -> bool {
-        !self.username.is_empty()
-            && !self.email.is_empty()
-            && !self.password.is_empty()
-            && !self.salt.is_empty()
+        !self.username.is_empty() && !self.email.is_empty() && !self.password.is_empty()
     }
 }
 
@@ -272,7 +265,7 @@ pub async fn create_user(
     let user = ActiveModel {
         username: Set(params.username),
         email: Set(params.email.clone()),
-        password: Set(format!("sha2:{}:{}", params.password, params.salt)),
+        password: Set(params.password),
         nickname: Set(if let Some(nickname) = params.nickname {
             nickname
         } else {
@@ -324,17 +317,12 @@ pub async fn delete_user(conn: &impl ConnectionTrait, id: i32) -> Result<(), Mod
 
 impl Model {
     pub fn check_password(&self, password: String) -> bool {
-        let password_stored: Vec<&str> = self.password.split(":").collect();
-        if password_stored.len() != 3 {
-            false
-        } else if password_stored[0] == "sha2" {
-            utils::password::check(
-                password,
-                password_stored[2].to_owned(),
-                password_stored[1].to_owned(),
-            )
-        } else {
-            false
+        match PasswordManager::verify_password(&password, &self.password) {
+            Ok(res) => res,
+            Err(err) => {
+                tracing::error!("Password verification failed: {err}");
+                false
+            },
         }
     }
 
@@ -349,10 +337,14 @@ impl Model {
     ) -> Result<Model, ModelError> {
         let mut user = self.clone().into_active_model();
 
-        let salt = utils::rand::string(16);
-        let password = utils::password::generate(new_password.to_owned(), salt.to_owned());
+        let salt = PasswordManager::generate_salt();
+        let password = PasswordManager::hash_password(
+            crypto::password::PasswordHashAlgorithm::Argon2id,
+            &new_password,
+            &salt,
+        )?;
 
-        user.password = Set(format!("sha2:{password}:{salt}"));
+        user.password = Set(password);
 
         user.update(conn).await.map_err(ModelError::DBError)
     }
