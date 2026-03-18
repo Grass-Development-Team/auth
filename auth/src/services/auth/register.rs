@@ -2,9 +2,11 @@ use std::sync::OnceLock;
 
 use crypto::password::{PasswordHashAlgorithm, PasswordManager};
 use minijinja::context;
+use redis::aio::MultiplexedConnection;
 use regex::Regex;
 use sea_orm::{DatabaseConnection, TransactionError, TransactionTrait};
 use serde::Deserialize;
+use token::services::RegisterTokenService;
 use validator::Validatable;
 
 use crate::{
@@ -17,6 +19,8 @@ use crate::{
 };
 
 static EMAIL_RE: OnceLock<Regex> = OnceLock::new();
+const REGISTER_TOKEN_TTL_SECONDS: u64 = 60 * 60;
+const REGISTER_TOKEN_REUSE_MIN_TTL_SECONDS: u64 = 60;
 
 #[derive(Deserialize)]
 pub struct RegisterService {
@@ -32,6 +36,7 @@ impl RegisterService {
         conn: &DatabaseConnection,
         config: &Config,
         mailer: Option<&Mailer>,
+        redis: Option<&mut MultiplexedConnection>,
     ) -> Result<String, AppError> {
         if !config.site.enable_registration {
             return Err(AppError::biz(
@@ -42,15 +47,21 @@ impl RegisterService {
 
         self.validate()?;
 
-        if let Ok(user) = users::get_user_by_email(conn, &self.email).await {
+        if let Ok((user, _, _)) = users::get_user_by_email(conn, &self.email).await {
             if let Some(mailer) = mailer
-                && user.0.status.is_inactive()
+                && user.status.is_inactive()
             {
-                // TODO: Check if the verification token has expired
-                return match self.send_verification_email(mailer, config).await {
-                    Ok(_) => Ok("Verification email sent successfully".into()),
-                    Err(err) => Err(err),
-                };
+                Self::send_verification_email(
+                    mailer,
+                    redis,
+                    config,
+                    user.uid,
+                    &user.username,
+                    &user.email,
+                )
+                .await?;
+
+                return Ok("Verification email sent successfully".into());
             }
 
             return Err(AppError::biz(
@@ -122,31 +133,77 @@ impl RegisterService {
         }
 
         if let Some(mailer) = mailer {
-            return match self.send_verification_email(mailer, config).await {
-                Ok(_) => Ok("Verification email sent successfully".into()),
-                Err(err) => Err(err),
-            };
+            let (user, _, _) =
+                users::get_user_by_email(conn, &self.email)
+                    .await
+                    .map_err(|err| {
+                        AppError::infra(
+                            AppErrorKind::InternalError,
+                            "auth.register.find_created_user",
+                            err,
+                        )
+                    })?;
+
+            Self::send_verification_email(
+                mailer,
+                redis,
+                config,
+                user.uid,
+                &user.username,
+                &user.email,
+            )
+            .await?;
+            return Ok("Verification email sent successfully".into());
         }
 
         Ok("Register successfully".into())
     }
 
     async fn send_verification_email(
-        &self,
         mailer: &Mailer,
+        redis: Option<&mut MultiplexedConnection>,
         config: &Config,
+        uid: i32,
+        username: &str,
+        email: &str,
     ) -> Result<(), AppError> {
-        // TODO: Send verification link
+        let Some(redis) = redis else {
+            return Err(AppError::infra(
+                AppErrorKind::InternalError,
+                "auth.register.send_verification_email",
+                anyhow::anyhow!("Redis connection not available"),
+            ));
+        };
+
+        let token = RegisterTokenService::issue_or_reuse_for_user(
+            redis,
+            uid,
+            email,
+            REGISTER_TOKEN_TTL_SECONDS,
+            REGISTER_TOKEN_REUSE_MIN_TTL_SECONDS,
+        )
+        .await
+        .map_err(|err| {
+            AppError::infra(
+                AppErrorKind::InternalError,
+                "auth.register.issue_or_reuse_token",
+                err,
+            )
+        })?;
+        let expires_minutes = token.ttl_secs.saturating_add(59) / 60;
+
         match mailer
             .send_mail(
-                &self.email,
+                email,
                 "Account registration received",
                 "register",
                 context! {
-                    username => self.username.clone(),
-                    email => self.email.clone(),
+                    username => username.to_owned(),
+                    email => email.to_owned(),
                     domain => config.domain.clone(),
                     site_name => config.site.name.clone(),
+                    verification_token => token.token,
+                    expires_minutes => expires_minutes,
                 },
             )
             .await

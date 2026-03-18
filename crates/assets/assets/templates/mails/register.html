@@ -70,12 +70,18 @@
                                     website.
                                 </p>
                                 <p style="margin: 0 0 16px">
-                                    Service URL:
-                                    <a
-                                        href="{{ domain }}"
-                                        style="color: #2563eb"
-                                        >{{ domain }}</a
-                                    >
+                                    Verification link:
+                                    <strong>
+                                        {{ domain
+                                        }}/actions/verify_email?token={{
+                                        verification_token }}
+                                    </strong>
+                                </p>
+                                <p style="margin: 0 0 16px">
+                                    This token expires in
+                                    <strong
+                                        >{{ expires_minutes }} minutes</strong
+                                    >.
                                 </p>
                                 <p style="margin: 0 0 26px">
                                     If you did not create this account, you can

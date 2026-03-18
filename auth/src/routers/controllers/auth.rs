@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
 };
 use axum_extra::extract::CookieJar;
+use redis::aio::MultiplexedConnection;
 use token::services::SessionService;
 
 use crate::{
@@ -23,8 +24,21 @@ pub async fn register(
     State(state): State<AppState>,
     Json(req): Json<auth::RegisterService>,
 ) -> Response<String> {
+    let mut redis: Option<MultiplexedConnection> = if state.mail.is_some()
+        && let Ok(redis) = state.redis.get_multiplexed_tokio_connection().await
+    {
+        Some(redis)
+    } else {
+        None
+    };
+
     match req
-        .register(&state.db, &state.config, state.mail.as_deref())
+        .register(
+            &state.db,
+            &state.config,
+            state.mail.as_deref(),
+            redis.as_mut(),
+        )
         .await
     {
         Ok(message) => Response::new(
