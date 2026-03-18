@@ -9,6 +9,7 @@ description = "Universal Auth System for Grass Development Team."
 repository = "https://github.com/Grass-Development-Team/auth"
 license = "Apache-2.0"
 edition = "2024"
+rust-version = "1.88"
 
 [workspace.dependencies]
 anyhow = "1"
