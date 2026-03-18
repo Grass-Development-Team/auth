@@ -1,0 +1,13 @@
+/.git
+.gitignore
+
+/target
+
+/.idea
+/plans
+
+.DS_Store
+
+# Test Files
+config.toml
+*.db

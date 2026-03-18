@@ -1,72 +1,102 @@
 name: Docker
 
 on:
-    schedule:
-        - cron: "19 6 * * *"
-    push:
-        branches: ["main", "dev"]
-        tags: ["v*.*.*"]
-    pull_request:
-        branches: ["main"]
+  # schedule:
+  #   - cron: "19 6 * * *"
+  push:
+    branches: ["main"]
+    tags: ["v*.*.*"]
 
 env:
-    REGISTRY: ghcr.io
-    IMAGE_NAME: ${{ github.repository }}
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-    build:
-        runs-on: ubuntu-latest
-        permissions:
-            contents: read
-            packages: write
-            attestations: write
-            id-token: write
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
 
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-            - name: Install cosign
-              if: github.event_name != 'pull_request'
-              uses: sigstore/cosign-installer@v3.8.1
-              with:
-                  cosign-release: "v2.4.3"
+      - name: Install cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@v3.8.1
+        with:
+          cosign-release: "v2.4.3"
 
-            - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-            - name: Log into registry ${{ env.REGISTRY }}
-              if: github.event_name != 'pull_request'
-              uses: docker/login-action@v3
-              with:
-                  registry: ${{ env.REGISTRY }}
-                  username: ${{ github.actor }}
-                  password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log into registry ${{ env.REGISTRY }}
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: Extract Docker metadata
-              id: meta
-              uses: docker/metadata-action@v5
-              with:
-                  images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-                  tags: |
-                      type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
-                      type=ref,event=branch
+      - name: Extract Docker metadata (Debian)
+        id: meta-debian
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+            type=raw,value=latest-debian,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+            type=ref,event=branch,suffix=-debian
+            type=ref,event=tag
+            type=ref,event=tag,suffix=-debian
 
-            - name: Build and push Docker image
-              id: build-and-push
-              uses: docker/build-push-action@v6
-              with:
-                  context: .
-                  push: ${{ github.event_name != 'pull_request' }}
-                  tags: |
-                      ${{ steps.meta.outputs.tags }}
-                  labels: ${{ steps.meta.outputs.labels }}
-                  cache-from: type=gha
-                  cache-to: type=gha,mode=max
+      - name: Extract Docker metadata (Alpine)
+        id: meta-alpine
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest-alpine,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+            type=ref,event=branch,suffix=-alpine
+            type=ref,event=tag,suffix=-alpine
 
-            - name: Sign the published Docker image
-              if: ${{ github.event_name != 'pull_request' }}
-              env:
-                  TAGS: ${{ steps.meta.outputs.tags }}
-                  DIGEST: ${{ steps.build-and-push.outputs.digest }}
-              run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+      - name: Build and push Docker image (Debian)
+        id: build-and-push-debian
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runtime-debian-slim
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta-debian.outputs.tags }}
+          labels: ${{ steps.meta-debian.outputs.labels }}
+          cache-from: type=gha,scope=debian
+          cache-to: type=gha,scope=debian,mode=max
+
+      - name: Build and push Docker image (Alpine)
+        id: build-and-push-alpine
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runtime-alpine
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta-alpine.outputs.tags }}
+          labels: ${{ steps.meta-alpine.outputs.labels }}
+          cache-from: type=gha,scope=alpine
+          cache-to: type=gha,scope=alpine,mode=max
+
+      - name: Sign Debian images
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          TAGS: ${{ steps.meta-debian.outputs.tags }}
+          DIGEST: ${{ steps.build-and-push-debian.outputs.digest }}
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+
+      - name: Sign Alpine images
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          TAGS: ${{ steps.meta-alpine.outputs.tags }}
+          DIGEST: ${{ steps.build-and-push-alpine.outputs.digest }}
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
