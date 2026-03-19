@@ -31,21 +31,21 @@ pub struct AppError {
 }
 
 impl AppError {
-    pub fn new(kind: AppErrorKind, op: &'static str) -> Self {
+    pub fn new(kind: AppErrorKind) -> Self {
         Self {
             kind,
-            op,
+            op: "",
             detail: None,
             source: None,
         }
     }
 
     pub fn biz(kind: AppErrorKind, op: &'static str) -> Self {
-        Self::new(kind, op)
+        Self::new(kind).with_op(op)
     }
 
     pub fn infra(kind: AppErrorKind, op: &'static str, source: impl Into<anyhow::Error>) -> Self {
-        Self::new(kind, op).with_source(source)
+        Self::new(kind).with_op(op).with_source(source)
     }
 
     pub fn with_detail(mut self, detail: impl Into<String>) -> Self {
@@ -55,6 +55,11 @@ impl AppError {
 
     pub fn with_source(mut self, source: impl Into<anyhow::Error>) -> Self {
         self.source = Some(source.into());
+        self
+    }
+
+    pub fn with_op(mut self, op: &'static str) -> Self {
+        self.op = op;
         self
     }
 
