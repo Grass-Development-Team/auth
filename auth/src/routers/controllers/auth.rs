@@ -239,3 +239,27 @@ pub async fn forget_password(
         Err(err) => app_error_to_response(err),
     }
 }
+
+pub async fn verify_email(
+    State(state): State<AppState>,
+    Json(req): Json<auth::VerifyEmailService>,
+) -> Response {
+    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
+        Ok(redis) => redis,
+        Err(err) => {
+            return app_error_to_response(
+                AppError::infra(
+                    AppErrorKind::InternalError,
+                    "auth.controller.verify_email.redis",
+                    err,
+                )
+                .with_detail("Unable to connect to redis"),
+            );
+        },
+    };
+
+    match req.verify_email(&state.db, &mut redis).await {
+        Ok(_) => Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), None),
+        Err(err) => app_error_to_response(err),
+    }
+}

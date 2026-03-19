@@ -65,6 +65,7 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
                 .route("/login", post(auth::login))
                 .route("/logout", any(auth::logout))
                 .route("/register", post(auth::register))
+                .route("/verify-email", post(auth::verify_email))
                 .route("/forget-password", post(auth::forget_password))
                 .route("/reset-password", get(auth::reset_password))
                 .route(
