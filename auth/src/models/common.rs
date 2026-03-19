@@ -20,6 +20,18 @@ pub enum ModelError {
 
 impl From<ModelError> for AppError {
     fn from(value: ModelError) -> Self {
-        AppError::new(AppErrorKind::InternalError).with_source(value)
+        match value {
+            ModelError::DBError(err) => AppError::new()
+                .with_kind(AppErrorKind::InternalError)
+                .with_source(err),
+            ModelError::PasswordError(err) => AppError::new()
+                .with_kind(AppErrorKind::ParamError)
+                .with_detail(err.to_string()),
+            ModelError::ParamsError => AppError::new().with_kind(AppErrorKind::ParamError),
+            ModelError::Empty => AppError::new().with_kind(AppErrorKind::NotFound),
+            ModelError::Custom(msg) => AppError::new()
+                .with_kind(AppErrorKind::InternalError)
+                .with_detail(msg),
+        }
     }
 }

@@ -48,7 +48,8 @@ pub enum ResponseCode {
     EmailExists,                 // 4016
     UserDeleted,                 // 4017
     DuplicatePassword,           // 4018
-    VerificationEmailSendFailed, // 4020
+    VerificationEmailSendFailed, // 4019
+    TokenInvalid,                // 4020
 }
 
 impl ResponseCode {
@@ -74,6 +75,7 @@ impl ResponseCode {
             ResponseCode::DuplicatePassword => StatusCode::CONFLICT,
             // Registration already succeeded, but sending verification email failed.
             ResponseCode::VerificationEmailSendFailed => StatusCode::OK,
+            ResponseCode::TokenInvalid => StatusCode::UNAUTHORIZED,
         }
     }
 }
@@ -92,7 +94,8 @@ fn status_from_code(code: u16) -> StatusCode {
         4016 => StatusCode::CONFLICT,
         4017 => StatusCode::NOT_FOUND,
         4018 => StatusCode::CONFLICT,
-        4020 => StatusCode::OK,
+        4019 => StatusCode::OK,
+        4020 => StatusCode::UNAUTHORIZED,
         _ => StatusCode::from_u16(code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -119,7 +122,8 @@ impl From<ResponseCode> for u16 {
             ResponseCode::EmailExists => 4016,
             ResponseCode::UserDeleted => 4017,
             ResponseCode::DuplicatePassword => 4018,
-            ResponseCode::VerificationEmailSendFailed => 4020,
+            ResponseCode::VerificationEmailSendFailed => 4019,
+            ResponseCode::TokenInvalid => 4020,
         }
     }
 }
@@ -149,6 +153,7 @@ impl From<ResponseCode> for String {
             ResponseCode::VerificationEmailSendFailed => {
                 "Account created, but verification email could not be sent".into()
             },
+            ResponseCode::TokenInvalid => "Token is invalid".into(),
         }
     }
 }
@@ -249,11 +254,17 @@ mod tests {
         );
 
         let partial_ok = Response::<()>::new(
-            4020,
+            4019,
             "Account created, but verification email could not be sent".into(),
             None,
         );
         assert_eq!(partial_ok.into_response().status(), StatusCode::OK);
+
+        let token_invalid = Response::<()>::new(4020, "Token is invalid".into(), None);
+        assert_eq!(
+            token_invalid.into_response().status(),
+            StatusCode::UNAUTHORIZED
+        );
     }
 
     #[test]

@@ -2,6 +2,7 @@ use std::{error::Error as StdError, fmt::Display};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AppErrorKind {
+    Undefined,
     BadRequest,
     Unauthorized,
     Forbidden,
@@ -20,6 +21,7 @@ pub enum AppErrorKind {
     UserDeleted,
     DuplicatePassword,
     VerificationEmailSendFailed,
+    TokenInvalid,
 }
 
 #[derive(Debug)]
@@ -31,21 +33,26 @@ pub struct AppError {
 }
 
 impl AppError {
-    pub fn new(kind: AppErrorKind) -> Self {
+    pub fn new() -> Self {
         Self {
-            kind,
-            op: "",
+            kind:   AppErrorKind::Undefined,
+            op:     "",
             detail: None,
             source: None,
         }
     }
 
     pub fn biz(kind: AppErrorKind, op: &'static str) -> Self {
-        Self::new(kind).with_op(op)
+        Self::new().with_kind(kind).with_op(op)
     }
 
     pub fn infra(kind: AppErrorKind, op: &'static str, source: impl Into<anyhow::Error>) -> Self {
-        Self::new(kind).with_op(op).with_source(source)
+        Self::new().with_kind(kind).with_op(op).with_source(source)
+    }
+
+    pub fn with_kind(mut self, kind: AppErrorKind) -> Self {
+        self.kind = kind;
+        self
     }
 
     pub fn with_detail(mut self, detail: impl Into<String>) -> Self {
