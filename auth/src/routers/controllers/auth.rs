@@ -24,10 +24,20 @@ pub async fn register(
     State(state): State<AppState>,
     Json(req): Json<auth::RegisterService>,
 ) -> Response<String> {
-    let mut redis: Option<MultiplexedConnection> = if state.mail.is_some()
-        && let Ok(redis) = state.redis.get_multiplexed_tokio_connection().await
-    {
-        Some(redis)
+    let mut redis: Option<MultiplexedConnection> = if state.mail.is_some() {
+        match state.redis.get_multiplexed_tokio_connection().await {
+            Ok(redis) => Some(redis),
+            Err(err) => {
+                return app_error_to_response(
+                    AppError::infra(
+                        AppErrorKind::InternalError,
+                        "auth.controller.register.redis",
+                        err,
+                    )
+                    .with_detail("Unable to connect to redis"),
+                );
+            },
+        }
     } else {
         None
     };

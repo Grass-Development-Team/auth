@@ -45,6 +45,15 @@ impl RegisterService {
             ));
         }
 
+        if mailer.is_some() && redis.is_none() {
+            return Err(AppError::infra(
+                AppErrorKind::InternalError,
+                "auth.register.precheck_redis",
+                anyhow::anyhow!("Redis connection not available"),
+            )
+            .with_detail("Unable to connect to redis"));
+        }
+
         self.validate()?;
 
         if let Ok((user, _, _)) = users::get_user_by_email(conn, &self.email).await {
