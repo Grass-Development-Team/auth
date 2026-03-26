@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Verify Email - {{ site_name }}</title>
+        <style>
+            :root {
+                color-scheme: light;
+                font-family:
+                    "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            }
+
+            body {
+                margin: 0;
+                min-height: 100vh;
+                background: linear-gradient(120deg, #eef2ff 0%, #f8fafc 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #111827;
+            }
+
+            .card {
+                width: min(92vw, 520px);
+                background: #ffffff;
+                border-radius: 14px;
+                box-shadow: 0 16px 40px rgba(15, 23, 42, 0.1);
+                padding: 28px 24px;
+            }
+
+            h1 {
+                margin: 0 0 12px;
+                font-size: 24px;
+            }
+
+            p {
+                margin: 0 0 14px;
+                line-height: 1.6;
+            }
+
+            .meta {
+                font-size: 14px;
+                color: #475569;
+            }
+
+            .actions {
+                margin-top: 18px;
+                display: flex;
+                gap: 10px;
+                align-items: center;
+            }
+
+            button {
+                border: none;
+                border-radius: 10px;
+                background: #2563eb;
+                color: #ffffff;
+                padding: 10px 16px;
+                font-size: 15px;
+                cursor: pointer;
+            }
+
+            button:disabled {
+                cursor: not-allowed;
+                opacity: 0.7;
+            }
+
+            #status {
+                margin-top: 14px;
+                font-size: 14px;
+                min-height: 20px;
+            }
+
+            #status.error {
+                color: #b91c1c;
+            }
+
+            #status.success {
+                color: #166534;
+            }
+        </style>
+    </head>
+    <body>
+        <main class="card">
+            <h1>Verify your email</h1>
+            {% if email %}
+            <p>Confirm verification for <strong>{{ email }}</strong>.</p>
+            {% else %}
+            <p>Confirm verification for your account.</p>
+            {% endif %}
+            <p class="meta">
+                This page does not auto-verify. Click the button below to
+                continue.
+            </p>
+
+            <div
+                id="verify-context"
+                data-token="{{ token }}"
+                data-verify-api="{{ verify_api }}"
+                data-initial-error="{{ initial_error }}"
+            ></div>
+
+            <div class="actions">
+                <button id="verify-btn" type="button">Verify Email</button>
+            </div>
+            <p id="status"></p>
+        </main>
+
+        <script>
+            (function () {
+                const context = document.getElementById("verify-context");
+                const verifyBtn = document.getElementById("verify-btn");
+                const status = document.getElementById("status");
+
+                const token = context?.dataset?.token || "";
+                const verifyApi = context?.dataset?.verifyApi || "";
+                const initialError = context?.dataset?.initialError || "";
+
+                if (initialError) {
+                    status.className = "error";
+                    status.textContent = initialError;
+                    verifyBtn.disabled = true;
+                    return;
+                }
+
+                if (!token || !verifyApi) {
+                    status.className = "error";
+                    status.textContent = "Invalid verification link.";
+                    verifyBtn.disabled = true;
+                    return;
+                }
+
+                verifyBtn.addEventListener("click", async function () {
+                    status.className = "";
+                    status.textContent = "Verifying...";
+                    verifyBtn.disabled = true;
+
+                    try {
+                        const response = await fetch(verifyApi, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify({ token }),
+                        });
+
+                        let payload = null;
+                        try {
+                            payload = await response.json();
+                        } catch (_ignored) {
+                            payload = null;
+                        }
+
+                        if (response.ok && payload && payload.code === 200) {
+                            status.className = "success";
+                            status.textContent =
+                                "Email verified successfully. You can close this page.";
+                            return;
+                        }
+
+                        const message =
+                            payload && payload.message
+                                ? payload.message
+                                : "Verification failed. Please try again.";
+                        status.className = "error";
+                        status.textContent = message;
+                        verifyBtn.disabled = false;
+                    } catch (_err) {
+                        status.className = "error";
+                        status.textContent =
+                            "Network error. Please check your connection and retry.";
+                        verifyBtn.disabled = false;
+                    }
+                });
+            })();
+        </script>
+    </body>
+</html>

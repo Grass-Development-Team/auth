@@ -20,7 +20,7 @@ use tower_http::{cors, cors::CorsLayer};
 use crate::{
     internal::config::Config,
     routers::{
-        controllers::{auth, common, users},
+        controllers::{actions, auth, common, users},
         middleware::permission::PermissionAccess,
         utils::content_type,
     },
@@ -56,6 +56,16 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
     let oauth = {
         let oauth = Router::new();
         Router::new().nest("/oauth", oauth)
+    };
+
+    let action = {
+        let route = Router::new().route("/verify-email", get(actions::verify_email));
+        let route = Router::new().nest("/actions", route);
+        if config.dev_mode {
+            route.layer(public_cors.clone())
+        } else {
+            route.layer(internal_cors.clone())
+        }
     };
 
     let api_v1 = {
@@ -143,7 +153,10 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
         Router::new().nest("/api", route)
     };
 
-    app.merge(api).merge(oauth).fallback(static_asset_fallback)
+    app.merge(api)
+        .merge(oauth)
+        .merge(action)
+        .fallback(static_asset_fallback)
 }
 
 async fn static_asset_fallback(request: Request) -> impl IntoResponse {
