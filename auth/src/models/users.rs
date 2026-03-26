@@ -348,6 +348,18 @@ impl Model {
 
         user.update(conn).await.map_err(ModelError::DBError)
     }
+
+    pub async fn update_status(
+        &self,
+        conn: &impl ConnectionTrait,
+        status: AccountStatus,
+    ) -> Result<Model, ModelError> {
+        let mut user = self.clone().into_active_model();
+
+        user.status = Set(status);
+
+        user.update(conn).await.map_err(ModelError::DBError)
+    }
 }
 
 impl AccountStatus {

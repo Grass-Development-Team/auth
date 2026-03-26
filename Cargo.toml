@@ -9,6 +9,7 @@ description = "Universal Auth System for Grass Development Team."
 repository = "https://github.com/Grass-Development-Team/auth"
 license = "Apache-2.0"
 edition = "2024"
+rust-version = "1.88"
 
 [workspace.dependencies]
 anyhow = "1"
@@ -37,14 +38,17 @@ regex = "1"
 minijinja = "2"
 
 sea-orm = { version = "1.1", features = [
-    "sqlx-all",
-    "runtime-tokio-native-tls",
+    "sqlx-postgres",
+    "runtime-tokio-rustls",
     "macros",
     "with-chrono",
     "with-uuid",
 ] }
-sea-orm-migration = "1.1"
-redis = { version = "0.27.5", features = ["tokio-native-tls-comp"] }
+sea-orm-migration = { version = "1.1", default-features = false, features = [
+    "runtime-tokio-rustls",
+    "sqlx-postgres",
+] }
+redis = { version = "0.27.5", features = ["tokio-rustls-comp"] }
 
 sha2 = "0.10.9"
 argon2 = "0.5"
@@ -56,7 +60,14 @@ subtle = "2.6"
 jsonwebtoken = "9.3.1"
 uuid = { version = "1.16.0", features = ["v4"] }
 
-lettre = "0.11"
+lettre = { version = "0.11", default-features = false, features = [
+    "builder",
+    "hostname",
+    "pool",
+    "smtp-transport",
+    "rustls-tls",
+    "rustls-platform-verifier",
+] }
 
 auth = { path = "auth" }
 assets = { path = "crates/assets" }

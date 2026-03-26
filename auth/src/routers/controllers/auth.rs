@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
 };
 use axum_extra::extract::CookieJar;
+use redis::aio::MultiplexedConnection;
 use token::services::SessionService;
 
 use crate::{
@@ -23,8 +24,31 @@ pub async fn register(
     State(state): State<AppState>,
     Json(req): Json<auth::RegisterService>,
 ) -> Response<String> {
+    let mut redis: Option<MultiplexedConnection> = if state.mail.is_some() {
+        match state.redis.get_multiplexed_tokio_connection().await {
+            Ok(redis) => Some(redis),
+            Err(err) => {
+                return app_error_to_response(
+                    AppError::infra(
+                        AppErrorKind::InternalError,
+                        "auth.controller.register.redis",
+                        err,
+                    )
+                    .with_detail("Unable to connect to redis"),
+                );
+            },
+        }
+    } else {
+        None
+    };
+
     match req
-        .register(&state.db, &state.config, state.mail.as_deref())
+        .register(
+            &state.db,
+            &state.config,
+            state.mail.as_deref(),
+            redis.as_mut(),
+        )
         .await
     {
         Ok(message) => Response::new(
@@ -222,6 +246,30 @@ pub async fn forget_password(
             ResponseCode::OK.into(),
             Some(message),
         ),
+        Err(err) => app_error_to_response(err),
+    }
+}
+
+pub async fn verify_email(
+    State(state): State<AppState>,
+    Json(req): Json<auth::VerifyEmailService>,
+) -> Response {
+    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
+        Ok(redis) => redis,
+        Err(err) => {
+            return app_error_to_response(
+                AppError::infra(
+                    AppErrorKind::InternalError,
+                    "auth.controller.verify_email.redis",
+                    err,
+                )
+                .with_detail("Unable to connect to redis"),
+            );
+        },
+    };
+
+    match req.verify_email(&state.db, &mut redis).await {
+        Ok(_) => Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), None),
         Err(err) => app_error_to_response(err),
     }
 }

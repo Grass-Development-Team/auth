@@ -44,7 +44,7 @@ fmt-check:
     cargo outdated -R
 
 @msrv:
-    cargo msrv find
+    cargo msrv find --min 1.85
 
 # Combined quality check
 @quality: audit outdated msrv fmt-check clippy test

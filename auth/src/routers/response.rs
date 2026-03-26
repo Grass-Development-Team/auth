@@ -6,6 +6,7 @@ use crate::{
 impl From<AppErrorKind> for ResponseCode {
     fn from(value: AppErrorKind) -> Self {
         match value {
+            AppErrorKind::Undefined => ResponseCode::InternalError,
             AppErrorKind::BadRequest => ResponseCode::BadRequest,
             AppErrorKind::Unauthorized => ResponseCode::Unauthorized,
             AppErrorKind::Forbidden => ResponseCode::Forbidden,
@@ -24,6 +25,7 @@ impl From<AppErrorKind> for ResponseCode {
             AppErrorKind::UserDeleted => ResponseCode::UserDeleted,
             AppErrorKind::DuplicatePassword => ResponseCode::DuplicatePassword,
             AppErrorKind::VerificationEmailSendFailed => ResponseCode::VerificationEmailSendFailed,
+            AppErrorKind::TokenInvalid => ResponseCode::TokenInvalid,
         }
     }
 }
