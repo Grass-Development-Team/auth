@@ -10,11 +10,6 @@ use crate::{
 };
 
 #[derive(Deserialize)]
-pub struct ResetPasswordQuery {
-    pub token: String,
-}
-
-#[derive(Deserialize)]
 pub struct ResetPasswordWithTokenService {
     pub token:        String,
     pub new_password: String,

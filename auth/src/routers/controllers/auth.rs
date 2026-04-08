@@ -1,7 +1,4 @@
-use axum::{
-    extract::{Query, State},
-    http::StatusCode,
-};
+use axum::extract::State;
 use axum_extra::extract::CookieJar;
 use redis::aio::MultiplexedConnection;
 use token::services::SessionService;
@@ -140,13 +137,6 @@ pub async fn logout(
         jar,
         Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), None),
     )
-}
-
-/// Auth reset password page placeholder
-pub async fn reset_password(Query(query): Query<auth::ResetPasswordQuery>) -> StatusCode {
-    // TODO: Reset Password Page
-    let _token = query.token;
-    StatusCode::OK
 }
 
 /// Auth reset password with token

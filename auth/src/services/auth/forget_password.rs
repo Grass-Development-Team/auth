@@ -11,6 +11,7 @@ use crate::{
         mail::Mailer,
     },
     models::users,
+    services::actions::ActionsResetPasswordService,
 };
 
 const RESET_TOKEN_TTL_SECONDS: u64 = 15 * 60;
@@ -60,11 +61,8 @@ impl ForgetPasswordService {
                     )
                 })?;
 
-        let reset_url = format!(
-            "{}/api/v1/auth/reset-password?token={}",
-            config.domain.trim_end_matches('/'),
-            token
-        );
+        let reset_url =
+            ActionsResetPasswordService::build_reset_password_action_url(config, &token);
 
         if let Err(err) = mailer
             .send_mail(

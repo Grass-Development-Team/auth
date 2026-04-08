@@ -59,7 +59,9 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
     };
 
     let action = {
-        let route = Router::new().route("/verify-email", get(actions::verify_email));
+        let route = Router::new()
+            .route("/verify-email", get(actions::verify_email))
+            .route("/reset-password", get(actions::reset_password));
         let route = Router::new().nest("/actions", route);
         if config.dev_mode {
             route.layer(public_cors.clone())
@@ -77,7 +79,6 @@ pub fn get_router(app: Router<AppState>, config: &Config) -> Router<AppState> {
                 .route("/register", post(auth::register))
                 .route("/verify-email", post(auth::verify_email))
                 .route("/forget-password", post(auth::forget_password))
-                .route("/reset-password", get(auth::reset_password))
                 .route(
                     "/reset-password/token",
                     patch(auth::reset_password_with_token),
