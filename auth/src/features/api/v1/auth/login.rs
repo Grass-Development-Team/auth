@@ -1,3 +1,5 @@
+use axum::extract::State;
+use axum_extra::extract::CookieJar;
 use redis::aio::MultiplexedConnection;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -9,7 +11,51 @@ use crate::{
         session::SESSION_TTL_SECONDS,
     },
     models::users,
+    routers::{
+        extractor::{GuestAccess, Json},
+        response::app_error_to_response,
+        serializer::{Response, ResponseCode},
+        utils::cookie,
+    },
+    state::AppState,
 };
+
+pub async fn controller(
+    _: GuestAccess,
+    State(state): State<AppState>,
+    jar: CookieJar,
+    Json(req): Json<LoginService>,
+) -> (CookieJar, Response<LoginResponse>) {
+    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
+        Ok(redis) => redis,
+        Err(err) => {
+            return (
+                jar,
+                app_error_to_response(
+                    AppError::infra(
+                        AppErrorKind::InternalError,
+                        "auth.controller.login.redis",
+                        err,
+                    )
+                    .with_detail("Unable to connect to redis"),
+                ),
+            );
+        },
+    };
+
+    match req.login(&state.db, &mut redis).await {
+        Ok((data, sid)) => {
+            let session_cookie = cookie::build_session_cookie(sid, !state.config.dev_mode);
+            let jar = jar.add(session_cookie);
+
+            (
+                jar,
+                Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), Some(data)),
+            )
+        },
+        Err(err) => (jar, app_error_to_response(err)),
+    }
+}
 
 /// Response structure for login API
 #[derive(Deserialize, Serialize)]

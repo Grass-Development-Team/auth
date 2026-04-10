@@ -1,12 +1,82 @@
 use anyhow::anyhow;
 use assets::AssetManager;
+use axum::{
+    extract::{Query, State},
+    http::StatusCode,
+    response::{Html, IntoResponse, Response},
+};
 use minijinja::{AutoEscape, Environment, context};
 use serde::Deserialize;
+use token::{TokenStore, services::PasswordResetTokenService};
 
-use crate::internal::{
-    config::Config,
-    error::{AppError, AppErrorKind},
+use crate::{
+    internal::{
+        config::Config,
+        error::{AppError, AppErrorKind},
+    },
+    state::AppState,
 };
+
+pub async fn controller(
+    State(state): State<AppState>,
+    Query(req): Query<ActionsResetPasswordService>,
+) -> Response {
+    let token_valid = match req.token() {
+        Some(token) => {
+            let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
+                Ok(redis) => redis,
+                Err(err) => {
+                    return render_reset_password_error(AppError::infra(
+                        AppErrorKind::InternalError,
+                        "actions.reset_password.redis",
+                        err,
+                    ));
+                },
+            };
+
+            match PasswordResetTokenService::get(&mut redis, token)
+                .await
+                .map(|payload| payload.is_some())
+                .map_err(|err| {
+                    AppError::infra(
+                        AppErrorKind::InternalError,
+                        "actions.reset_password.get_token",
+                        err,
+                    )
+                }) {
+                Ok(valid) => valid,
+                Err(err) => return render_reset_password_error(err),
+            }
+        },
+        None => req.token.is_none(),
+    };
+
+    match req.render_reset_password_page(&state.config, token_valid) {
+        Ok(html) => Html(html).into_response(),
+        Err(err) => render_reset_password_error(err),
+    }
+}
+
+fn render_reset_password_error(err: AppError) -> Response {
+    let source = err.source_ref().map(ToString::to_string);
+    tracing::error!(
+        op = err.op,
+        kind = ?err.kind,
+        detail = ?err.detail,
+        source = ?source,
+        "failed to render reset-password action page"
+    );
+
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Html(
+            "<!doctype html><html><head><meta charset=\"UTF-8\" /><title>Reset Password \
+             Error</title></head><body><p>Unable to load reset-password page. Please try again \
+             later.</p></body></html>",
+        ),
+    )
+        .into_response()
+}
 
 const ACTION_RESET_PASSWORD_PATH: &str = "/actions/reset-password";
 const USER_INFO_API_PATH: &str = "/api/v1/user/info";

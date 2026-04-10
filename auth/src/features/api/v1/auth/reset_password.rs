@@ -1,13 +1,89 @@
+use axum::extract::State;
+use axum_extra::extract::CookieJar;
 use crypto::password::PasswordManager;
 use redis::aio::MultiplexedConnection;
 use sea_orm::DatabaseConnection;
 use serde::Deserialize;
-use token::services::PasswordResetTokenService;
+use token::services::{PasswordResetTokenService, SessionService};
 
 use crate::{
     internal::error::{AppError, AppErrorKind},
     models::users,
+    routers::{
+        extractor::{Json, LoginAccess},
+        response::app_error_to_response,
+        serializer::{Response, ResponseCode},
+        utils::cookie::CookieJarExt,
+    },
+    state::AppState,
 };
+
+pub async fn controller_with_token(
+    State(state): State<AppState>,
+    Json(req): Json<ResetPasswordWithTokenService>,
+) -> Response {
+    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
+        Ok(redis) => redis,
+        Err(err) => {
+            return app_error_to_response(
+                AppError::infra(
+                    AppErrorKind::InternalError,
+                    "auth.controller.reset_password_token.redis",
+                    err,
+                )
+                .with_detail("Unable to connect to redis"),
+            );
+        },
+    };
+
+    match req.reset_password(&state.db, &mut redis).await {
+        Ok(()) => ResponseCode::OK.into(),
+        Err(err) => app_error_to_response(err),
+    }
+}
+
+pub async fn controller_with_password(
+    login: LoginAccess,
+    State(state): State<AppState>,
+    jar: CookieJar,
+    Json(req): Json<ResetPasswordWithPasswordService>,
+) -> (CookieJar, Response) {
+    if let Err(err) = req.reset_password(&state.db, &login.user.0).await {
+        return (jar, app_error_to_response(err));
+    }
+
+    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
+        Ok(redis) => redis,
+        Err(err) => {
+            return (
+                jar,
+                app_error_to_response(
+                    AppError::infra(
+                        AppErrorKind::InternalError,
+                        "auth.controller.reset_password_password.redis",
+                        err,
+                    )
+                    .with_detail("Unable to connect to redis"),
+                ),
+            );
+        },
+    };
+
+    if let Err(err) = SessionService::delete(&mut redis, &login.session).await {
+        return (
+            jar,
+            app_error_to_response(AppError::infra(
+                AppErrorKind::InternalError,
+                "auth.controller.reset_password_password.delete_session",
+                err,
+            )),
+        );
+    }
+
+    let jar = jar.remove_session_cookie();
+
+    (jar, ResponseCode::OK.into())
+}
 
 #[derive(Deserialize)]
 pub struct ResetPasswordWithTokenService {

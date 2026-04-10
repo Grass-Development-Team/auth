@@ -1,3 +1,4 @@
+use axum::extract::{Path, State};
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 
@@ -7,7 +8,39 @@ use crate::{
         user_info::{self, Gender},
         user_settings, users,
     },
+    routers::{
+        extractor::{LoginAccess, OperatorAccess},
+        response::app_error_to_response,
+        serializer::{Response, ResponseCode},
+    },
+    state::AppState,
 };
+
+pub async fn controller(
+    State(state): State<AppState>,
+    login: LoginAccess,
+) -> Response<InfoResponse> {
+    let service = InfoService;
+    let (user, info, settings) = login.user;
+
+    match service.info(&state.db, user, info, settings, None).await {
+        Ok(data) => Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), Some(data)),
+        Err(err) => app_error_to_response(err),
+    }
+}
+
+pub async fn controller_by_uid(
+    OperatorAccess(login): OperatorAccess,
+    State(state): State<AppState>,
+    Path(uid): Path<i32>,
+) -> Response<InfoResponse> {
+    let service = InfoService;
+
+    match service.info_by_uid(&state.db, uid, login.user.0).await {
+        Ok(data) => Response::new(ResponseCode::OK.into(), ResponseCode::OK.into(), Some(data)),
+        Err(err) => app_error_to_response(err),
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct InfoResponse {

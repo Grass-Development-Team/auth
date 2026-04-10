@@ -1,9 +1,5 @@
 use crate::routers::serializer::{Response, ResponseCode};
 
-pub async fn not_found() -> Response {
-    ResponseCode::NotFound.into()
-}
-
-pub async fn ping() -> Response {
+pub async fn controller() -> Response {
     Response::new(ResponseCode::OK.into(), "pong".into(), None)
 }

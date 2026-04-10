@@ -1,3 +1,4 @@
+use axum::extract::{Path, State};
 use sea_orm::{
     ActiveModelTrait, ActiveValue::Set, DatabaseConnection, DbErr, IntoActiveModel,
     TransactionTrait,
@@ -12,7 +13,39 @@ use crate::{
         user_info::{self, Gender},
         user_settings, users,
     },
+    routers::{
+        extractor::{Json, LoginAccess, OperatorAccess},
+        response::app_error_to_response,
+        serializer::{Response, ResponseCode},
+    },
+    state::AppState,
 };
+
+pub async fn controller(
+    login: LoginAccess,
+    State(state): State<AppState>,
+    Json(req): Json<UpdateService>,
+) -> Response {
+    match req
+        .update(&state.db, login.user.0, login.user.1, login.user.2)
+        .await
+    {
+        Ok(()) => ResponseCode::OK.into(),
+        Err(err) => app_error_to_response(err),
+    }
+}
+
+pub async fn controller_by_uid(
+    OperatorAccess(login): OperatorAccess,
+    State(state): State<AppState>,
+    Path(uid): Path<i32>,
+    Json(req): Json<UpdateService>,
+) -> Response {
+    match req.update_by_uid(&state.db, uid, login.level).await {
+        Ok(()) => ResponseCode::OK.into(),
+        Err(err) => app_error_to_response(err),
+    }
+}
 
 #[derive(Deserialize, Serialize)]
 pub struct UpdateService {

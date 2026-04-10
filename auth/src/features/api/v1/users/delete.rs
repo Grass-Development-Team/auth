@@ -1,10 +1,78 @@
+use axum::extract::{Path, State};
+use axum_extra::extract::CookieJar;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
+use token::services::SessionService;
 
 use crate::{
     internal::error::{AppError, AppErrorKind},
     models::{permission, role, users},
+    routers::{
+        extractor::{Json, LoginAccess, OperatorAccess},
+        response::app_error_to_response,
+        serializer::{Response, ResponseCode},
+        utils::cookie::CookieJarExt,
+    },
+    state::AppState,
 };
+
+pub async fn controller(
+    login: LoginAccess,
+    State(state): State<AppState>,
+    jar: CookieJar,
+    Json(req): Json<DeleteService>,
+) -> (CookieJar, Response) {
+    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
+        Ok(redis) => redis,
+        Err(err) => {
+            return (
+                jar,
+                app_error_to_response(
+                    AppError::infra(
+                        AppErrorKind::InternalError,
+                        "users.controller.delete.redis",
+                        err,
+                    )
+                    .with_detail("Unable to connect to redis"),
+                ),
+            );
+        },
+    };
+
+    let session = login.session;
+
+    if let Err(err) = req.delete(&state.db, login.user.0).await {
+        return (jar, app_error_to_response(err));
+    }
+
+    if let Err(err) = SessionService::delete(&mut redis, &session).await {
+        return (
+            jar,
+            app_error_to_response(AppError::infra(
+                AppErrorKind::InternalError,
+                "users.controller.delete.delete_session",
+                err,
+            )),
+        );
+    }
+
+    let jar = jar.remove_session_cookie();
+
+    (jar, ResponseCode::OK.into())
+}
+
+pub async fn controller_by_uid(
+    OperatorAccess(login): OperatorAccess,
+    State(state): State<AppState>,
+    Path(uid): Path<i32>,
+) -> Response {
+    let service = AdminDeleteService;
+
+    match service.delete(&state.db, uid, login.level).await {
+        Ok(()) => ResponseCode::OK.into(),
+        Err(err) => app_error_to_response(err),
+    }
+}
 
 /// Service handling user delete operations
 #[derive(Deserialize, Serialize)]

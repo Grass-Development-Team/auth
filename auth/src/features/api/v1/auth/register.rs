@@ -1,5 +1,6 @@
 use std::sync::OnceLock;
 
+use axum::extract::State;
 use crypto::password::{PasswordHashAlgorithm, PasswordManager};
 use minijinja::context;
 use redis::aio::MultiplexedConnection;
@@ -16,7 +17,54 @@ use crate::{
         mail::Mailer,
     },
     models::{common::ModelError, users},
+    routers::{
+        extractor::{GuestAccess, Json},
+        response::app_error_to_response,
+        serializer::{Response, ResponseCode},
+    },
+    state::AppState,
 };
+
+pub async fn controller(
+    _guest: GuestAccess,
+    State(state): State<AppState>,
+    Json(req): Json<RegisterService>,
+) -> Response<String> {
+    let mut redis: Option<MultiplexedConnection> = if state.mail.is_some() {
+        match state.redis.get_multiplexed_tokio_connection().await {
+            Ok(redis) => Some(redis),
+            Err(err) => {
+                return app_error_to_response(
+                    AppError::infra(
+                        AppErrorKind::InternalError,
+                        "auth.controller.register.redis",
+                        err,
+                    )
+                    .with_detail("Unable to connect to redis"),
+                );
+            },
+        }
+    } else {
+        None
+    };
+
+    match req
+        .register(
+            &state.db,
+            &state.config,
+            state.mail.as_deref(),
+            redis.as_mut(),
+        )
+        .await
+    {
+        Ok(message) => Response::new(
+            ResponseCode::OK.into(),
+            ResponseCode::OK.into(),
+            Some(message),
+        ),
+        Err(err) => app_error_to_response(err),
+    }
+}
 
 static EMAIL_RE: OnceLock<Regex> = OnceLock::new();
 const REGISTER_TOKEN_TTL_SECONDS: u64 = 60 * 60;

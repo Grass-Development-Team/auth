@@ -1,3 +1,4 @@
+use axum::extract::State;
 use minijinja::context;
 use redis::aio::MultiplexedConnection;
 use sea_orm::DatabaseConnection;
@@ -5,14 +6,51 @@ use serde::Deserialize;
 use token::services::PasswordResetTokenService;
 
 use crate::{
+    features::actions::reset_password::ActionsResetPasswordService,
     internal::{
         config::Config,
         error::{AppError, AppErrorKind},
         mail::Mailer,
     },
     models::users,
-    services::actions::ActionsResetPasswordService,
+    routers::{
+        extractor::Json,
+        response::app_error_to_response,
+        serializer::{Response, ResponseCode},
+    },
+    state::AppState,
 };
+
+pub async fn controller(
+    State(state): State<AppState>,
+    Json(req): Json<ForgetPasswordService>,
+) -> Response<String> {
+    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
+        Ok(redis) => redis,
+        Err(err) => {
+            return app_error_to_response(
+                AppError::infra(
+                    AppErrorKind::InternalError,
+                    "auth.controller.forget_password.redis",
+                    err,
+                )
+                .with_detail("Unable to connect to redis"),
+            );
+        },
+    };
+
+    match req
+        .forget_password(&state.db, &mut redis, &state.config, state.mail.as_deref())
+        .await
+    {
+        Ok(message) => Response::new(
+            ResponseCode::OK.into(),
+            ResponseCode::OK.into(),
+            Some(message),
+        ),
+        Err(err) => app_error_to_response(err),
+    }
+}
 
 const RESET_TOKEN_TTL_SECONDS: u64 = 15 * 60;
 
