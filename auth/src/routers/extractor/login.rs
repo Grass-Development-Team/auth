@@ -3,7 +3,7 @@ use axum_extra::extract::CookieJar;
 use token::services::{SessionLookup, SessionService};
 
 use crate::{
-    models::{role, user_info, user_settings, users},
+    domain::{role, user_info, user_settings, users},
     routers::serializer::ResponseCode,
     state::AppState,
 };

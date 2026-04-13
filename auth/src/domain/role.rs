@@ -1,7 +1,7 @@
 use sea_orm::{JoinType, QuerySelect, entity::prelude::*};
 use serde::{Deserialize, Serialize};
 
-use crate::models::common::ModelError;
+use crate::infra::database::ModelError;
 
 /// # Role Model
 #[derive(Debug, Clone, PartialEq, DeriveEntityModel, Serialize, Deserialize)]

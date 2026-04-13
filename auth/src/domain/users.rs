@@ -2,9 +2,9 @@ use crypto::password::PasswordManager;
 use sea_orm::{ActiveValue::Set, IntoActiveModel, JoinType, QuerySelect, entity::prelude::*};
 use serde::{Deserialize, Serialize};
 
-use crate::models::{
-    common::ModelError::{self, DBError, Empty, ParamsError},
-    permission, role, user_info, user_role, user_settings,
+use crate::{
+    domain::{permission, role, user_info, user_role, user_settings},
+    infra::database::ModelError::{self, DBError, Empty, ParamsError},
 };
 
 /// Status of the Account

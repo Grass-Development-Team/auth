@@ -6,13 +6,13 @@ use serde::Deserialize;
 use token::services::PasswordResetTokenService;
 
 use crate::{
+    domain::users,
     features::actions::reset_password::ActionsResetPasswordService,
     internal::{
         config::Config,
         error::{AppError, AppErrorKind},
         mail::Mailer,
     },
-    models::users,
     routers::{
         extractor::Json,
         response::app_error_to_response,

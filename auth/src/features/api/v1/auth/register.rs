@@ -11,12 +11,13 @@ use token::services::RegisterTokenService;
 use validator::Validatable;
 
 use crate::{
+    domain::users,
+    infra::database::ModelError,
     internal::{
         config::Config,
         error::{AppError, AppErrorKind},
         mail::Mailer,
     },
-    models::{common::ModelError, users},
     routers::{
         extractor::{GuestAccess, Json},
         response::app_error_to_response,

@@ -5,7 +5,7 @@ use tracing_subscriber::{
 };
 
 use crate::internal::{config::Redis, log::layer::LogLayer};
-pub use crate::{internal::mail::init as mail, models::init as db};
+pub use crate::{infra::database::init as db, internal::mail::init as mail};
 
 /// Initialize the logger
 pub fn logger() {

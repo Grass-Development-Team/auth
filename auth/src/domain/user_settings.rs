@@ -1,7 +1,7 @@
 use sea_orm::{ActiveValue::Set, entity::prelude::*};
 use serde::{Deserialize, Serialize};
 
-use crate::models::common::ModelError::{self, DBError, Empty, ParamsError};
+use crate::infra::database::ModelError::{self, DBError, Empty, ParamsError};
 
 /// # User Settings Model
 #[derive(Debug, Clone, PartialEq, DeriveEntityModel, Serialize, Deserialize)]

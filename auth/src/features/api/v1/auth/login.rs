@@ -6,11 +6,11 @@ use serde::{Deserialize, Serialize};
 use token::services::SessionService;
 
 use crate::{
+    domain::users,
     internal::{
         error::{AppError, AppErrorKind},
         session::SESSION_TTL_SECONDS,
     },
-    models::users,
     routers::{
         extractor::{GuestAccess, Json},
         response::app_error_to_response,

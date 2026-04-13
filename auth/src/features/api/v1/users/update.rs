@@ -7,12 +7,12 @@ use serde::{Deserialize, Serialize};
 use validator::Validatable;
 
 use crate::{
-    internal::error::{AppError, AppErrorKind},
-    models::{
+    domain::{
         role,
         user_info::{self, Gender},
         user_settings, users,
     },
+    internal::error::{AppError, AppErrorKind},
     routers::{
         extractor::{Json, LoginAccess, OperatorAccess},
         response::app_error_to_response,

@@ -6,15 +6,14 @@ use tracing::{info, log};
 use uuid::Uuid;
 
 use crate::{
-    internal::{config::Database as DatabaseType, utils},
-    models::{
-        common::ModelError,
-        migration::Migrator,
+    domain::{
         permission::{ActiveModel as PermissionActiveModel, Entity as Permission},
         role::{ActiveModel as RoleActiveModel, Entity as Role},
         role_permissions::{ActiveModel as RolePermissionActiveModel, Entity as RolePermission},
         users::{self, AccountStatus},
     },
+    infra::database::{ModelError, migration::Migrator},
+    internal::{config::Database as DatabaseType, utils},
 };
 
 pub async fn init(sql: &DatabaseType) -> Result<DatabaseConnection, ModelError> {

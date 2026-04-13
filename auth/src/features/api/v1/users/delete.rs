@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use token::services::SessionService;
 
 use crate::{
+    domain::{permission, role, users},
     internal::error::{AppError, AppErrorKind},
-    models::{permission, role, users},
     routers::{
         extractor::{Json, LoginAccess, OperatorAccess},
         response::app_error_to_response,

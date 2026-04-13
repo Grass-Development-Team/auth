@@ -3,8 +3,9 @@ use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    domain::user_settings,
+    infra::database::ModelError,
     internal::error::{AppError, AppErrorKind},
-    models::{common::ModelError, user_settings},
     routers::{
         extractor::{LoginAccess, OperatorAccess},
         response::app_error_to_response,

@@ -3,9 +3,10 @@
 
 mod init;
 
+mod domain;
 mod features;
+mod infra;
 mod internal;
-mod models;
 mod routers;
 mod state;
 

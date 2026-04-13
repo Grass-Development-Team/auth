@@ -7,8 +7,8 @@ use serde::Deserialize;
 use token::services::{PasswordResetTokenService, SessionService};
 
 use crate::{
+    domain::users,
     internal::error::{AppError, AppErrorKind},
-    models::users,
     routers::{
         extractor::{Json, LoginAccess},
         response::app_error_to_response,

@@ -3,11 +3,11 @@ use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    internal::error::{AppError, AppErrorKind},
-    models::{
+    domain::{
         user_info::{self, Gender},
         user_settings, users,
     },
+    internal::error::{AppError, AppErrorKind},
     routers::{
         extractor::{LoginAccess, OperatorAccess},
         response::app_error_to_response,
