@@ -4,8 +4,10 @@ use axum::{
 };
 
 use crate::{
-    infra::config::Config,
-    routers::{cors, middleware::permission::PermissionAccess},
+    infra::{
+        config::Config,
+        http::{cors, middleware::permission::PermissionAccess},
+    },
     state::AppState,
 };
 

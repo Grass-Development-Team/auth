@@ -6,7 +6,6 @@ mod init;
 mod domain;
 mod features;
 mod infra;
-mod routers;
 mod state;
 
 use std::{io, sync::Arc};

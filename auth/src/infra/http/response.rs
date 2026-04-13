@@ -1,6 +1,6 @@
-use crate::{
-    infra::error::{AppError, AppErrorKind},
-    routers::serializer::{Response, ResponseCode},
+use crate::infra::{
+    error::{AppError, AppErrorKind},
+    http::serializer::{Response, ResponseCode},
 };
 
 impl From<AppErrorKind> for ResponseCode {

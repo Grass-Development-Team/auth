@@ -11,12 +11,12 @@ use crate::{
     infra::{
         config::Config,
         error::{AppError, AppErrorKind},
+        http::{
+            extractor::Json,
+            response::app_error_to_response,
+            serializer::{Response, ResponseCode},
+        },
         mailer::Mailer,
-    },
-    routers::{
-        extractor::Json,
-        response::app_error_to_response,
-        serializer::{Response, ResponseCode},
     },
     state::AppState,
 };

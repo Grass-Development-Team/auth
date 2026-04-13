@@ -1,7 +1,7 @@
 use axum::{extract::FromRequestParts, http::request::Parts};
 
 use crate::{
-    routers::{extractor::LoginAccess, serializer::ResponseCode},
+    infra::http::{extractor::LoginAccess, serializer::ResponseCode},
     state::AppState,
 };
 

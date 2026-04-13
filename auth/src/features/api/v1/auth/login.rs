@@ -9,13 +9,13 @@ use crate::{
     domain::users,
     infra::{
         error::{AppError, AppErrorKind},
+        http::{
+            extractor::{GuestAccess, Json},
+            response::app_error_to_response,
+            serializer::{Response, ResponseCode},
+            utils::cookie,
+        },
         session::SESSION_TTL_SECONDS,
-    },
-    routers::{
-        extractor::{GuestAccess, Json},
-        response::app_error_to_response,
-        serializer::{Response, ResponseCode},
-        utils::cookie,
     },
     state::AppState,
 };

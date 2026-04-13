@@ -9,7 +9,7 @@ use axum_extra::extract::cookie::Cookie;
 use token::services::{SessionLookup, SessionService};
 use tower::{Layer, Service};
 
-use crate::{domain::permission, routers::serializer::ResponseCode, state::APP_STATE};
+use crate::{domain::permission, infra::http::serializer::ResponseCode, state::APP_STATE};
 
 #[derive(Clone)]
 enum PermType {

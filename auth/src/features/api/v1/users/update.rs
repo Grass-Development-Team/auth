@@ -12,11 +12,13 @@ use crate::{
         user_info::{self, Gender},
         user_settings, users,
     },
-    infra::error::{AppError, AppErrorKind},
-    routers::{
-        extractor::{Json, LoginAccess, OperatorAccess},
-        response::app_error_to_response,
-        serializer::{Response, ResponseCode},
+    infra::{
+        error::{AppError, AppErrorKind},
+        http::{
+            extractor::{Json, LoginAccess, OperatorAccess},
+            response::app_error_to_response,
+            serializer::{Response, ResponseCode},
+        },
     },
     state::AppState,
 };

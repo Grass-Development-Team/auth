@@ -1,6 +1,9 @@
 use axum::{Router, routing::get};
 
-use crate::{infra::config::Config, routers::cors, state::AppState};
+use crate::{
+    infra::{config::Config, http::cors},
+    state::AppState,
+};
 
 pub mod reset_password;
 pub mod verify_email;

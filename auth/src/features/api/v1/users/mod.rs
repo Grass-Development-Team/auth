@@ -3,7 +3,7 @@ use axum::{
     routing::{any, delete, patch},
 };
 
-use crate::{routers::middleware::permission::PermissionAccess, state::AppState};
+use crate::{infra::http::middleware::permission::PermissionAccess, state::AppState};
 
 mod delete;
 mod info;

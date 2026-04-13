@@ -6,7 +6,7 @@ use axum::{
     response::IntoResponse,
 };
 
-use crate::routers::utils::content_type;
+use crate::infra::http::utils::content_type;
 
 pub async fn controller(request: Request) -> impl IntoResponse {
     let method = request.method().clone();

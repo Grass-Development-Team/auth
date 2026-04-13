@@ -3,12 +3,14 @@ use axum_extra::extract::CookieJar;
 use token::services::SessionService;
 
 use crate::{
-    infra::error::{AppError, AppErrorKind},
-    routers::{
-        extractor::LoginAccess,
-        response::app_error_to_response,
-        serializer::{Response, ResponseCode},
-        utils::cookie::CookieJarExt,
+    infra::{
+        error::{AppError, AppErrorKind},
+        http::{
+            extractor::LoginAccess,
+            response::app_error_to_response,
+            serializer::{Response, ResponseCode},
+            utils::cookie::CookieJarExt,
+        },
     },
     state::AppState,
 };

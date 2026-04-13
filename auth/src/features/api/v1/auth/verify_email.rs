@@ -6,11 +6,13 @@ use token::{TokenStore, services::RegisterTokenService};
 
 use crate::{
     domain::users,
-    infra::error::{AppError, AppErrorKind},
-    routers::{
-        extractor::Json,
-        response::app_error_to_response,
-        serializer::{Response, ResponseCode},
+    infra::{
+        error::{AppError, AppErrorKind},
+        http::{
+            extractor::Json,
+            response::app_error_to_response,
+            serializer::{Response, ResponseCode},
+        },
     },
     state::AppState,
 };

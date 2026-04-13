@@ -1,6 +1,6 @@
 use axum::{Router, routing::any};
 
-use crate::{routers::cors, state::AppState};
+use crate::{infra::http::cors, state::AppState};
 
 pub mod not_found;
 pub mod ping;

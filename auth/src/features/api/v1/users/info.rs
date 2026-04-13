@@ -7,11 +7,13 @@ use crate::{
         user_info::{self, Gender},
         user_settings, users,
     },
-    infra::error::{AppError, AppErrorKind},
-    routers::{
-        extractor::{LoginAccess, OperatorAccess},
-        response::app_error_to_response,
-        serializer::{Response, ResponseCode},
+    infra::{
+        error::{AppError, AppErrorKind},
+        http::{
+            extractor::{LoginAccess, OperatorAccess},
+            response::app_error_to_response,
+            serializer::{Response, ResponseCode},
+        },
     },
     state::AppState,
 };

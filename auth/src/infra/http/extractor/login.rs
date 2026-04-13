@@ -4,7 +4,7 @@ use token::services::{SessionLookup, SessionService};
 
 use crate::{
     domain::{role, user_info, user_settings, users},
-    routers::serializer::ResponseCode,
+    infra::http::serializer::ResponseCode,
     state::AppState,
 };
 

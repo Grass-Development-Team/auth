@@ -16,12 +16,12 @@ use crate::{
         config::Config,
         database::ModelError,
         error::{AppError, AppErrorKind},
+        http::{
+            extractor::{GuestAccess, Json},
+            response::app_error_to_response,
+            serializer::{Response, ResponseCode},
+        },
         mailer::Mailer,
-    },
-    routers::{
-        extractor::{GuestAccess, Json},
-        response::app_error_to_response,
-        serializer::{Response, ResponseCode},
     },
     state::AppState,
 };
