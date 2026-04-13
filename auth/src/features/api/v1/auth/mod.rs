@@ -37,10 +37,8 @@ pub fn router(config: &Config) -> Router<AppState> {
         )
         .route(
             "/reset-password/password",
-            patch(reset_password::controller_with_password).layer(PermissionAccess::any(&[
-                "user:reset_password:self",
-                "user:reset_password:other",
-            ])),
+            patch(reset_password::controller_with_password)
+                .layer(PermissionAccess::all(&["user:reset_password:self"])),
         );
     Router::new().nest("/auth", route).layer(cors)
 }

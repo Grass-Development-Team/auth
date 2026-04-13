@@ -176,9 +176,6 @@ impl ResetPasswordWithPasswordService {
         conn: &DatabaseConnection,
         user: &users::Model,
     ) -> Result<(), AppError> {
-        // TODO: Check permission whether user:reset_password:other or
-        // user:reset_password:self
-
         if !user.check_password(self.old_password.clone()) {
             return Err(AppError::biz(
                 AppErrorKind::Unauthorized,
