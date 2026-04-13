@@ -8,7 +8,7 @@ use token::services::{PasswordResetTokenService, SessionService};
 
 use crate::{
     domain::users,
-    internal::error::{AppError, AppErrorKind},
+    infra::error::{AppError, AppErrorKind},
     routers::{
         extractor::{Json, LoginAccess},
         response::app_error_to_response,

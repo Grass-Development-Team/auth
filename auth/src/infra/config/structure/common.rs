@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::internal::config::{Database, Mail, Redis, Secure, Site, common::CONFIG_VERSION};
+use crate::infra::config::{Database, Mail, Redis, Secure, Site, common::CONFIG_VERSION};
 
 /// Config of madoka_auth.
 #[derive(Serialize, Deserialize, Clone, Debug)]

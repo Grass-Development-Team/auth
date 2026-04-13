@@ -4,7 +4,7 @@ use axum::{
 };
 
 use crate::{
-    internal::config::Config,
+    infra::config::Config,
     routers::{cors, middleware::permission::PermissionAccess},
     state::AppState,
 };

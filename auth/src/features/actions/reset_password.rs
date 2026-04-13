@@ -10,7 +10,7 @@ use serde::Deserialize;
 use token::{TokenStore, services::PasswordResetTokenService};
 
 use crate::{
-    internal::{
+    infra::{
         config::Config,
         error::{AppError, AppErrorKind},
     },

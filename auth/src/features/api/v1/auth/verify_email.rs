@@ -6,7 +6,7 @@ use token::{TokenStore, services::RegisterTokenService};
 
 use crate::{
     domain::users,
-    internal::error::{AppError, AppErrorKind},
+    infra::error::{AppError, AppErrorKind},
     routers::{
         extractor::Json,
         response::app_error_to_response,

@@ -4,8 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     domain::user_settings,
-    infra::database::ModelError,
-    internal::error::{AppError, AppErrorKind},
+    infra::{
+        database::ModelError,
+        error::{AppError, AppErrorKind},
+    },
     routers::{
         extractor::{LoginAccess, OperatorAccess},
         response::app_error_to_response,

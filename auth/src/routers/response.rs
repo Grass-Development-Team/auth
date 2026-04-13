@@ -1,5 +1,5 @@
 use crate::{
-    internal::error::{AppError, AppErrorKind},
+    infra::error::{AppError, AppErrorKind},
     routers::serializer::{Response, ResponseCode},
 };
 

@@ -6,7 +6,7 @@ use token::services::SessionService;
 
 use crate::{
     domain::{permission, role, users},
-    internal::error::{AppError, AppErrorKind},
+    infra::error::{AppError, AppErrorKind},
     routers::{
         extractor::{Json, LoginAccess, OperatorAccess},
         response::app_error_to_response,

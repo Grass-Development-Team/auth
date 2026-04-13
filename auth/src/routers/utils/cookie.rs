@@ -3,7 +3,7 @@ use axum_extra::extract::{
     cookie::{Cookie, SameSite},
 };
 
-use crate::internal::session::SESSION_TTL_SECONDS;
+use crate::infra::session::SESSION_TTL_SECONDS;
 
 pub trait CookieJarExt {
     fn remove_session_cookie(self) -> Self;

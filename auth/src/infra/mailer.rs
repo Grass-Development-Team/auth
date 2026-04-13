@@ -9,7 +9,7 @@ use lettre::{
 };
 use minijinja::{AutoEscape, Environment, Value};
 
-use crate::internal::config::{Mail, MailSecure};
+use crate::infra::config::{Mail, MailSecure};
 
 pub fn init(config: &Mail) -> Result<Mailer> {
     Mailer::new(config)

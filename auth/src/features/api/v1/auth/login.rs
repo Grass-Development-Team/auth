@@ -7,7 +7,7 @@ use token::services::SessionService;
 
 use crate::{
     domain::users,
-    internal::{
+    infra::{
         error::{AppError, AppErrorKind},
         session::SESSION_TTL_SECONDS,
     },

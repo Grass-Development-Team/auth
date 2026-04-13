@@ -12,7 +12,7 @@ use crate::{
         user_info::{self, Gender},
         user_settings, users,
     },
-    internal::error::{AppError, AppErrorKind},
+    infra::error::{AppError, AppErrorKind},
     routers::{
         extractor::{Json, LoginAccess, OperatorAccess},
         response::app_error_to_response,

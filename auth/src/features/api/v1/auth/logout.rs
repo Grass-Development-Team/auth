@@ -3,7 +3,7 @@ use axum_extra::extract::CookieJar;
 use token::services::SessionService;
 
 use crate::{
-    internal::error::{AppError, AppErrorKind},
+    infra::error::{AppError, AppErrorKind},
     routers::{
         extractor::LoginAccess,
         response::app_error_to_response,

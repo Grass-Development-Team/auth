@@ -3,7 +3,7 @@ use std::sync::Arc;
 use sea_orm::DatabaseConnection;
 use tokio::sync::OnceCell;
 
-use crate::internal::{config, mail::Mailer};
+use crate::infra::{config, mailer::Mailer};
 
 pub static APP_STATE: OnceCell<AppState> = OnceCell::const_new();
 

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::internal::utils;
+use crate::infra::utils;
 
 fn default_jwt_secret() -> String {
     utils::rand::string(16)

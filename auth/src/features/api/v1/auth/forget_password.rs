@@ -8,10 +8,10 @@ use token::services::PasswordResetTokenService;
 use crate::{
     domain::users,
     features::actions::reset_password::ActionsResetPasswordService,
-    internal::{
+    infra::{
         config::Config,
         error::{AppError, AppErrorKind},
-        mail::Mailer,
+        mailer::Mailer,
     },
     routers::{
         extractor::Json,

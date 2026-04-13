@@ -1,6 +1,6 @@
 use axum::Router;
 
-use crate::{internal::config::Config, state::AppState};
+use crate::{infra::config::Config, state::AppState};
 
 pub mod actions;
 pub mod api;

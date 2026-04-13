@@ -12,8 +12,11 @@ use crate::{
         role_permissions::{ActiveModel as RolePermissionActiveModel, Entity as RolePermission},
         users::{self, AccountStatus},
     },
-    infra::database::{ModelError, migration::Migrator},
-    internal::{config::Database as DatabaseType, utils},
+    infra::{
+        config::Database as DatabaseType,
+        database::{ModelError, migration::Migrator},
+        utils,
+    },
 };
 
 pub async fn init(sql: &DatabaseType) -> Result<DatabaseConnection, ModelError> {

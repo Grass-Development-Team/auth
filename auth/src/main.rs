@@ -6,7 +6,6 @@ mod init;
 mod domain;
 mod features;
 mod infra;
-mod internal;
 mod routers;
 mod state;
 
@@ -17,7 +16,7 @@ use colored::Colorize;
 use tokio::{net::TcpListener, signal, sync::oneshot};
 use tracing::{error, info};
 
-use crate::internal::config::Config;
+use crate::infra::config::Config;
 
 async fn shutdown_signal() {
     let ctrl_c = async {
@@ -71,7 +70,7 @@ async fn main() -> anyhow::Result<()> {
     info!("Redis initialized.");
 
     let mail = if let Some(mail) = &config.mail {
-        Some(Arc::new(init::mail(mail)?))
+        Some(Arc::new(init::mailer(mail)?))
     } else {
         None
     };

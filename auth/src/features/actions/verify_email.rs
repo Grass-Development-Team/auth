@@ -9,7 +9,7 @@ use minijinja::{AutoEscape, Environment, context};
 use serde::Deserialize;
 
 use crate::{
-    internal::{
+    infra::{
         config::Config,
         error::{AppError, AppErrorKind},
     },

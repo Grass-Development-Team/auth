@@ -2,7 +2,7 @@ use crypto::password::PasswordError;
 use sea_orm::DbErr;
 use thiserror::Error;
 
-use crate::internal::error::{AppError, AppErrorKind};
+use crate::infra::error::{AppError, AppErrorKind};
 
 #[derive(Debug, Error)]
 pub enum ModelError {

@@ -12,11 +12,11 @@ use validator::Validatable;
 
 use crate::{
     domain::users,
-    infra::database::ModelError,
-    internal::{
+    infra::{
         config::Config,
+        database::ModelError,
         error::{AppError, AppErrorKind},
-        mail::Mailer,
+        mailer::Mailer,
     },
     routers::{
         extractor::{GuestAccess, Json},
