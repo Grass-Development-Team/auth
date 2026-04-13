@@ -4,8 +4,8 @@ use tracing_subscriber::{
     Layer, filter::LevelFilter, layer::SubscriberExt, util::SubscriberInitExt,
 };
 
-use crate::internal::{config::Redis, log::layer::LogLayer};
-pub use crate::{internal::mail::init as mail, models::init as db};
+use crate::infra::{config::Redis, logger::layer::LogLayer};
+pub use crate::infra::{database::init as db, mailer::init as mailer};
 
 /// Initialize the logger
 pub fn logger() {

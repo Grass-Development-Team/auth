@@ -3,10 +3,9 @@
 
 mod init;
 
-mod internal;
-mod models;
-mod routers;
-mod services;
+mod domain;
+mod features;
+mod infra;
 mod state;
 
 use std::{io, sync::Arc};
@@ -16,7 +15,7 @@ use colored::Colorize;
 use tokio::{net::TcpListener, signal, sync::oneshot};
 use tracing::{error, info};
 
-use crate::{internal::config::Config, routers::get_router};
+use crate::infra::config::Config;
 
 async fn shutdown_signal() {
     let ctrl_c = async {
@@ -70,7 +69,7 @@ async fn main() -> anyhow::Result<()> {
     info!("Redis initialized.");
 
     let mail = if let Some(mail) = &config.mail {
-        Some(Arc::new(init::mail(mail)?))
+        Some(Arc::new(init::mailer(mail)?))
     } else {
         None
     };
@@ -87,8 +86,8 @@ async fn main() -> anyhow::Result<()> {
         })
         .await;
 
-    let app =
-        get_router(Router::new(), &config).with_state(state::APP_STATE.get().unwrap().clone());
+    let app = features::router(Router::new(), &config)
+        .with_state(state::APP_STATE.get().unwrap().clone());
 
     let addr = format!("{}:{}", &host, config.port);
 
