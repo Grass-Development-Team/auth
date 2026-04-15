@@ -92,11 +92,11 @@ pub struct RegisterTokenLease {
 impl TokenStore for RegisterTokenService {
     type Payload = RegisterToken;
 
-    const PREFIX: &'static str = "register-token";
+    const PREFIX: &'static str = "madoka::auth::register-token";
 }
 
 impl RegisterTokenService {
-    const INDEX_PREFIX: &'static str = "register-token-index";
+    const INDEX_PREFIX: &'static str = "madoka::auth::register-token-user";
 
     fn index_key(uid: i32) -> String {
         format!("{}::{uid}", Self::INDEX_PREFIX)
