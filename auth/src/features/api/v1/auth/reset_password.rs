@@ -50,10 +50,6 @@ pub async fn controller_with_password(
     jar: CookieJar,
     Json(req): Json<ResetPasswordWithPasswordService>,
 ) -> (CookieJar, Response) {
-    if let Err(err) = req.reset_password(&state.db, &login.user.0).await {
-        return (jar, app_error_to_response(err));
-    }
-
     let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
         Ok(redis) => redis,
         Err(err) => {
@@ -71,12 +67,34 @@ pub async fn controller_with_password(
         },
     };
 
-    if let Err(err) = SessionService::delete(&mut redis, &login.session).await {
+    if let Err(err) = req.reset_password(&login.user.0).await {
+        return (jar, app_error_to_response(err));
+    }
+
+    if let Err(err) = SessionService::delete_all_by_uid(&mut redis, login.user.0.uid).await {
+        let jar = jar.remove_session_cookie();
         return (
             jar,
             app_error_to_response(AppError::infra(
                 AppErrorKind::InternalError,
-                "auth.controller.reset_password_password.delete_session",
+                "auth.controller.reset_password_password.delete_all_sessions",
+                err,
+            )),
+        );
+    }
+
+    if let Err(err) = login
+        .user
+        .0
+        .update_password(state.db.as_ref(), req.new_password.clone())
+        .await
+    {
+        let jar = jar.remove_session_cookie();
+        return (
+            jar,
+            app_error_to_response(AppError::infra(
+                AppErrorKind::InternalError,
+                "auth.reset_password.password.update_password",
                 err,
             )),
         );
@@ -158,6 +176,14 @@ impl ResetPasswordWithTokenService {
             ));
         }
 
+        if let Err(err) = SessionService::delete_all_by_uid(redis, uid).await {
+            return Err(AppError::infra(
+                AppErrorKind::InternalError,
+                "auth.reset_password.token.delete_all_sessions",
+                err,
+            ));
+        }
+
         if let Err(err) = user.update_password(conn, self.new_password.clone()).await {
             return Err(AppError::infra(
                 AppErrorKind::InternalError,
@@ -171,11 +197,7 @@ impl ResetPasswordWithTokenService {
 }
 
 impl ResetPasswordWithPasswordService {
-    pub async fn reset_password(
-        &self,
-        conn: &DatabaseConnection,
-        user: &users::Model,
-    ) -> Result<(), AppError> {
+    pub async fn reset_password(&self, user: &users::Model) -> Result<(), AppError> {
         if !user.check_password(self.old_password.clone()) {
             return Err(AppError::biz(
                 AppErrorKind::Unauthorized,
@@ -198,14 +220,6 @@ impl ResetPasswordWithPasswordService {
             )
             .with_detail(err.to_string())
         })?;
-
-        if let Err(err) = user.update_password(conn, self.new_password.clone()).await {
-            return Err(AppError::infra(
-                AppErrorKind::InternalError,
-                "auth.reset_password.password.update_password",
-                err,
-            ));
-        }
 
         Ok(())
     }

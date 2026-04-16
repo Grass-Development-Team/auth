@@ -41,18 +41,18 @@ pub async fn controller(
         },
     };
 
-    let session = login.session;
+    let uid = login.user.0.uid;
 
     if let Err(err) = req.delete(&state.db, login.user.0).await {
         return (jar, app_error_to_response(err));
     }
 
-    if let Err(err) = SessionService::delete(&mut redis, &session).await {
+    if let Err(err) = SessionService::delete_all_by_uid(&mut redis, uid).await {
         return (
             jar,
             app_error_to_response(AppError::infra(
                 AppErrorKind::InternalError,
-                "users.controller.delete.delete_session",
+                "users.controller.delete.delete_all_sessions",
                 err,
             )),
         );
@@ -68,10 +68,34 @@ pub async fn controller_by_uid(
     State(state): State<AppState>,
     Path(uid): Path<i32>,
 ) -> Response {
+    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
+        Ok(redis) => redis,
+        Err(err) => {
+            return app_error_to_response(
+                AppError::infra(
+                    AppErrorKind::InternalError,
+                    "users.controller.admin_delete.redis",
+                    err,
+                )
+                .with_detail("Unable to connect to redis"),
+            );
+        },
+    };
+
     let service = AdminDeleteService;
 
     match service.delete(&state.db, uid, login.level).await {
-        Ok(()) => ResponseCode::OK.into(),
+        Ok(()) => {
+            if let Err(err) = SessionService::delete_all_by_uid(&mut redis, uid).await {
+                return app_error_to_response(AppError::infra(
+                    AppErrorKind::InternalError,
+                    "users.controller.admin_delete.delete_all_sessions",
+                    err,
+                ));
+            }
+
+            ResponseCode::OK.into()
+        },
         Err(err) => app_error_to_response(err),
     }
 }

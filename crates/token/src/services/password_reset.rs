@@ -15,7 +15,7 @@ pub struct PasswordResetTokenService;
 impl TokenStore for PasswordResetTokenService {
     type Payload = PasswordResetToken;
 
-    const PREFIX: &'static str = "password-reset";
+    const PREFIX: &'static str = "madoka::auth::password-reset";
 }
 
 impl PasswordResetTokenService {
