@@ -67,16 +67,24 @@ pub async fn controller_with_password(
         },
     };
 
-    if let Err(err) = req
+    let reset_res = req
         .reset_password(&state.db, &mut redis, &login.user.0)
-        .await
-    {
-        return (jar, app_error_to_response(err));
+        .await;
+
+    match reset_res {
+        Ok(()) => {
+            let jar = jar.remove_session_cookie();
+            (jar, ResponseCode::OK.into())
+        },
+        Err(err) => {
+            let jar = if err.session_cleanup_started {
+                jar.remove_session_cookie()
+            } else {
+                jar
+            };
+            (jar, app_error_to_response(err.error))
+        },
     }
-
-    let jar = jar.remove_session_cookie();
-
-    (jar, ResponseCode::OK.into())
 }
 
 pub async fn controller_with_uid(
@@ -119,6 +127,11 @@ pub struct ResetPasswordWithTokenService {
 pub struct ResetPasswordWithPasswordService {
     pub old_password: String,
     pub new_password: String,
+}
+
+pub struct ResetPasswordWithPasswordError {
+    pub error:                   AppError,
+    pub session_cleanup_started: bool,
 }
 
 #[derive(Deserialize)]
@@ -211,44 +224,59 @@ impl ResetPasswordWithPasswordService {
         conn: &DatabaseConnection,
         redis: &mut MultiplexedConnection,
         user: &users::Model,
-    ) -> Result<(), AppError> {
+    ) -> Result<(), ResetPasswordWithPasswordError> {
         if !user.check_password(self.old_password.clone()) {
-            return Err(AppError::biz(
-                AppErrorKind::Unauthorized,
-                "auth.reset_password.password.verify_old_password",
-            )
-            .with_detail("Wrong password"));
+            return Err(ResetPasswordWithPasswordError {
+                error: AppError::biz(
+                    AppErrorKind::Unauthorized,
+                    "auth.reset_password.password.verify_old_password",
+                )
+                .with_detail("Wrong password"),
+                session_cleanup_started: false,
+            });
         }
 
         if self.old_password == self.new_password {
-            return Err(AppError::biz(
-                AppErrorKind::DuplicatePassword,
-                "auth.reset_password.password.check_new_password",
-            ));
+            return Err(ResetPasswordWithPasswordError {
+                error: AppError::biz(
+                    AppErrorKind::DuplicatePassword,
+                    "auth.reset_password.password.check_new_password",
+                ),
+                session_cleanup_started: false,
+            });
         }
 
         PasswordManager::validate(&self.new_password).map_err(|err| {
-            AppError::biz(
-                AppErrorKind::ParamError,
-                "auth.reset_password.password.validate_password",
-            )
-            .with_detail(err.to_string())
+            ResetPasswordWithPasswordError {
+                error: AppError::biz(
+                    AppErrorKind::ParamError,
+                    "auth.reset_password.password.validate_password",
+                )
+                .with_detail(err.to_string()),
+                session_cleanup_started: false,
+            }
         })?;
 
         if let Err(err) = SessionService::delete_all_by_uid(redis, user.uid).await {
-            return Err(AppError::infra(
-                AppErrorKind::InternalError,
-                "auth.controller.reset_password_password.delete_all_sessions",
-                err,
-            ));
+            return Err(ResetPasswordWithPasswordError {
+                error: AppError::infra(
+                    AppErrorKind::InternalError,
+                    "auth.controller.reset_password_password.delete_all_sessions",
+                    err,
+                ),
+                session_cleanup_started: true,
+            });
         }
 
         if let Err(err) = user.update_password(conn, self.new_password.clone()).await {
-            return Err(AppError::infra(
-                AppErrorKind::InternalError,
-                "auth.reset_password.password.update_password",
-                err,
-            ));
+            return Err(ResetPasswordWithPasswordError {
+                error: AppError::infra(
+                    AppErrorKind::InternalError,
+                    "auth.reset_password.password.update_password",
+                    err,
+                ),
+                session_cleanup_started: true,
+            });
         }
 
         Ok(())
