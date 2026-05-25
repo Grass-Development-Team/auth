@@ -4,7 +4,10 @@ use tracing_subscriber::{
     Layer, filter::LevelFilter, layer::SubscriberExt, util::SubscriberInitExt,
 };
 
-use crate::infra::{config::Redis, logger::layer::LogLayer};
+use crate::infra::{
+    config::{Config, Redis},
+    logger::layer::LogLayer,
+};
 pub use crate::infra::{database::init as db, mailer::init as mailer};
 
 /// Initialize the logger
@@ -20,6 +23,21 @@ pub fn logger() {
     tracing_subscriber::registry()
         .with(LogLayer.with_filter(level))
         .init();
+}
+
+pub fn config() -> anyhow::Result<Config> {
+    match Config::from_file("config.toml") {
+        Ok(mut config) => {
+            config.check();
+            config.write("config.toml")?;
+
+            Ok(config)
+        },
+        Err(err) => {
+            Config::default().write("config.toml")?;
+            Err(err)
+        },
+    }
 }
 
 /// Initialize Redis client

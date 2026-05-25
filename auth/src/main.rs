@@ -13,9 +13,7 @@ use std::{io, sync::Arc};
 use axum::Router;
 use colored::Colorize;
 use tokio::{net::TcpListener, signal, sync::oneshot};
-use tracing::{error, info};
-
-use crate::infra::config::Config;
+use tracing::info;
 
 async fn shutdown_signal() {
     let ctrl_c = async {
@@ -49,13 +47,8 @@ async fn shutdown_signal() {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     init::logger();
-    let Ok(mut config) = Config::from_file("config.toml") else {
-        error!("Cannot load config file. Generating default config instead.");
-        return Config::default().write("config.toml");
-    };
 
-    config.check();
-    config.write("config.toml")?;
+    let config = init::config()?;
 
     let host = config.host.clone();
 
