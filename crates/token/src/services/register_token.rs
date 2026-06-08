@@ -1,77 +1,7 @@
-use std::sync::OnceLock;
-
-use redis::aio::MultiplexedConnection;
+use cache::Cache;
 use serde::{Deserialize, Serialize};
 
 use crate::{TokenError, TokenStore};
-
-const ISSUE_OR_REUSE_SCRIPT: &str = r#"
-local index_key = KEYS[1]
-local token_prefix = ARGV[1]
-local uid = tonumber(ARGV[2])
-local email = ARGV[3]
-local ttl_secs = tonumber(ARGV[4])
-local min_reuse_ttl_secs = tonumber(ARGV[5])
-local new_token = ARGV[6]
-
-local existing = redis.call('GET', index_key)
-if existing then
-    local existing_key = token_prefix .. '::' .. existing
-    local payload = redis.call('GET', existing_key)
-    if payload then
-        local ok, decoded = pcall(cjson.decode, payload)
-        if ok and decoded and tonumber(decoded.uid) == uid and decoded.email == email then
-            local ttl = redis.call('TTL', existing_key)
-            if ttl > min_reuse_ttl_secs then
-                local index_ttl = redis.call('TTL', index_key)
-                if index_ttl < ttl then
-                    redis.call('EXPIRE', index_key, ttl)
-                end
-                return {existing, ttl}
-            end
-        end
-    end
-    redis.call('DEL', existing_key)
-end
-
-local payload = cjson.encode({ uid = uid, email = email })
-local new_key = token_prefix .. '::' .. new_token
-redis.call('SETEX', new_key, ttl_secs, payload)
-redis.call('SETEX', index_key, ttl_secs, new_token)
-return {new_token, ttl_secs}
-"#;
-
-const CONSUME_AND_CLEAR_INDEX_SCRIPT: &str = r#"
-local token_key = KEYS[1]
-local index_prefix = ARGV[1]
-local token = ARGV[2]
-
-local payload = redis.call('GETDEL', token_key)
-if not payload then
-    return nil
-end
-
-local ok, decoded = pcall(cjson.decode, payload)
-if ok and decoded and decoded.uid ~= nil then
-    local index_key = index_prefix .. '::' .. tostring(decoded.uid)
-    local indexed_token = redis.call('GET', index_key)
-    if indexed_token == token then
-        redis.call('DEL', index_key)
-    end
-end
-
-return payload
-"#;
-
-fn issue_or_reuse_script() -> &'static redis::Script {
-    static SCRIPT: OnceLock<redis::Script> = OnceLock::new();
-    SCRIPT.get_or_init(|| redis::Script::new(ISSUE_OR_REUSE_SCRIPT))
-}
-
-fn consume_and_clear_index_script() -> &'static redis::Script {
-    static SCRIPT: OnceLock<redis::Script> = OnceLock::new();
-    SCRIPT.get_or_init(|| redis::Script::new(CONSUME_AND_CLEAR_INDEX_SCRIPT))
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegisterToken {
@@ -107,7 +37,7 @@ impl RegisterTokenService {
     }
 
     pub async fn issue_for_user(
-        redis: &mut MultiplexedConnection,
+        cache: &Cache,
         uid: i32,
         email: impl Into<String>,
         ttl_secs: u64,
@@ -116,11 +46,11 @@ impl RegisterTokenService {
             uid,
             email: email.into(),
         };
-        <Self as TokenStore>::issue(redis, &token, ttl_secs).await
+        <Self as TokenStore>::issue(cache, &token, ttl_secs).await
     }
 
     pub async fn issue_or_reuse_for_user(
-        redis: &mut MultiplexedConnection,
+        cache: &Cache,
         uid: i32,
         email: impl Into<String>,
         ttl_secs: u64,
@@ -128,38 +58,70 @@ impl RegisterTokenService {
     ) -> Result<RegisterTokenLease, TokenError> {
         let email = email.into();
         let new_token = uuid::Uuid::new_v4().to_string();
-        let index_key = Self::index_key(uid);
-        let mut invocation = issue_or_reuse_script().prepare_invoke();
-        invocation
-            .key(index_key)
-            .arg(Self::PREFIX)
-            .arg(uid)
-            .arg(email)
-            .arg(ttl_secs)
-            .arg(min_reuse_ttl_secs)
-            .arg(new_token);
-        let (token, ttl_secs): (String, i64) = invocation.invoke_async(redis).await?;
+        let idx_key = Self::index_key(uid);
+        let prefix = Self::PREFIX;
 
-        Ok(RegisterTokenLease {
-            token,
-            ttl_secs: ttl_secs.max(0) as u64,
-        })
+        let lease = cache
+            .transaction(&[idx_key.clone()], move |tx| {
+                let (idx_key, email, new_token) =
+                    (idx_key.clone(), email.clone(), new_token.clone());
+                Box::pin(async move {
+                    if let Some(existing) = tx.get(&idx_key).await? {
+                        let existing_key = format!("{prefix}::{existing}");
+                        if let Some(payload) = tx.get(&existing_key).await? {
+                            if let Ok(decoded) = serde_json::from_str::<RegisterToken>(&payload) {
+                                let ttl = tx.ttl(&existing_key).await?.unwrap_or(0);
+                                if decoded.uid == uid
+                                    && decoded.email == email
+                                    && ttl > min_reuse_ttl_secs as i64
+                                {
+                                    tx.set_ex(&idx_key, existing.clone(), ttl as u64);
+                                    return Ok(RegisterTokenLease {
+                                        token:    existing,
+                                        ttl_secs: ttl as u64,
+                                    });
+                                }
+                            }
+                            tx.del(&existing_key);
+                        }
+                    }
+
+                    let payload = serde_json::to_string(&RegisterToken {
+                        uid,
+                        email: email.clone(),
+                    })
+                    .map_err(|e| cache::CacheError::Backend(e.into()))?;
+                    let new_key = format!("{prefix}::{new_token}");
+                    tx.set_ex(&new_key, payload, ttl_secs);
+                    tx.set_ex(&idx_key, new_token.clone(), ttl_secs);
+                    Ok(RegisterTokenLease {
+                        token: new_token,
+                        ttl_secs,
+                    })
+                })
+            })
+            .await?;
+        Ok(lease)
     }
 
-    pub async fn consume(
-        redis: &mut MultiplexedConnection,
-        token: &str,
-    ) -> Result<Option<RegisterToken>, TokenError> {
-        let mut invocation = consume_and_clear_index_script().prepare_invoke();
-        invocation
-            .key(Self::token_key(token))
-            .arg(Self::INDEX_PREFIX)
-            .arg(token);
-        let payload: Option<String> = invocation.invoke_async(redis).await?;
-
-        payload
-            .map(|payload| serde_json::from_str(&payload))
-            .transpose()
-            .map_err(Into::into)
+    pub async fn consume(cache: &Cache, token: &str) -> Result<Option<RegisterToken>, TokenError> {
+        let Some(payload) = cache.get_del(&Self::token_key(token)).await? else {
+            return Ok(None);
+        };
+        let decoded: RegisterToken = serde_json::from_str(&payload)?;
+        let idx_key = Self::index_key(decoded.uid);
+        let token = token.to_owned();
+        cache
+            .transaction(&[idx_key.clone()], move |tx| {
+                let (idx_key, token) = (idx_key.clone(), token.clone());
+                Box::pin(async move {
+                    if tx.get(&idx_key).await?.as_deref() == Some(token.as_str()) {
+                        tx.del(&idx_key);
+                    }
+                    Ok(())
+                })
+            })
+            .await?;
+        Ok(Some(decoded))
     }
 }
