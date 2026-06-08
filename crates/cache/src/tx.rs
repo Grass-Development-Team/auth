@@ -1,5 +1,4 @@
-use std::future::Future;
-use std::pin::Pin;
+use std::{future::Future, pin::Pin, sync::Mutex};
 
 use crate::CacheError;
 
@@ -29,14 +28,14 @@ pub trait TxReader: Send + Sync {
 
 pub struct Tx<'a> {
     reader: &'a dyn TxReader,
-    writes: Vec<CacheWrite>,
+    writes: Mutex<Vec<CacheWrite>>,
 }
 
 impl<'a> Tx<'a> {
     pub fn new(reader: &'a dyn TxReader) -> Self {
         Self {
             reader,
-            writes: Vec::new(),
+            writes: Mutex::new(Vec::new()),
         }
     }
 
@@ -48,19 +47,25 @@ impl<'a> Tx<'a> {
         self.reader.ttl(key).await
     }
 
-    pub fn set_ex(&mut self, key: impl Into<String>, val: impl Into<String>, ttl_secs: u64) {
-        self.writes.push(CacheWrite::SetEx {
-            key: key.into(),
-            val: val.into(),
-            ttl_secs,
-        });
-    }
-
-    pub fn del(&mut self, key: impl Into<String>) {
-        self.writes.push(CacheWrite::Del { key: key.into() });
-    }
-
-    pub fn into_writes(self) -> Vec<CacheWrite> {
+    pub fn set_ex(&self, key: impl Into<String>, val: impl Into<String>, ttl_secs: u64) {
         self.writes
+            .lock()
+            .expect("tx writes mutex poisoned")
+            .push(CacheWrite::SetEx {
+                key: key.into(),
+                val: val.into(),
+                ttl_secs,
+            });
+    }
+
+    pub fn del(&self, key: impl Into<String>) {
+        self.writes
+            .lock()
+            .expect("tx writes mutex poisoned")
+            .push(CacheWrite::Del { key: key.into() });
+    }
+
+    pub fn take_writes(&self) -> Vec<CacheWrite> {
+        std::mem::take(&mut *self.writes.lock().expect("tx writes mutex poisoned"))
     }
 }
