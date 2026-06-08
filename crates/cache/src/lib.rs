@@ -1,3 +1,7 @@
 mod error;
+mod tx;
 
-pub use crate::error::CacheError;
+pub use crate::{
+    error::CacheError,
+    tx::{CacheWrite, Tx, TxReader},
+};
