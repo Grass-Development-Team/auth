@@ -49,6 +49,8 @@ sea-orm-migration = { version = "1.1", default-features = false, features = [
     "sqlx-postgres",
 ] }
 redis = { version = "0.27.5", features = ["tokio-rustls-comp"] }
+deadpool-redis = "0.18"
+moka = { version = "0.12", features = ["future"] }
 
 sha2 = "0.10.9"
 argon2 = "0.5"
@@ -74,4 +76,5 @@ assets = { path = "crates/assets" }
 jwt = { path = "crates/jwt" }
 validator = { path = "crates/validator" }
 crypto = { path = "crates/crypto" }
+cache = { path = "crates/cache" }
 token = { path = "crates/token" }
