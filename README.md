@@ -33,7 +33,13 @@ The service starts on `http://localhost:7817`.
 
 ## Configuration
 
-On first run, it creates a `config.toml` file. Update the database and Redis settings as needed.
+On first run, it creates a `config.toml` file. Update the database settings as needed.
+
+### Cache backend
+
+- `cache.backend = "redis"` for multi-instance deployments.
+- `cache.backend = "moka"` for development or low-resource hosts.
+- `moka` only works in a single instance because it is in-process state.
 
 When you first start the service, it creates a super admin account. Check the startup logs for the username and password.
 

@@ -32,7 +32,6 @@ minijinja.workspace = true
 
 sea-orm.workspace = true
 sea-orm-migration.workspace = true
-redis.workspace = true
 
 base16ct.workspace = true
 rand.workspace = true

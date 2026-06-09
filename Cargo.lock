@@ -181,7 +181,6 @@ dependencies = [
  "lettre",
  "minijinja",
  "rand",
- "redis",
  "regex",
  "sea-orm",
  "sea-orm-migration",
