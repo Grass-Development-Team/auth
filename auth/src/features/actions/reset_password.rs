@@ -23,18 +23,7 @@ pub async fn controller(
 ) -> Response {
     let token_valid = match req.token() {
         Some(token) => {
-            let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
-                Ok(redis) => redis,
-                Err(err) => {
-                    return render_reset_password_error(AppError::infra(
-                        AppErrorKind::InternalError,
-                        "actions.reset_password.redis",
-                        err,
-                    ));
-                },
-            };
-
-            match PasswordResetTokenService::get(&mut redis, token)
+            match PasswordResetTokenService::get(&state.cache, token)
                 .await
                 .map(|payload| payload.is_some())
                 .map_err(|err| {

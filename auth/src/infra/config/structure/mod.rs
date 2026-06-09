@@ -7,9 +7,8 @@ mod redis;
 mod secure;
 mod site;
 
-pub use common::*;
-
 pub use cache::*;
+pub use common::*;
 pub use database::*;
 pub use mail::*;
 pub use redis::*;

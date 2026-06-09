@@ -3,7 +3,6 @@ use std::sync::OnceLock;
 use axum::extract::State;
 use crypto::password::{PasswordHashAlgorithm, PasswordManager};
 use minijinja::context;
-use redis::aio::MultiplexedConnection;
 use regex::Regex;
 use sea_orm::{DatabaseConnection, TransactionError, TransactionTrait};
 use serde::Deserialize;
@@ -31,30 +30,12 @@ pub async fn controller(
     State(state): State<AppState>,
     Json(req): Json<RegisterService>,
 ) -> Response<String> {
-    let mut redis: Option<MultiplexedConnection> = if state.mail.is_some() {
-        match state.redis.get_multiplexed_tokio_connection().await {
-            Ok(redis) => Some(redis),
-            Err(err) => {
-                return app_error_to_response(
-                    AppError::infra(
-                        AppErrorKind::InternalError,
-                        "auth.controller.register.redis",
-                        err,
-                    )
-                    .with_detail("Unable to connect to redis"),
-                );
-            },
-        }
-    } else {
-        None
-    };
-
     match req
         .register(
             &state.db,
             &state.config,
             state.mail.as_deref(),
-            redis.as_mut(),
+            &state.cache,
         )
         .await
     {
@@ -85,22 +66,13 @@ impl RegisterService {
         conn: &DatabaseConnection,
         config: &Config,
         mailer: Option<&Mailer>,
-        redis: Option<&mut MultiplexedConnection>,
+        cache: &cache::Cache,
     ) -> Result<String, AppError> {
         if !config.site.enable_registration {
             return Err(AppError::biz(
                 AppErrorKind::RegistrationDisabled,
                 "auth.register.check_enabled",
             ));
-        }
-
-        if mailer.is_some() && redis.is_none() {
-            return Err(AppError::infra(
-                AppErrorKind::InternalError,
-                "auth.register.precheck_redis",
-                anyhow::anyhow!("Redis connection not available"),
-            )
-            .with_detail("Unable to connect to redis"));
         }
 
         self.validate()?;
@@ -111,7 +83,7 @@ impl RegisterService {
             {
                 Self::send_verification_email(
                     mailer,
-                    redis,
+                    cache,
                     config,
                     user.uid,
                     &user.username,
@@ -201,10 +173,9 @@ impl RegisterService {
                             err,
                         )
                     })?;
-
             Self::send_verification_email(
                 mailer,
-                redis,
+                cache,
                 config,
                 user.uid,
                 &user.username,
@@ -219,22 +190,14 @@ impl RegisterService {
 
     async fn send_verification_email(
         mailer: &Mailer,
-        redis: Option<&mut MultiplexedConnection>,
+        cache: &cache::Cache,
         config: &Config,
         uid: i32,
         username: &str,
         email: &str,
     ) -> Result<(), AppError> {
-        let Some(redis) = redis else {
-            return Err(AppError::infra(
-                AppErrorKind::InternalError,
-                "auth.register.send_verification_email",
-                anyhow::anyhow!("Redis connection not available"),
-            ));
-        };
-
         let token = RegisterTokenService::issue_or_reuse_for_user(
-            redis,
+            cache,
             uid,
             email,
             REGISTER_TOKEN_TTL_SECONDS,
