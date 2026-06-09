@@ -173,6 +173,7 @@ dependencies = [
  "axum",
  "axum-extra",
  "base16ct",
+ "cache",
  "chrono",
  "colored",
  "crypto",

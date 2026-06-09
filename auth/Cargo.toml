@@ -45,4 +45,5 @@ assets.workspace = true
 validator.workspace = true
 jwt.workspace = true
 crypto.workspace = true
+cache.workspace = true
 token.workspace = true

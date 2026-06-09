@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::infra::config::{Database, Mail, Redis, Secure, Site, common::CONFIG_VERSION};
+use crate::infra::config::{
+    CacheConfig, Database, Mail, Redis, Secure, Site, common::CONFIG_VERSION,
+};
 
 /// Config of madoka_auth.
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -34,6 +36,9 @@ pub struct Config {
     /// Redis configuration.
     #[serde(default)]
     pub redis:    Redis,
+    /// Cache configuration.
+    #[serde(default)]
+    pub cache:    CacheConfig,
     /// Secure configuration.
     #[serde(default)]
     pub secure:   Secure,

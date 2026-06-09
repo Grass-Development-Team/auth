@@ -1,5 +1,6 @@
 mod common;
 
+mod cache;
 mod database;
 mod mail;
 mod redis;
@@ -7,6 +8,8 @@ mod secure;
 mod site;
 
 pub use common::*;
+
+pub use cache::*;
 pub use database::*;
 pub use mail::*;
 pub use redis::*;
