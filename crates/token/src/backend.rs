@@ -16,7 +16,9 @@ impl CacheTokenBackend {
         ttl_secs: u64,
     ) -> Result<String, TokenError> {
         let token = uuid::Uuid::new_v4().to_string();
-        cache.set_ex(&Self::key(prefix, &token), payload, ttl_secs).await?;
+        cache
+            .set_ex(&Self::key(prefix, &token), payload, ttl_secs)
+            .await?;
         Ok(token)
     }
 
