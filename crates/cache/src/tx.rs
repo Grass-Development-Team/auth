@@ -26,6 +26,8 @@ pub trait TxReader: Send + Sync {
     ) -> Pin<Box<dyn Future<Output = Result<Option<i64>, CacheError>> + Send + 'a>>;
 }
 
+pub type TxFuture<'t, T> = Pin<Box<dyn Future<Output = Result<T, CacheError>> + Send + 't>>;
+
 pub struct Tx<'a> {
     reader: &'a dyn TxReader,
     writes: Mutex<Vec<CacheWrite>>,

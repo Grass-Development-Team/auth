@@ -9,6 +9,16 @@ use crate::{
 
 const MAX_TX_RETRIES: usize = 5;
 
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("redis pool error: {0}")]
+    Pool(#[from] deadpool_redis::PoolError),
+    #[error("redis backend error: {0}")]
+    Backend(#[from] redis::RedisError),
+    #[error("redis pool creation error: {0}")]
+    CreatePool(#[source] anyhow::Error),
+}
+
 pub struct RedisCache {
     pool: Pool,
 }
@@ -16,32 +26,32 @@ pub struct RedisCache {
 impl RedisCache {
     pub const MAX_TX_RETRIES: usize = MAX_TX_RETRIES;
 
-    pub fn new(url: &str) -> Result<Self, CacheError> {
+    pub fn new(url: &str) -> Result<Self, Error> {
         let cfg = PoolConfig::from_url(url);
         let pool = cfg
             .create_pool(Some(Runtime::Tokio1))
-            .map_err(|e| CacheError::Backend(e.into()))?;
+            .map_err(|e| Error::CreatePool(e.into()))?;
         Ok(Self { pool })
     }
 
-    pub async fn get(&self, key: &str) -> Result<Option<String>, CacheError> {
+    pub async fn get(&self, key: &str) -> Result<Option<String>, Error> {
         let mut conn = self.pool.get().await?;
         Ok(conn.get::<_, Option<String>>(key).await?)
     }
 
-    pub async fn set_ex(&self, key: &str, val: &str, ttl_secs: u64) -> Result<(), CacheError> {
+    pub async fn set_ex(&self, key: &str, val: &str, ttl_secs: u64) -> Result<(), Error> {
         let mut conn = self.pool.get().await?;
         conn.set_ex::<_, _, ()>(key, val, ttl_secs).await?;
         Ok(())
     }
 
-    pub async fn del(&self, key: &str) -> Result<(), CacheError> {
+    pub async fn del(&self, key: &str) -> Result<(), Error> {
         let mut conn = self.pool.get().await?;
         conn.del::<_, ()>(key).await?;
         Ok(())
     }
 
-    pub async fn get_del(&self, key: &str) -> Result<Option<String>, CacheError> {
+    pub async fn get_del(&self, key: &str) -> Result<Option<String>, Error> {
         let mut conn = self.pool.get().await?;
         Ok(redis::cmd("GETDEL")
             .arg(key)
@@ -49,13 +59,13 @@ impl RedisCache {
             .await?)
     }
 
-    pub async fn ttl(&self, key: &str) -> Result<Option<i64>, CacheError> {
+    pub async fn ttl(&self, key: &str) -> Result<Option<i64>, Error> {
         let mut conn = self.pool.get().await?;
         let ttl: i64 = redis::cmd("TTL").arg(key).query_async(&mut *conn).await?;
         Ok(if ttl >= 0 { Some(ttl) } else { None })
     }
 
-    pub async fn tx_acquire(&self, watch: &[String]) -> Result<RedisTxGuard, CacheError> {
+    pub async fn tx_acquire(&self, watch: &[String]) -> Result<RedisTxGuard, Error> {
         let mut conn = self.pool.get().await?;
         if !watch.is_empty() {
             let mut cmd = redis::cmd("WATCH");
@@ -73,7 +83,7 @@ impl RedisCache {
         &self,
         guard: RedisTxGuard,
         writes: Vec<CacheWrite>,
-    ) -> Result<bool, CacheError> {
+    ) -> Result<bool, Error> {
         let mut conn = guard.conn.into_inner();
         let mut pipe = redis::pipe();
         pipe.atomic();
@@ -109,7 +119,10 @@ impl TxReader for RedisTxGuard {
     > {
         Box::pin(async move {
             let mut conn = self.conn.lock().await;
-            Ok(conn.get::<_, Option<String>>(key).await?)
+            conn.get::<_, Option<String>>(key)
+                .await
+                .map_err(Error::from)
+                .map_err(Into::into)
         })
     }
 
@@ -121,7 +134,12 @@ impl TxReader for RedisTxGuard {
     > {
         Box::pin(async move {
             let mut conn = self.conn.lock().await;
-            let ttl: i64 = redis::cmd("TTL").arg(key).query_async(&mut *conn).await?;
+            let ttl: i64 = redis::cmd("TTL")
+                .arg(key)
+                .query_async(&mut *conn)
+                .await
+                .map_err(Error::from)
+                .map_err(CacheError::from)?;
             Ok(if ttl >= 0 { Some(ttl) } else { None })
         })
     }

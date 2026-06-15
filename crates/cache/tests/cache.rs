@@ -94,7 +94,7 @@ async fn redis_transaction() {
     let key = format!("cache-test-tx::{}", uuid_like());
     c.set_ex(&key, "0", 60).await.unwrap();
     let out: i64 = c
-        .transaction(&[key.clone()], |tx| {
+        .transaction(std::slice::from_ref(&key), |tx| {
             let key = key.clone();
             Box::pin(async move {
                 let cur: i64 = tx.get(&key).await?.unwrap().parse().unwrap();

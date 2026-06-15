@@ -15,6 +15,12 @@ use crate::{
 
 const STRIPES: usize = 64;
 
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("moka backend error: {0}")]
+    Backend(#[from] anyhow::Error),
+}
+
 #[derive(Clone)]
 struct Entry {
     value:     String,
@@ -78,11 +84,11 @@ impl MokaCache {
         })
     }
 
-    pub async fn get(&self, key: &str) -> Result<Option<String>, CacheError> {
+    pub async fn get(&self, key: &str) -> Result<Option<String>, Error> {
         Ok(Self::live(self.map.get(key).await))
     }
 
-    pub async fn set_ex(&self, key: &str, val: &str, ttl_secs: u64) -> Result<(), CacheError> {
+    pub async fn set_ex(&self, key: &str, val: &str, ttl_secs: u64) -> Result<(), Error> {
         let entry = Entry {
             value:     val.to_owned(),
             expire_at: Instant::now() + Duration::from_secs(ttl_secs),
@@ -91,12 +97,12 @@ impl MokaCache {
         Ok(())
     }
 
-    pub async fn del(&self, key: &str) -> Result<(), CacheError> {
+    pub async fn del(&self, key: &str) -> Result<(), Error> {
         self.map.invalidate(key).await;
         Ok(())
     }
 
-    pub async fn get_del(&self, key: &str) -> Result<Option<String>, CacheError> {
+    pub async fn get_del(&self, key: &str) -> Result<Option<String>, Error> {
         let val = Self::live(self.map.get(key).await);
         if val.is_some() {
             self.map.invalidate(key).await;
@@ -104,7 +110,7 @@ impl MokaCache {
         Ok(val)
     }
 
-    pub async fn ttl(&self, key: &str) -> Result<Option<i64>, CacheError> {
+    pub async fn ttl(&self, key: &str) -> Result<Option<i64>, Error> {
         Ok(self.map.get(key).await.and_then(|e| {
             let now = Instant::now();
             if e.expire_at > now {
@@ -126,7 +132,7 @@ impl MokaCache {
         guards
     }
 
-    pub async fn apply_writes(&self, writes: Vec<CacheWrite>) -> Result<(), CacheError> {
+    pub async fn apply_writes(&self, writes: Vec<CacheWrite>) -> Result<(), Error> {
         for w in writes {
             match w {
                 CacheWrite::SetEx { key, val, ttl_secs } => {
@@ -152,7 +158,7 @@ impl TxReader for MokaCache {
     ) -> std::pin::Pin<
         Box<dyn std::future::Future<Output = Result<Option<String>, CacheError>> + Send + 'a>,
     > {
-        Box::pin(async move { MokaCache::get(self, key).await })
+        Box::pin(async move { MokaCache::get(self, key).await.map_err(Into::into) })
     }
 
     fn ttl<'a>(
@@ -161,6 +167,6 @@ impl TxReader for MokaCache {
     ) -> std::pin::Pin<
         Box<dyn std::future::Future<Output = Result<Option<i64>, CacheError>> + Send + 'a>,
     > {
-        Box::pin(async move { MokaCache::ttl(self, key).await })
+        Box::pin(async move { MokaCache::ttl(self, key).await.map_err(Into::into) })
     }
 }
