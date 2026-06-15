@@ -21,10 +21,6 @@ impl FromRequestParts<AppState> for LoginAccess {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
-            return Err(ResponseCode::InternalError);
-        };
-
         let conn = &*state.db;
 
         let jar = CookieJar::from_request_parts(parts, state)
@@ -35,7 +31,7 @@ impl FromRequestParts<AppState> for LoginAccess {
             return Err(ResponseCode::Unauthorized);
         };
         let session_str = session_cookie.value().to_owned();
-        let lookup = SessionService::resolve(&mut redis, &session_str)
+        let lookup = SessionService::resolve(&state.cache, &session_str)
             .await
             .map_err(|_| ResponseCode::InternalError)?;
         let SessionLookup::Valid(session) = lookup else {

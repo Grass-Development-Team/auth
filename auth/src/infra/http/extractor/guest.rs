@@ -21,11 +21,7 @@ impl FromRequestParts<AppState> for GuestAccess {
             return Ok(GuestAccess);
         };
 
-        let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
-            return Err(ResponseCode::InternalError);
-        };
-
-        let state = SessionService::resolve(&mut redis, session_cookie.value())
+        let state = SessionService::resolve(&state.cache, session_cookie.value())
             .await
             .map_err(|_| ResponseCode::InternalError)?;
 

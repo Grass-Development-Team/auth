@@ -32,7 +32,6 @@ minijinja.workspace = true
 
 sea-orm.workspace = true
 sea-orm-migration.workspace = true
-redis.workspace = true
 
 base16ct.workspace = true
 rand.workspace = true
@@ -45,4 +44,5 @@ assets.workspace = true
 validator.workspace = true
 jwt.workspace = true
 crypto.workspace = true
+cache.workspace = true
 token.workspace = true

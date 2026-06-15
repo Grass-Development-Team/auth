@@ -67,6 +67,7 @@ impl Default for Config {
             site:     Default::default(),
             database: Default::default(),
             redis:    Default::default(),
+            cache:    Default::default(),
             secure:   Default::default(),
             mail:     Default::default(),
         }

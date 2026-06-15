@@ -1,6 +1,5 @@
 use axum::extract::State;
 use axum_extra::extract::CookieJar;
-use redis::aio::MultiplexedConnection;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use token::services::SessionService;
@@ -26,24 +25,7 @@ pub async fn controller(
     jar: CookieJar,
     Json(req): Json<LoginService>,
 ) -> (CookieJar, Response<LoginResponse>) {
-    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
-        Ok(redis) => redis,
-        Err(err) => {
-            return (
-                jar,
-                app_error_to_response(
-                    AppError::infra(
-                        AppErrorKind::InternalError,
-                        "auth.controller.login.redis",
-                        err,
-                    )
-                    .with_detail("Unable to connect to redis"),
-                ),
-            );
-        },
-    };
-
-    match req.login(&state.db, &mut redis).await {
+    match req.login(&state.db, &state.cache).await {
         Ok((data, sid)) => {
             let session_cookie = cookie::build_session_cookie(sid, !state.config.dev_mode);
             let jar = jar.add(session_cookie);
@@ -79,7 +61,7 @@ impl LoginService {
     pub async fn login(
         &self,
         conn: &DatabaseConnection,
-        redis: &mut MultiplexedConnection,
+        cache: &cache::Cache,
     ) -> Result<(LoginResponse, String), AppError> {
         // Get user by email
         let Ok(user) = users::get_user_by_email(conn, &self.email).await else {
@@ -123,7 +105,7 @@ impl LoginService {
 
         // TODO: 2-factor authentication
 
-        let session_id = SessionService::create(redis, user.uid, SESSION_TTL_SECONDS)
+        let session_id = SessionService::create(cache, user.uid, SESSION_TTL_SECONDS)
             .await
             .map_err(|err| {
                 AppError::infra(

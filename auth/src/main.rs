@@ -58,8 +58,8 @@ async fn main() -> anyhow::Result<()> {
     let db = init::db(&config.database.clone()).await?;
     info!("Database initialized.");
 
-    let redis = init::redis(&config.redis)?;
-    info!("Redis initialized.");
+    let cache = init::cache(&config)?;
+    info!("Cache initialized.");
 
     let mail = if let Some(mail) = &config.mail {
         Some(Arc::new(init::mailer(mail)?))
@@ -73,7 +73,7 @@ async fn main() -> anyhow::Result<()> {
     state::APP_STATE
         .get_or_init(async || state::AppState {
             db: Arc::from(db),
-            redis: Arc::from(redis),
+            cache: Arc::from(cache),
             config: Arc::from(config.clone()),
             mail,
         })

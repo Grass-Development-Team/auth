@@ -5,7 +5,7 @@ use tracing_subscriber::{
 };
 
 use crate::infra::{
-    config::{Config, Redis},
+    config::{CacheBackend, Config, Redis},
     logger::layer::LogLayer,
 };
 pub use crate::infra::{database::init as db, mailer::init as mailer};
@@ -40,28 +40,36 @@ pub fn config() -> anyhow::Result<Config> {
     }
 }
 
-/// Initialize Redis client
-pub fn redis(redis: &Redis) -> Result<redis::Client, redis::RedisError> {
-    redis::Client::open(format!(
+fn redis_url(redis: &Redis) -> String {
+    format!(
         "redis://{}{}:{}",
         if redis.username.is_some() || redis.password.is_some() {
             format!(
                 "{}{}@",
-                if let Some(username) = redis.username.clone() {
-                    username
-                } else {
-                    "".into()
-                },
+                redis.username.clone().unwrap_or_default(),
                 if let Some(password) = redis.password.clone() {
-                    format!(":{}", password)
+                    format!(":{password}")
                 } else {
-                    "".into()
+                    String::new()
                 }
             )
         } else {
-            "".into()
+            String::new()
         },
         redis.host,
         redis.port.unwrap_or(6379)
-    ))
+    )
+}
+
+/// Initialize cache backend by config.
+pub fn cache(config: &Config) -> Result<cache::Cache, cache::CacheError> {
+    match config.cache.backend {
+        CacheBackend::Redis => {
+            let url = redis_url(&config.redis);
+            Ok(cache::Cache::Redis(cache::RedisCache::new(&url)?))
+        },
+        CacheBackend::Moka => Ok(cache::Cache::Moka(cache::MokaCache::new(
+            config.cache.moka.max_capacity,
+        ))),
+    }
 }

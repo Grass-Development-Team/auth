@@ -1,11 +1,13 @@
 mod common;
 
+mod cache;
 mod database;
 mod mail;
 mod redis;
 mod secure;
 mod site;
 
+pub use cache::*;
 pub use common::*;
 pub use database::*;
 pub use mail::*;

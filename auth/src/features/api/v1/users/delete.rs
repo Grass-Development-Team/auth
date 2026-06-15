@@ -24,30 +24,13 @@ pub async fn controller(
     jar: CookieJar,
     Json(req): Json<DeleteService>,
 ) -> (CookieJar, Response) {
-    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
-        Ok(redis) => redis,
-        Err(err) => {
-            return (
-                jar,
-                app_error_to_response(
-                    AppError::infra(
-                        AppErrorKind::InternalError,
-                        "users.controller.delete.redis",
-                        err,
-                    )
-                    .with_detail("Unable to connect to redis"),
-                ),
-            );
-        },
-    };
-
     let uid = login.user.0.uid;
 
     if let Err(err) = req.delete(&state.db, login.user.0).await {
         return (jar, app_error_to_response(err));
     }
 
-    if let Err(err) = SessionService::delete_all_by_uid(&mut redis, uid).await {
+    if let Err(err) = SessionService::delete_all_by_uid(&state.cache, uid).await {
         return (
             jar,
             app_error_to_response(AppError::infra(
@@ -68,25 +51,11 @@ pub async fn controller_by_uid(
     State(state): State<AppState>,
     Path(uid): Path<i32>,
 ) -> Response {
-    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
-        Ok(redis) => redis,
-        Err(err) => {
-            return app_error_to_response(
-                AppError::infra(
-                    AppErrorKind::InternalError,
-                    "users.controller.admin_delete.redis",
-                    err,
-                )
-                .with_detail("Unable to connect to redis"),
-            );
-        },
-    };
-
     let service = AdminDeleteService;
 
     match service.delete(&state.db, uid, login.level).await {
         Ok(()) => {
-            if let Err(err) = SessionService::delete_all_by_uid(&mut redis, uid).await {
+            if let Err(err) = SessionService::delete_all_by_uid(&state.cache, uid).await {
                 return app_error_to_response(AppError::infra(
                     AppErrorKind::InternalError,
                     "users.controller.admin_delete.delete_all_sessions",

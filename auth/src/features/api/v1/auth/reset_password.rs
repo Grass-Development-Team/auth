@@ -1,7 +1,6 @@
 use axum::extract::{Path, State};
 use axum_extra::extract::CookieJar;
 use crypto::password::PasswordManager;
-use redis::aio::MultiplexedConnection;
 use sea_orm::DatabaseConnection;
 use serde::Deserialize;
 use token::services::{PasswordResetTokenService, SessionService};
@@ -24,21 +23,7 @@ pub async fn controller_with_token(
     State(state): State<AppState>,
     Json(req): Json<ResetPasswordWithTokenService>,
 ) -> Response {
-    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
-        Ok(redis) => redis,
-        Err(err) => {
-            return app_error_to_response(
-                AppError::infra(
-                    AppErrorKind::InternalError,
-                    "auth.controller.reset_password_token.redis",
-                    err,
-                )
-                .with_detail("Unable to connect to redis"),
-            );
-        },
-    };
-
-    match req.reset_password(&state.db, &mut redis).await {
+    match req.reset_password(&state.db, &state.cache).await {
         Ok(()) => ResponseCode::OK.into(),
         Err(err) => app_error_to_response(err),
     }
@@ -50,25 +35,8 @@ pub async fn controller_with_password(
     jar: CookieJar,
     Json(req): Json<ResetPasswordWithPasswordService>,
 ) -> (CookieJar, Response) {
-    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
-        Ok(redis) => redis,
-        Err(err) => {
-            return (
-                jar,
-                app_error_to_response(
-                    AppError::infra(
-                        AppErrorKind::InternalError,
-                        "auth.controller.reset_password_password.redis",
-                        err,
-                    )
-                    .with_detail("Unable to connect to redis"),
-                ),
-            );
-        },
-    };
-
     let reset_res = req
-        .reset_password(&state.db, &mut redis, &login.user.0)
+        .reset_password(&state.db, &state.cache, &login.user.0)
         .await;
 
     match reset_res {
@@ -93,22 +61,8 @@ pub async fn controller_with_uid(
     Path(uid): Path<i32>,
     Json(req): Json<ResetPasswordWithUidService>,
 ) -> Response {
-    let mut redis = match state.redis.get_multiplexed_tokio_connection().await {
-        Ok(redis) => redis,
-        Err(err) => {
-            return app_error_to_response(
-                AppError::infra(
-                    AppErrorKind::InternalError,
-                    "auth.controller.reset_password_password.redis",
-                    err,
-                )
-                .with_detail("Unable to connect to redis"),
-            );
-        },
-    };
-
     if let Err(err) = req
-        .reset_password(&state.db, &mut redis, uid, login.level)
+        .reset_password(&state.db, &state.cache, uid, login.level)
         .await
     {
         return app_error_to_response(err);
@@ -143,7 +97,7 @@ impl ResetPasswordWithTokenService {
     pub async fn reset_password(
         &self,
         conn: &DatabaseConnection,
-        redis: &mut MultiplexedConnection,
+        cache: &cache::Cache,
     ) -> Result<(), AppError> {
         if self.token.is_empty() || self.new_password.is_empty() {
             return Err(AppError::biz(
@@ -160,7 +114,7 @@ impl ResetPasswordWithTokenService {
             .with_detail(err.to_string())
         })?;
 
-        let uid = PasswordResetTokenService::consume_uid(redis, &self.token)
+        let uid = PasswordResetTokenService::consume_uid(cache, &self.token)
             .await
             .map_err(|err| {
                 AppError::infra(
@@ -198,7 +152,7 @@ impl ResetPasswordWithTokenService {
             ));
         }
 
-        if let Err(err) = SessionService::delete_all_by_uid(redis, uid).await {
+        if let Err(err) = SessionService::delete_all_by_uid(cache, uid).await {
             return Err(AppError::infra(
                 AppErrorKind::InternalError,
                 "auth.reset_password.token.delete_all_sessions",
@@ -222,12 +176,12 @@ impl ResetPasswordWithPasswordService {
     pub async fn reset_password(
         &self,
         conn: &DatabaseConnection,
-        redis: &mut MultiplexedConnection,
+        cache: &cache::Cache,
         user: &users::Model,
     ) -> Result<(), ResetPasswordWithPasswordError> {
         if !user.check_password(self.old_password.clone()) {
             return Err(ResetPasswordWithPasswordError {
-                error: AppError::biz(
+                error:                   AppError::biz(
                     AppErrorKind::Unauthorized,
                     "auth.reset_password.password.verify_old_password",
                 )
@@ -238,7 +192,7 @@ impl ResetPasswordWithPasswordService {
 
         if self.old_password == self.new_password {
             return Err(ResetPasswordWithPasswordError {
-                error: AppError::biz(
+                error:                   AppError::biz(
                     AppErrorKind::DuplicatePassword,
                     "auth.reset_password.password.check_new_password",
                 ),
@@ -248,7 +202,7 @@ impl ResetPasswordWithPasswordService {
 
         PasswordManager::validate(&self.new_password).map_err(|err| {
             ResetPasswordWithPasswordError {
-                error: AppError::biz(
+                error:                   AppError::biz(
                     AppErrorKind::ParamError,
                     "auth.reset_password.password.validate_password",
                 )
@@ -257,9 +211,9 @@ impl ResetPasswordWithPasswordService {
             }
         })?;
 
-        if let Err(err) = SessionService::delete_all_by_uid(redis, user.uid).await {
+        if let Err(err) = SessionService::delete_all_by_uid(cache, user.uid).await {
             return Err(ResetPasswordWithPasswordError {
-                error: AppError::infra(
+                error:                   AppError::infra(
                     AppErrorKind::InternalError,
                     "auth.controller.reset_password_password.delete_all_sessions",
                     err,
@@ -270,7 +224,7 @@ impl ResetPasswordWithPasswordService {
 
         if let Err(err) = user.update_password(conn, self.new_password.clone()).await {
             return Err(ResetPasswordWithPasswordError {
-                error: AppError::infra(
+                error:                   AppError::infra(
                     AppErrorKind::InternalError,
                     "auth.reset_password.password.update_password",
                     err,
@@ -287,7 +241,7 @@ impl ResetPasswordWithUidService {
     pub async fn reset_password(
         &self,
         conn: &DatabaseConnection,
-        redis: &mut MultiplexedConnection,
+        cache: &cache::Cache,
         uid: i32,
         op_level: i32,
     ) -> Result<(), AppError> {
@@ -335,7 +289,7 @@ impl ResetPasswordWithUidService {
             .with_detail(err.to_string())
         })?;
 
-        if let Err(err) = SessionService::delete_all_by_uid(redis, uid).await {
+        if let Err(err) = SessionService::delete_all_by_uid(cache, uid).await {
             return Err(AppError::infra(
                 AppErrorKind::InternalError,
                 "auth.reset_password.uid.delete_all_sessions",

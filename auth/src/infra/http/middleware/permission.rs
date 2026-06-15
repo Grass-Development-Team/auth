@@ -60,10 +60,6 @@ where
             if let Some(_token) = bearer_token {
                 todo!("Check Token Permission")
             } else {
-                let Ok(mut redis) = state.redis.get_multiplexed_tokio_connection().await else {
-                    return Ok(ResponseCode::InternalError.into_response());
-                };
-
                 // Get session
                 let Some(session) = req
                     .headers()
@@ -78,7 +74,7 @@ where
                     return Ok(ResponseCode::Unauthorized.into_response());
                 };
 
-                let lookup = match SessionService::resolve(&mut redis, &session).await {
+                let lookup = match SessionService::resolve(&state.cache, &session).await {
                     Ok(lookup) => lookup,
                     Err(_) => return Ok(ResponseCode::InternalError.into_response()),
                 };
