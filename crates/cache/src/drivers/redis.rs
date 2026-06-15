@@ -9,6 +9,7 @@ use crate::{
 
 const MAX_TX_RETRIES: usize = 5;
 
+/// Errors specific to the Redis backend driver.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("redis pool error: {0}")]
@@ -19,13 +20,20 @@ pub enum Error {
     CreatePool(#[source] anyhow::Error),
 }
 
+/// Redis-backed cache using a [`deadpool_redis`] connection pool.
 pub struct RedisCache {
     pool: Pool,
 }
 
 impl RedisCache {
+    /// Maximum number of optimistic-lock retries for transactions.
     pub const MAX_TX_RETRIES: usize = MAX_TX_RETRIES;
 
+    /// Creates a new Redis cache from the given connection URL.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::CreatePool`] if the connection pool cannot be created.
     pub fn new(url: &str) -> Result<Self, Error> {
         let cfg = PoolConfig::from_url(url);
         let pool = cfg
@@ -106,6 +114,7 @@ impl RedisCache {
     }
 }
 
+/// Guard holding a dedicated connection for a Redis transaction.
 pub struct RedisTxGuard {
     conn: Mutex<deadpool_redis::Connection>,
 }

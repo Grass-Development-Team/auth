@@ -1,5 +1,6 @@
 pub use crate::drivers::{moka, redis};
 
+/// Errors produced by the cache layer.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("redis cache driver error: {0}")]
@@ -12,4 +13,5 @@ pub enum Error {
     Conflict,
 }
 
+/// Convenience alias for [`Error`].
 pub type CacheError = Error;

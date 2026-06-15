@@ -15,6 +15,7 @@ use crate::{
 
 const STRIPES: usize = 64;
 
+/// Errors specific to the Moka backend driver.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("moka backend error: {0}")]
@@ -50,12 +51,15 @@ impl Expiry<String, Entry> for EntryExpiry {
     }
 }
 
+/// In-process cache backed by [`moka`], suitable for single-instance
+/// deployments.
 pub struct MokaCache {
     map:     MokaMap<String, Entry>,
     stripes: Arc<Vec<Mutex<()>>>,
 }
 
 impl MokaCache {
+    /// Creates a new Moka cache limited to `max_capacity` entries.
     pub fn new(max_capacity: u64) -> Self {
         let map = MokaMap::builder()
             .max_capacity(max_capacity)
