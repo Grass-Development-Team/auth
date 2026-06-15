@@ -61,8 +61,9 @@ impl RegisterTokenService {
         let idx_key = Self::index_key(uid);
         let prefix = Self::PREFIX;
 
+        let watch = [idx_key.clone()];
         let lease = cache
-            .transaction(&[idx_key.clone()], move |tx| {
+            .transaction(&watch, move |tx| {
                 let (idx_key, email, new_token) =
                     (idx_key.clone(), email.clone(), new_token.clone());
                 Box::pin(async move {
@@ -111,8 +112,9 @@ impl RegisterTokenService {
         let decoded: RegisterToken = serde_json::from_str(&payload)?;
         let idx_key = Self::index_key(decoded.uid);
         let token = token.to_owned();
+        let watch = [idx_key.clone()];
         cache
-            .transaction(&[idx_key.clone()], move |tx| {
+            .transaction(&watch, move |tx| {
                 let (idx_key, token) = (idx_key.clone(), token.clone());
                 Box::pin(async move {
                     if tx.get(&idx_key).await?.as_deref() == Some(token.as_str()) {

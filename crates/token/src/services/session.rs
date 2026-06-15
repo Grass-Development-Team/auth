@@ -70,9 +70,10 @@ impl SessionService {
         let idx_key = index_key(uid);
         let sess_key = session_key(&session_id);
         let sid = session_id.clone();
+        let watch = [idx_key.clone()];
 
         cache
-            .transaction(&[idx_key.clone()], move |tx| {
+            .transaction(&watch, move |tx| {
                 let (idx_key, sess_key, payload, sid) = (
                     idx_key.clone(),
                     sess_key.clone(),
@@ -105,9 +106,10 @@ impl SessionService {
         let session: Session = serde_json::from_str(&payload)?;
         let idx_key = index_key(session.uid);
         let sid = session_id.to_owned();
+        let watch = [idx_key.clone()];
 
         cache
-            .transaction(&[idx_key.clone()], move |tx| {
+            .transaction(&watch, move |tx| {
                 let (idx_key, sess_key, sid) = (idx_key.clone(), sess_key.clone(), sid.clone());
                 Box::pin(async move {
                     let now = Utc::now().timestamp() as usize;
@@ -132,8 +134,9 @@ impl SessionService {
 
     pub async fn delete_all_by_uid(cache: &Cache, uid: i32) -> Result<(), TokenError> {
         let idx_key = index_key(uid);
+        let watch = [idx_key.clone()];
         cache
-            .transaction(&[idx_key.clone()], move |tx| {
+            .transaction(&watch, move |tx| {
                 let idx_key = idx_key.clone();
                 Box::pin(async move {
                     let index = parse_index(tx.get(&idx_key).await?, 0);
