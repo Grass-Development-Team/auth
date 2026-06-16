@@ -7,12 +7,12 @@ use serde::{Deserialize, Serialize};
 use validator::Validatable;
 
 use crate::{
-    domain::{
-        role,
-        user_info::{self, Gender},
-        user_settings, users,
-    },
+    domain::{role, users as users_domain},
     infra::{
+        database::entity::{
+            user_info::{self, Gender},
+            user_settings as user_settings_entity, users,
+        },
         error::{AppError, AppErrorKind},
         http::{
             extractor::{Json, LoginAccess, OperatorAccess},
@@ -79,7 +79,7 @@ impl UpdateService {
         conn: &DatabaseConnection,
         user: users::Model,
         info: user_info::Model,
-        settings: user_settings::Model,
+        settings: user_settings_entity::Model,
     ) -> Result<(), AppError> {
         if user.status.is_inactive() {
             return Err(AppError::biz(
@@ -186,7 +186,7 @@ impl UpdateService {
         uid: i32,
         op_level: i32,
     ) -> Result<(), AppError> {
-        let Ok(user) = users::get_user_by_id(conn, uid).await else {
+        let Ok(user) = users_domain::get_user_by_id(conn, uid).await else {
             return Err(AppError::biz(
                 AppErrorKind::UserNotFound,
                 "users.update_by_uid.find_user",

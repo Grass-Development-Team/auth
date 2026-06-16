@@ -3,14 +3,17 @@ use axum_extra::extract::CookieJar;
 use token::services::{SessionLookup, SessionService};
 
 use crate::{
-    domain::{role, user_info, user_settings, users},
-    infra::http::serializer::ResponseCode,
+    domain::{role, users},
+    infra::{
+        database::entity::{user_info, user_settings, users as users_entity},
+        http::serializer::ResponseCode,
+    },
     state::AppState,
 };
 
 pub struct LoginAccess {
     pub session: String,
-    pub user:    (users::Model, user_info::Model, user_settings::Model),
+    pub user:    (users_entity::Model, user_info::Model, user_settings::Model),
     pub level:   i32,
 }
 

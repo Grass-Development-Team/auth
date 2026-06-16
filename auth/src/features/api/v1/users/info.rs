@@ -3,11 +3,12 @@ use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    domain::{
-        user_info::{self, Gender},
-        user_settings, users,
-    },
+    domain::users,
     infra::{
+        database::entity::{
+            user_info::{self, Gender},
+            user_settings, users as users_entity,
+        },
         error::{AppError, AppErrorKind},
         http::{
             extractor::{LoginAccess, OperatorAccess},
@@ -68,10 +69,10 @@ impl InfoService {
     pub async fn info(
         &self,
         conn: &DatabaseConnection,
-        user: users::Model,
+        user: users_entity::Model,
         info: user_info::Model,
         settings: user_settings::Model,
-        op: Option<users::Model>,
+        op: Option<users_entity::Model>,
     ) -> Result<InfoResponse, AppError> {
         let is_self = op.is_none();
         let read_all_permission = if let Some(op) = &op {
@@ -110,7 +111,7 @@ impl InfoService {
         &self,
         conn: &DatabaseConnection,
         uid: i32,
-        op: users::Model,
+        op: users_entity::Model,
     ) -> Result<InfoResponse, AppError> {
         let Ok((user, info, settings)) = users::get_user_by_id(conn, uid).await else {
             return Err(AppError::biz(

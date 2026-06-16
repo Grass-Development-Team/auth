@@ -13,7 +13,7 @@ use crate::{
     domain::users,
     infra::{
         config::Config,
-        database::ModelError,
+        database::{ModelError, entity::users::AccountStatus},
         error::{AppError, AppErrorKind},
         http::{
             extractor::{GuestAccess, Json},
@@ -130,9 +130,9 @@ impl RegisterService {
 
         // Check if mail service is enabled
         let status = if mailer.is_some() {
-            users::AccountStatus::Inactive
+            AccountStatus::Inactive
         } else {
-            users::AccountStatus::Active
+            AccountStatus::Active
         };
 
         let res: Result<_, TransactionError<ModelError>> = conn

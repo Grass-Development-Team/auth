@@ -9,6 +9,7 @@ use crate::{
     features::actions::reset_password::ActionsResetPasswordService,
     infra::{
         config::Config,
+        database::entity::users::AccountStatus,
         error::{AppError, AppErrorKind},
         http::{
             extractor::Json,
@@ -71,7 +72,7 @@ impl ForgetPasswordService {
             ));
         };
 
-        if user.0.status != users::AccountStatus::Active {
+        if user.0.status != AccountStatus::Active {
             return Err(AppError::biz(
                 AppErrorKind::UserNotActivated,
                 "auth.forget_password.check_user_status",

@@ -6,15 +6,21 @@ use tracing::{info, log};
 use uuid::Uuid;
 
 use crate::{
-    domain::{
-        permission::{ActiveModel as PermissionActiveModel, Entity as Permission},
-        role::{ActiveModel as RoleActiveModel, Entity as Role},
-        role_permissions::{ActiveModel as RolePermissionActiveModel, Entity as RolePermission},
-        users::{self, AccountStatus},
-    },
+    domain::users as users_domain,
     infra::{
         config::Database as DatabaseType,
-        database::{ModelError, migration::Migrator},
+        database::{
+            ModelError,
+            entity::{
+                permission::{ActiveModel as PermissionActiveModel, Entity as Permission},
+                role::{ActiveModel as RoleActiveModel, Entity as Role},
+                role_permissions::{
+                    ActiveModel as RolePermissionActiveModel, Entity as RolePermission,
+                },
+                users::AccountStatus,
+            },
+            migration::Migrator,
+        },
         utils,
     },
 };
@@ -96,7 +102,7 @@ async fn init_permissions(db: &DatabaseConnection) -> Result<(), ModelError> {
         .all(db)
         .await?
         .into_iter()
-        .map(|p| p.name)
+        .map(|permission| permission.name)
         .collect();
 
     let existing_set: std::collections::HashSet<String> = existing.into_iter().collect();
@@ -166,7 +172,7 @@ async fn init_roles(db: &DatabaseConnection) -> Result<(), ModelError> {
 }
 
 async fn init_super_admin(db: &DatabaseConnection) -> Result<(), ModelError> {
-    if let Ok(user) = users::get_user_by_role(db, "super_admin").await
+    if let Ok(user) = users_domain::get_user_by_role(db, "super_admin").await
         && !user.is_empty()
     {
         return Ok(());
@@ -183,9 +189,9 @@ async fn init_super_admin(db: &DatabaseConnection) -> Result<(), ModelError> {
 
     db.transaction(|txn| {
         Box::pin(async move {
-            users::create_user(
+            users_domain::create_user(
                 txn,
-                users::CreateUserParams {
+                users_domain::CreateUserParams {
                     username: "root".into(),
                     email: "admin@local.email".into(),
                     password,

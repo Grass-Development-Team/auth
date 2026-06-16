@@ -7,6 +7,7 @@ use token::services::SessionService;
 use crate::{
     domain::{permission, role, users},
     infra::{
+        database::entity::users as users_entity,
         error::{AppError, AppErrorKind},
         http::{
             extractor::{Json, LoginAccess, OperatorAccess},
@@ -79,7 +80,7 @@ impl DeleteService {
     pub async fn delete(
         &self,
         conn: &DatabaseConnection,
-        user: users::Model,
+        user: users_entity::Model,
     ) -> Result<(), AppError> {
         if user.check_permission(conn, "user:undeletable").await {
             return Err(AppError::biz(

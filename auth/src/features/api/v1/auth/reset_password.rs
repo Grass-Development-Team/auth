@@ -8,6 +8,7 @@ use token::services::{PasswordResetTokenService, SessionService};
 use crate::{
     domain::{role, users},
     infra::{
+        database::entity::users as users_entity,
         error::{AppError, AppErrorKind},
         http::{
             extractor::{Json, LoginAccess, OperatorAccess},
@@ -177,7 +178,7 @@ impl ResetPasswordWithPasswordService {
         &self,
         conn: &DatabaseConnection,
         cache: &cache::Cache,
-        user: &users::Model,
+        user: &users_entity::Model,
     ) -> Result<(), ResetPasswordWithPasswordError> {
         if !user.check_password(self.old_password.clone()) {
             return Err(ResetPasswordWithPasswordError {

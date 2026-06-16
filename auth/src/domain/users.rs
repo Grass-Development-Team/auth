@@ -1,79 +1,25 @@
 use crypto::password::PasswordManager;
 use sea_orm::{ActiveValue::Set, IntoActiveModel, JoinType, QuerySelect, entity::prelude::*};
-use serde::{Deserialize, Serialize};
+use users::{AccountStatus, ActiveModel, Column, Entity, Model};
 
 use crate::{
-    domain::{permission, role, user_info, user_role, user_settings},
-    infra::database::ModelError::{self, DBError, Empty, ParamsError},
+    domain::{permission, role, user_settings},
+    infra::database::{
+        ModelError::{self, DBError, Empty, ParamsError},
+        entity::{
+            role as role_entity, user_info, user_role, user_settings as user_settings_entity, users,
+        },
+    },
 };
-
-/// Status of the Account
-/// - Inactive (0): User haven't active the account through link send to email
-/// - Active (1): Active account
-/// - Banned (2): Account banned by admin
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
-#[sea_orm(rs_type = "i32", db_type = "Integer")]
-pub enum AccountStatus {
-    Inactive = 0,
-    Active   = 1,
-    Banned   = 2,
-    Deleted  = 3,
-}
-
-/// # Users Model
-#[derive(Debug, Clone, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "users")]
-pub struct Model {
-    #[sea_orm(primary_key, auto_increment = true)]
-    pub uid:        i32,
-    pub email:      String,
-    pub username:   String,
-    pub password:   String,
-    pub nickname:   String,
-    pub status:     AccountStatus,
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
-    pub deleted_at: Option<DateTimeUtc>,
-}
-
-#[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]
-pub enum Relation {
-    #[sea_orm(has_one = "super::user_info::Entity", on_delete = "Cascade")]
-    Info,
-    #[sea_orm(has_one = "super::user_settings::Entity", on_delete = "Cascade")]
-    Settings,
-    #[sea_orm(has_many = "super::user_role::Entity", on_delete = "Cascade")]
-    Roles,
-}
-
-impl Related<super::user_info::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Info.def()
-    }
-}
-
-impl Related<super::user_role::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Roles.def()
-    }
-}
-
-impl Related<super::user_settings::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Settings.def()
-    }
-}
-
-impl ActiveModelBehavior for ActiveModel {}
 
 /// Get user model by email
 pub async fn get_user_by_email(
     conn: &impl ConnectionTrait,
     email: &str,
-) -> Result<(Model, super::user_info::Model, super::user_settings::Model), ModelError> {
+) -> Result<(Model, user_info::Model, user_settings_entity::Model), ModelError> {
     let res = Entity::find()
-        .find_also_related(super::user_info::Entity)
-        .find_also_related(super::user_settings::Entity)
+        .find_also_related(user_info::Entity)
+        .find_also_related(user_settings_entity::Entity)
         .filter(Column::Email.eq(email))
         .limit(1)
         .all(conn)
@@ -109,10 +55,10 @@ pub async fn get_user_by_email(
 pub async fn get_user_by_username(
     conn: &impl ConnectionTrait,
     username: &str,
-) -> Result<(Model, super::user_info::Model, super::user_settings::Model), ModelError> {
+) -> Result<(Model, user_info::Model, user_settings_entity::Model), ModelError> {
     let res = Entity::find()
-        .find_also_related(super::user_info::Entity)
-        .find_also_related(super::user_settings::Entity)
+        .find_also_related(user_info::Entity)
+        .find_also_related(user_settings_entity::Entity)
         .filter(Column::Username.eq(username))
         .limit(1)
         .all(conn)
@@ -148,10 +94,10 @@ pub async fn get_user_by_username(
 pub async fn get_user_by_id(
     conn: &impl ConnectionTrait,
     id: i32,
-) -> Result<(Model, super::user_info::Model, super::user_settings::Model), ModelError> {
+) -> Result<(Model, user_info::Model, user_settings_entity::Model), ModelError> {
     let res = Entity::find()
-        .find_also_related(super::user_info::Entity)
-        .find_also_related(super::user_settings::Entity)
+        .find_also_related(user_info::Entity)
+        .find_also_related(user_settings_entity::Entity)
         .filter(Column::Uid.eq(id))
         .limit(1)
         .all(conn)
@@ -187,13 +133,13 @@ pub async fn get_user_by_id(
 pub async fn get_user_by_role(
     conn: &impl ConnectionTrait,
     role: &str,
-) -> Result<Vec<(Model, super::user_info::Model, super::user_settings::Model)>, ModelError> {
+) -> Result<Vec<(Model, user_info::Model, user_settings_entity::Model)>, ModelError> {
     let res = Entity::find()
-        .find_also_related(super::user_info::Entity)
-        .find_also_related(super::user_settings::Entity)
-        .join(JoinType::InnerJoin, Relation::Roles.def())
-        .join(JoinType::InnerJoin, super::user_role::Relation::Role.def())
-        .filter(super::role::Column::Name.eq(role))
+        .find_also_related(user_info::Entity)
+        .find_also_related(user_settings_entity::Entity)
+        .join(JoinType::InnerJoin, users::Relation::Roles.def())
+        .join(JoinType::InnerJoin, user_role::Relation::Role.def())
+        .filter(role_entity::Column::Name.eq(role))
         .all(conn)
         .await
         .map_err(DBError)?;

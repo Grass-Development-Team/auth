@@ -6,6 +6,7 @@ use token::{TokenStore, services::RegisterTokenService};
 use crate::{
     domain::users,
     infra::{
+        database::entity::users::AccountStatus,
         error::{AppError, AppErrorKind},
         http::{
             extractor::Json,
@@ -64,10 +65,10 @@ impl VerifyEmailService {
         }
 
         if user.status.is_inactive() {
-            user.update_status(conn, users::AccountStatus::Active)
+            user.update_status(conn, AccountStatus::Active)
                 .await
                 .map_err(|err| AppError::from(err).with_op("auth.verify_email.update_status"))?;
-        } else if !matches!(user.status, users::AccountStatus::Active) {
+        } else if !matches!(user.status, AccountStatus::Active) {
             return Err(AppError::biz(
                 AppErrorKind::TokenInvalid,
                 "auth.verify_email.validate_status",

@@ -1,48 +1,22 @@
 use sea_orm::{JoinType, QuerySelect, entity::prelude::*};
-use serde::{Deserialize, Serialize};
 
-use crate::infra::database::ModelError;
-
-/// # Permission Model
-#[derive(Debug, Clone, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "permission")]
-pub struct Model {
-    #[sea_orm(primary_key, column_type = "Uuid")]
-    pub id:          Uuid,
-    pub name:        String,
-    pub description: String,
-    pub system:      bool,
-    pub created_at:  DateTimeUtc,
-    pub updated_at:  DateTimeUtc,
-    pub deleted_at:  Option<DateTimeUtc>,
-}
-
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-    #[sea_orm(has_many = "super::role_permissions::Entity")]
-    RolePermissions,
-}
-
-impl Related<super::role_permissions::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::RolePermissions.def()
-    }
-}
-
-impl ActiveModelBehavior for ActiveModel {}
+use crate::infra::database::{
+    ModelError,
+    entity::{permission, role, role_permissions, user_role},
+};
 
 pub async fn get_permissions_by_uid(
     db: &impl ConnectionTrait,
     uid: i32,
 ) -> Result<Vec<String>, ModelError> {
-    let permissions = Entity::find()
-        .join(JoinType::InnerJoin, Relation::RolePermissions.def())
+    let permissions = permission::Entity::find()
         .join(
             JoinType::InnerJoin,
-            super::role_permissions::Relation::Role.def(),
+            permission::Relation::RolePermissions.def(),
         )
-        .join(JoinType::InnerJoin, super::role::Relation::UserRole.def())
-        .filter(super::user_role::Column::UserId.eq(uid))
+        .join(JoinType::InnerJoin, role_permissions::Relation::Role.def())
+        .join(JoinType::InnerJoin, role::Relation::UserRole.def())
+        .filter(user_role::Column::UserId.eq(uid))
         .all(db)
         .await
         .map_err(ModelError::DBError)?;

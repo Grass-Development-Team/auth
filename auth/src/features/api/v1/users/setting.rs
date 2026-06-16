@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     domain::user_settings,
     infra::{
-        database::ModelError,
+        database::{ModelError, entity::user_settings as user_settings_entity},
         error::{AppError, AppErrorKind},
         http::{
             extractor::{LoginAccess, OperatorAccess},
@@ -49,8 +49,8 @@ pub struct SettingResponse {
     pub timezone:           Option<String>,
 }
 
-impl From<user_settings::Model> for SettingResponse {
-    fn from(value: user_settings::Model) -> Self {
+impl From<user_settings_entity::Model> for SettingResponse {
+    fn from(value: user_settings_entity::Model) -> Self {
         Self {
             uid:                value.uid,
             show_email:         value.show_email,
@@ -66,7 +66,7 @@ impl From<user_settings::Model> for SettingResponse {
 pub struct SettingService;
 
 impl SettingService {
-    pub fn setting(&self, settings: user_settings::Model) -> SettingResponse {
+    pub fn setting(&self, settings: user_settings_entity::Model) -> SettingResponse {
         settings.into()
     }
 
